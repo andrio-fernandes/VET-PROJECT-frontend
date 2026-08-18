@@ -1,0 +1,325 @@
+*,
+html,
+body {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =============================================
+   AUTH PAGES (login, register, forgot, otp, reset)
+============================================= */
+
+.auth-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #54b226 0%, #3d8d1f 100%);
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 24px;
+}
+
+.auth-card-title {
+  text-align: center;
+  margin-bottom: 10px !important;
+}
+
+.auth-card-description {
+  display: block;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.auth-link {
+  font-weight: bold;
+}
+
+/* Register split layout */
+
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  background-color: #54b226;
+}
+
+.register-left-panel {
+  width: 48%;
+  background-color: #ffffff;
+  border-top-right-radius: 160px;
+  border-bottom-right-radius: 160px;
+  padding: 60px 5% 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.register-left-content {
+  text-align: center;
+  max-width: 380px;
+}
+
+.register-title {
+  margin-bottom: 12px !important;
+  color: #000000;
+  font-weight: bold;
+  text-align: center;
+}
+
+.register-description {
+  color: #555555;
+  font-size: 14px;
+  margin-bottom: 20px !important;
+  text-align: center;
+}
+
+.register-image-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.register-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  display: block;
+}
+
+.register-right-panel {
+  width: 52%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 10%;
+}
+
+.register-form-wrapper {
+  width: 100%;
+  max-width: 380px;
+}
+
+.register-form-item {
+  margin-bottom: 16px;
+}
+
+.register-label {
+  color: #fff;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.register-input.ant-input,
+.register-input.ant-input-affix-wrapper,
+.register-input.ant-input-affix-wrapper input {
+  border-radius: 20px;
+  height: 42px;
+}
+
+.register-input.ant-input-password .ant-input {
+  height: 100%;
+}
+
+.register-extra {
+  color: #d9f7be;
+}
+
+.register-submit-item {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.register-submit-button {
+  background-color: #cccccc;
+  color: #666666;
+  border-radius: 20px;
+  height: 42px;
+  font-weight: bold;
+}
+
+.register-submit-button-valid {
+  background-color: #ffffff;
+  color: #54b226;
+}
+
+.register-login-row {
+  text-align: center;
+  color: #ffffff;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.register-login-link {
+  color: #ffffff;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* =============================================
+   LOGIN
+============================================= */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #54b226;
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+  padding: 40px 30px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.login-card-mobile {
+  padding: 30px 20px;
+  margin: 0 10px;
+}
+
+.login-label {
+  color: #54b226;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.login-username-item {
+  margin-bottom: 24px;
+}
+
+.login-password-item {
+  margin-bottom: 8px;
+}
+
+.login-input.ant-input,
+.login-input.ant-input-affix-wrapper,
+.login-input.ant-input-affix-wrapper input {
+  border-radius: 20px;
+  height: 42px;
+}
+
+.login-input.ant-input-password .ant-input {
+  height: 100%;
+}
+
+.login-forgot-row {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-forgot-link {
+  color: #54b226;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.login-submit-item {
+  margin-bottom: 12px;
+}
+
+.login-submit-button {
+  border-radius: 20px;
+  height: 42px;
+  font-weight: bold;
+}
+
+.login-register-row {
+  margin-top: 15px;
+  font-size: 13px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  color: #333333;
+}
+
+.login-register-link {
+  color: #54b226;
+  font-weight: bold;
+}
+
+/* =============================================
+   OTP
+============================================= */
+
+.otp-inputs .ant-input {
+  width: 54px;
+  height: 54px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  border-radius: 14px;
+}
+
+.otp-timer {
+  display: block;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.otp-resend-button {
+  margin-top: 18px;
+}
+
+/* =============================================
+   RESET PASSWORD
+============================================= */
+
+.reset-confirm-form-item {
+  margin-bottom: 0;
+}
+
+/* =============================================
+   PASSWORD STRENGTH
+============================================= */
+
+.password-strength {
+  margin-top: 6px;
+}
+
+.strength-passed {
+  color: #2dce89;
+}
+
+.strength-failed {
+  color: #ff4d4f;
+}
+
+.strength-pending {
+  color: #ff4d4f;
+}
+
+.strength-met {
+  color: #2dce89;
+}
+
+/* Register page: pending requirements stay red, validated ones turn black. */
+.register-page .strength-met {
+  color: #000000;
+}
+
