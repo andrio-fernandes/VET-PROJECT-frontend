@@ -6,8 +6,8 @@ export const emailRules: Rule[] = [
     message: "Please enter your email address.",
   },
   {
-    pattern: /^[a-zA-Z0-9._%+-]+@gmail\.com$/,
-    message: "Please enter a valid Gmail address.",
+    type: "email",
+    message: "Please enter a valid email address.",
   },
   {
     max: 254,

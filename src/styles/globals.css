@@ -146,6 +146,19 @@ a {
   color: #d9f7be;
 }
 
+.register-username-reset.ant-btn-link {
+  padding: 0 4px;
+  height: auto;
+  font-size: inherit;
+  color: #d9f7be;
+  text-decoration: underline;
+}
+
+.register-username-reset.ant-btn-link:hover,
+.register-username-reset.ant-btn-link:focus {
+  color: #ffffff;
+}
+
 .register-submit-item {
   margin-top: 24px;
   margin-bottom: 12px;

@@ -68,7 +68,7 @@ export default function LoginPage() {
             rules={[
               { required: true, message: 'Username cannot be empty!' },
               { min: 4, message: 'Username must be at least 4 characters!' },
-              { max: 20, message: 'Username cannot exceed 20 characters!' },
+              { max: 30, message: 'Username cannot exceed 30 characters!' },
               { pattern: /^[a-z0-9_]+$/, message: 'Only lowercase letters (a-z), numbers (0-9), and underscores allowed!' },
               {
                 validator(_, value) {

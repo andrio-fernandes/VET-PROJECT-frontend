@@ -16,7 +16,6 @@ export default function RegisterPage() {
   const { message } = AntApp.useApp();
 
   const [loading, setLoading] = useState(false);
-  const [isManualUsername, setIsManualUsername] = useState(false);
 
   const formValues = Form.useWatch([], form);
 
@@ -32,21 +31,35 @@ export default function RegisterPage() {
     if (e.key === ' ') e.preventDefault();
   };
 
+  const MAX_USERNAME_LENGTH = 30;
+  const SUFFIX_LENGTH = 3;
+
   const generateUsername = (fullName: string) => {
-    const base = fullName
+    const clean = fullName
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
+      .replace(/[^a-z0-9_]/g, '')
+      .replace(/_{2,}/g, '_');
 
-    const random = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+    const base = clean
+      .slice(0, MAX_USERNAME_LENGTH - SUFFIX_LENGTH - 1)
+      .replace(/_+$/g, '');
+
+    const random = Math.floor(Math.random() * 10 ** SUFFIX_LENGTH)
+      .toString()
+      .padStart(SUFFIX_LENGTH, '0');
 
     return base ? `${base}_${random}` : '';
   };
 
   const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isManualUsername) {
-      form.setFieldValue('username', generateUsername(e.target.value));
+    form.setFieldValue('username', generateUsername(e.target.value));
+  };
+
+  const handleResetUsername = () => {
+    if (formValues?.fullName?.trim()) {
+      form.setFieldValue('username', generateUsername(formValues.fullName));
     }
   };
 
@@ -153,13 +166,27 @@ export default function RegisterPage() {
                   },
                 },
               ]}
-              extra={<span className="register-extra">Auto-generated from your full name. You can change it anytime.</span>}
+              extra={
+                <span className="register-extra">
+                  Auto-generated from your full name.
+                  {formValues?.fullName?.trim() ? (
+                    <Button
+                      type="link"
+                      size="small"
+                      className="register-username-reset"
+                      onClick={handleResetUsername}
+                    >
+                      Regenerate
+                    </Button>
+                  ) : null}
+                </span>
+              }
             >
               <Input
                 placeholder="Enter your username"
                 className="pill-input"
+                readOnly
                 onKeyDown={preventSpaces}
-                onChange={() => setIsManualUsername(true)}
               />
             </Form.Item>
 
