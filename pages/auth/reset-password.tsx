@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { Button, Card, Flex, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 
 import { api } from "@/services/api";
 import { passwordRules } from "@/utils/validation";
-import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, STORAGE_KEYS, TOKEN_KEY } from "@/utils/constant";
+import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, STORAGE_KEYS, TOKEN_KEY, USER_KEY } from "@/utils/constant";
 import PasswordStrength from "@/components/password-strength";
 
 const { Title, Text } = Typography;
+
+const emptySubscribe = () => () => {};
 
 interface ResetPasswordFormValues {
   password: string;
@@ -22,15 +24,24 @@ export default function ResetPasswordPage() {
   const { message } = AntApp.useApp();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const email = sessionStorage.getItem(STORAGE_KEYS.resetEmail);
-    const otp = sessionStorage.getItem(STORAGE_KEYS.resetOtp);
+  const canAccess = useSyncExternalStore(
+    emptySubscribe,
+    () =>
+      Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)) &&
+      Boolean(sessionStorage.getItem(STORAGE_KEYS.resetOtp)),
+    () => false,
+  );
 
-    if (!email || !otp) {
-      message.error("Session expired. Please start over from Forgot Password.");
+  const preventSpaces = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === " ") e.preventDefault();
+  };
+
+  useEffect(() => {
+    if (!canAccess) {
       router.replace(ROUTE_PATHS.forgotPassword);
+      message.error("Session expired. Please start over from Forgot Password.");
     }
-  }, [router, message]);
+  }, [canAccess, router, message]);
 
   const onFinish = async (values: ResetPasswordFormValues) => {
     const email = sessionStorage.getItem(STORAGE_KEYS.resetEmail);
@@ -51,7 +62,12 @@ export default function ResetPasswordPage() {
 
       sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtp);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
       Cookies.remove(AUTH_TOKEN_KEY);
       message.success("Password reset successful!");
       setTimeout(() => router.push(ROUTE_PATHS.login), 600);
@@ -61,6 +77,10 @@ export default function ResetPasswordPage() {
       setLoading(false);
     }
   };
+
+  if (!canAccess) {
+    return null;
+  }
 
   return (
     <Flex justify="center" align="center" className="auth-page">
@@ -76,7 +96,7 @@ export default function ResetPasswordPage() {
             rules={passwordRules}
             extra={<PasswordStrength password={password || ""} />}
           >
-            <Input.Password size="large" placeholder="Enter new password" />
+            <Input.Password size="large" placeholder="Enter new password" onKeyDown={preventSpaces} />
           </Form.Item>
 
           <Form.Item
@@ -98,7 +118,7 @@ export default function ResetPasswordPage() {
               }),
             ]}
           >
-            <Input.Password size="large" placeholder="Confirm password" />
+            <Input.Password size="large" placeholder="Confirm password" onKeyDown={preventSpaces} />
           </Form.Item>
 
           <Form.Item className="reset-confirm-form-item">

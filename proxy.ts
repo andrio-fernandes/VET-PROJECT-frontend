@@ -9,7 +9,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  if ((pathname === '/auth/login' || pathname === '/auth/register') && userToken) {
+  const authPages = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/otp',
+    '/auth/reset-password',
+  ];
+
+  if (authPages.includes(pathname) && userToken) {
     return NextResponse.redirect(new URL('/user-dashboard', request.url));
   }
 
@@ -17,5 +25,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/user-dashboard', '/auth/login', '/auth/register'],
+  matcher: [
+    '/user-dashboard',
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/otp',
+    '/auth/reset-password',
+  ],
 };

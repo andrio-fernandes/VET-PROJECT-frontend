@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import { api } from '@/services/api';
-import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, TOKEN_KEY } from '@/utils/constant';
+import { API_ENDPOINTS, AUTH_TOKEN_KEY, getTokenExpiry, ROUTE_PATHS, TOKEN_KEY, USER_KEY } from '@/utils/constant';
 
 const { useBreakpoint } = Grid;
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const payload = {
-        username: values.username.toLowerCase().trim(),
+        username: values.username.trim(),
         password: values.password,
       };
 
@@ -36,9 +36,13 @@ export default function LoginPage() {
       });
 
       const token = data.data?.token;
+      const user = data.data?.user;
       if (token) {
         localStorage.setItem(TOKEN_KEY, token);
-        Cookies.set(AUTH_TOKEN_KEY, token, { expires: 1 });
+        Cookies.set(AUTH_TOKEN_KEY, token, { expires: getTokenExpiry(token) });
+      }
+      if (user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
       }
 
       message.success('Logged in successfully!');
@@ -63,22 +67,33 @@ export default function LoginPage() {
         >
           <Form.Item
             name="username"
-            label={<span className="login-label">Username</span>}
+            label={<span className="login-label">Username/Email</span>}
             validateFirst
             rules={[
-              { required: true, message: 'Username cannot be empty!' },
-              { min: 4, message: 'Username must be at least 4 characters!' },
-              { max: 30, message: 'Username cannot exceed 30 characters!' },
-              { pattern: /^[a-z0-9_]+$/, message: 'Only lowercase letters (a-z), numbers (0-9), and underscores allowed!' },
+              { required: true, message: 'Username or email cannot be empty!' },
+              { max: 254, message: 'Cannot exceed 254 characters!' },
               {
                 validator(_, value) {
-                  if (value && value.includes('__')) return Promise.reject(new Error('Consecutive underscores are not allowed!'));
+                  const inputValue = (value || '').trim();
+                  if (!inputValue) return Promise.resolve();
+                  if (inputValue.includes('@')) {
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputValue)) {
+                      return Promise.reject(new Error('Enter a valid email syntax (e.g. name@domain.com)!'));
+                    }
+                    return Promise.resolve();
+                  }
+                  if (inputValue.length < 4) return Promise.reject(new Error('Username must be at least 4 characters!'));
+                  if (inputValue.length > 30) return Promise.reject(new Error('Username cannot exceed 30 characters!'));
+                  if (!/^[a-zA-Z0-9_]+$/.test(inputValue)) {
+                    return Promise.reject(new Error('Only letters (a-z, A-Z), numbers (0-9), and underscores allowed!'));
+                  }
+                  if (inputValue.includes('__')) return Promise.reject(new Error('Consecutive underscores are not allowed!'));
                   return Promise.resolve();
                 },
               },
             ]}
           >
-            <Input placeholder="Enter your username" className="pill-input" onKeyDown={preventSpaces} />
+            <Input placeholder="Enter your username or email" className="pill-input" onKeyDown={preventSpaces} />
           </Form.Item>
 
           <Form.Item

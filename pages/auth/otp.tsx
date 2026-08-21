@@ -1,11 +1,13 @@
 import { App, Button, Card, Flex, Input, Typography } from "antd";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ClipboardEvent, type KeyboardEvent } from "react";
 
 import { api } from "@/services/api";
-import { API_ENDPOINTS, MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { API_ENDPOINTS, MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
 
 const { Text } = Typography;
+
+const emptySubscribe = () => () => {};
 
 export default function OtpVerificationPage() {
   const router = useRouter();
@@ -13,12 +15,30 @@ export default function OtpVerificationPage() {
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [timeLeft, setTimeLeft] = useState<number>(OTP_EXPIRY_SECONDS);
-  const [attempts, setAttempts] = useState<number>(0);
+  const [attempts, setAttempts] = useState<number>(() => {
+    if (typeof window === "undefined") {
+      return 0;
+    }
+    return Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpVerifyAttempts)) || 0;
+  });
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isResending, setIsResending] = useState<boolean>(false);
 
+  const canAccess = useSyncExternalStore(
+    emptySubscribe,
+    () => Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)),
+    () => false,
+  );
+
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const lastSubmitTime = useRef<number>(0);
+
+  useEffect(() => {
+    if (!canAccess) {
+      router.replace(ROUTE_PATHS.forgotPassword);
+      message.error("Session expired. Please start over from Forgot Password.");
+    }
+  }, [canAccess, router, message]);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -37,6 +57,22 @@ export default function OtpVerificationPage() {
 
     return () => clearInterval(timer);
   }, [timeLeft]);
+
+  // Align the countdown with the actual send time so refreshing the page does
+  // not restart the timer while the server-side OTP is already older.
+  useEffect(() => {
+    const sentAt = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpSentAt));
+    if (!sentAt) {
+      return;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - sentAt) / 1000);
+    const correctedTimeLeft = Math.max(OTP_EXPIRY_SECONDS - elapsedSeconds, 0);
+
+    // Applied asynchronously so no setState runs directly in the effect body.
+    const alignment = setTimeout(() => setTimeLeft(correctedTimeLeft), 0);
+    return () => clearTimeout(alignment);
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -141,18 +177,28 @@ export default function OtpVerificationPage() {
       });
 
       sessionStorage.setItem(STORAGE_KEYS.resetOtp, otpValue);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       message.success("OTP verified successfully.");
       router.push(ROUTE_PATHS.resetPassword);
     } catch (error: any) {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
+      // Only the server knows the real attempt count, so sync from its
+      // "remaining" value and never guess locally when it is absent.
+      let currentAttempts = attempts;
+      if (typeof error?.remaining === "number") {
+        currentAttempts = Math.max(MAX_OTP_ATTEMPTS - error.remaining, 0);
+        setAttempts(currentAttempts);
+        sessionStorage.setItem(
+          STORAGE_KEYS.resetOtpVerifyAttempts,
+          String(currentAttempts)
+        );
+      }
       setOtp(Array(OTP_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
 
-      if (newAttempts >= MAX_OTP_ATTEMPTS) {
+      if (currentAttempts >= MAX_OTP_ATTEMPTS) {
         message.error("Maximum attempts reached. Verification is blocked.");
       } else {
-        const remaining = MAX_OTP_ATTEMPTS - newAttempts;
+        const remaining = MAX_OTP_ATTEMPTS - currentAttempts;
         message.error(error.message || `Incorrect OTP. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`);
       }
     } finally {
@@ -176,7 +222,7 @@ export default function OtpVerificationPage() {
     setIsResending(true);
 
     try {
-      await api(API_ENDPOINTS.forgotPassword, {
+      const data = await api(API_ENDPOINTS.forgotPassword, {
         method: "POST",
         body: JSON.stringify({ email }),
       });
@@ -184,7 +230,27 @@ export default function OtpVerificationPage() {
       setOtp(Array(OTP_LENGTH).fill(""));
       setTimeLeft(OTP_EXPIRY_SECONDS);
       setAttempts(0);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       inputRefs.current[0]?.focus();
+
+      // The server is the source of truth for how many send requests were
+      // consumed. Fall back to the local mirror only when it does not report.
+      const now = Date.now();
+      const windowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart));
+      const withinRequestWindow =
+        windowStart > 0 && now - windowStart < OTP_REQUEST_WINDOW_SECONDS * 1000;
+      const sendAttempts =
+        typeof data?.otpRequestsRemaining === "number"
+          ? Math.max(MAX_OTP_ATTEMPTS - data.otpRequestsRemaining, 0)
+          : withinRequestWindow
+            ? (Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpAttempts)) || 0) + 1
+            : 1;
+      sessionStorage.setItem(STORAGE_KEYS.resetOtpAttempts, String(sendAttempts));
+      if (!withinRequestWindow) {
+        sessionStorage.setItem(STORAGE_KEYS.resetOtpWindowStart, String(now));
+      }
+      sessionStorage.setItem(STORAGE_KEYS.resetOtpSentAt, String(now));
+
       message.success("A new OTP has been sent.");
     } catch (error: any) {
       message.error(error.message || "Failed to resend OTP. Please try again.");
@@ -195,6 +261,10 @@ export default function OtpVerificationPage() {
 
   const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
   const expired = timeLeft <= 0;
+
+  if (!canAccess) {
+    return null;
+  }
 
   return (
     <Flex justify="center" align="center" className="auth-page">

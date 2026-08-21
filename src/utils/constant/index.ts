@@ -14,6 +14,8 @@ export const DEMO_OTP = "123456";
 export const OTP_LENGTH = 6;
 export const OTP_EXPIRY_SECONDS = 5 * 60;
 export const MAX_OTP_ATTEMPTS = 5;
+// Rolling window for OTP send requests (mirrors the server's request limit)
+export const OTP_REQUEST_WINDOW_SECONDS = 15 * 60;
 
 // Password strength rules
 export interface PasswordRule {
@@ -41,6 +43,23 @@ export const PASSWORD_RULES: PasswordRule[] = [
 // Storage / cookie keys
 export const TOKEN_KEY = "token";
 export const AUTH_TOKEN_KEY = "auth_token";
+export const USER_KEY = "user";
+
+// Derive the cookie expiry from the JWT "exp" claim so the session cookie
+// never outlives the token (avoids a "logged in but dead session" state).
+export const getTokenExpiry = (token: string): Date => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
+    if (payload?.exp) {
+      return new Date(payload.exp * 1000);
+    }
+  } catch {
+    // Malformed token - fall through to the default expiry.
+  }
+  return new Date(Date.now() + 24 * 60 * 60 * 1000);
+};
 
 // User roles
 export const DEFAULT_USER_ROLE = "USER";
@@ -70,4 +89,8 @@ export const API_ENDPOINTS = {
 export const STORAGE_KEYS = {
   resetEmail: "reset_email",
   resetOtp: "reset_otp",
+  resetOtpAttempts: "reset_otp_attempts",
+  resetOtpVerifyAttempts: "reset_otp_verify_attempts",
+  resetOtpWindowStart: "reset_otp_window_start",
+  resetOtpSentAt: "reset_otp_sent_at",
 } as const;

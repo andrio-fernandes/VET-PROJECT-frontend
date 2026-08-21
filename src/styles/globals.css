@@ -50,6 +50,12 @@ a {
   margin-bottom: 28px;
 }
 
+.forgot-otp-attempts {
+  display: block;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
 .auth-link {
   font-weight: bold;
 }
@@ -144,6 +150,15 @@ a {
 
 .register-extra {
   color: #d9f7be;
+}
+
+
+#register_form_password_extra.ant-form-item-extra {
+  color: #d9f7be;
+}
+
+#register_form_password_extra.ant-form-item-extra .ant-typography {
+  color: inherit;
 }
 
 .register-username-reset.ant-btn-link {

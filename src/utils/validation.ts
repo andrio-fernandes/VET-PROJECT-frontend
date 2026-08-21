@@ -32,7 +32,15 @@ export const passwordRules: Rule[] = [
     message: "Please enter your password.",
   },
   {
+    min: 8,
+    message: "Password must be at least 8 characters.",
+  },
+  {
     max: 32,
     message: "Password cannot exceed 32 characters.",
+  },
+  {
+    pattern: /^\S+$/,
+    message: "Password cannot contain spaces.",
   },
 ];

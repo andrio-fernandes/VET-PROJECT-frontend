@@ -10,12 +10,12 @@ export const api = async (
     typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
   const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
-    ...options,
   });
 
   let data: any = null;
@@ -26,7 +26,15 @@ export const api = async (
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || "Something went wrong");
+    const error = new Error(
+      data?.message || "Something went wrong"
+    ) as Error & { remaining?: number };
+
+    if (typeof data?.remaining === "number") {
+      error.remaining = data.remaining;
+    }
+
+    throw error;
   }
 
   return data;
