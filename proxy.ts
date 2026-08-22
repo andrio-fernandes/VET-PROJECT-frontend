@@ -5,7 +5,12 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userToken = request.cookies.get('auth_token')?.value;
 
-  if (pathname === '/user-dashboard' && !userToken) {
+  const dashboardPaths = [
+    '/dashboard/user-dashboard',
+    '/dashboard/admin-dashboard',
+  ];
+
+  if (dashboardPaths.includes(pathname) && !userToken) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
@@ -18,7 +23,9 @@ export function proxy(request: NextRequest) {
   ];
 
   if (authPages.includes(pathname) && userToken) {
-    return NextResponse.redirect(new URL('/user-dashboard', request.url));
+    return NextResponse.redirect(
+      new URL('/dashboard/user-dashboard', request.url)
+    );
   }
 
   return NextResponse.next();
@@ -26,7 +33,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/user-dashboard',
+    '/dashboard/user-dashboard',
+    '/dashboard/admin-dashboard',
     '/auth/login',
     '/auth/register',
     '/auth/forgot-password',

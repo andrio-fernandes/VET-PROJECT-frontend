@@ -33,6 +33,9 @@ export default function OtpVerificationPage() {
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const lastSubmitTime = useRef<number>(0);
 
+  const expired = timeLeft <= 0;
+  const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
+
   useEffect(() => {
     if (!canAccess) {
       router.replace(ROUTE_PATHS.forgotPassword);
@@ -40,23 +43,20 @@ export default function OtpVerificationPage() {
     }
   }, [canAccess, router, message]);
 
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      return;
-    }
+  // The countdown targets an absolute deadline timestamp so a single
+  // interval computes the remaining seconds instead of being torn down and
+  // recreated every second.
+  const deadlineRef = useRef<number>(Date.now() + OTP_EXPIRY_SECONDS * 1000);
 
+  useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return previous - 1;
-      });
+      setTimeLeft(
+        Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
+      );
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, []);
 
   // Align the countdown with the actual send time so refreshing the page does
   // not restart the timer while the server-side OTP is already older.
@@ -66,12 +66,10 @@ export default function OtpVerificationPage() {
       return;
     }
 
-    const elapsedSeconds = Math.floor((Date.now() - sentAt) / 1000);
-    const correctedTimeLeft = Math.max(OTP_EXPIRY_SECONDS - elapsedSeconds, 0);
-
-    // Applied asynchronously so no setState runs directly in the effect body.
-    const alignment = setTimeout(() => setTimeLeft(correctedTimeLeft), 0);
-    return () => clearTimeout(alignment);
+    deadlineRef.current = sentAt + OTP_EXPIRY_SECONDS * 1000;
+    setTimeLeft(
+      Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
+    );
   }, []);
 
   const formatTime = (seconds: number): string => {
@@ -141,7 +139,6 @@ export default function OtpVerificationPage() {
       message.error("Your OTP has expired. Please request a new OTP.");
       return;
     }
-
     const otpValue = otp.join("");
 
     if (!otpValue) {
@@ -228,6 +225,7 @@ export default function OtpVerificationPage() {
       });
 
       setOtp(Array(OTP_LENGTH).fill(""));
+      deadlineRef.current = Date.now() + OTP_EXPIRY_SECONDS * 1000;
       setTimeLeft(OTP_EXPIRY_SECONDS);
       setAttempts(0);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
@@ -258,9 +256,6 @@ export default function OtpVerificationPage() {
       setIsResending(false);
     }
   };
-
-  const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
-  const expired = timeLeft <= 0;
 
   if (!canAccess) {
     return null;

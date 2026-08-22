@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 
 import { api } from "@/services/api";
 import { passwordRules } from "@/utils/validation";
-import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, STORAGE_KEYS, TOKEN_KEY, USER_KEY } from "@/utils/constant";
+import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, REFRESH_TOKEN_KEY, STORAGE_KEYS, TOKEN_KEY, USER_KEY } from "@/utils/constant";
 import PasswordStrength from "@/components/password-strength";
 
 const { Title, Text } = Typography;
@@ -67,6 +67,7 @@ export default function ResetPasswordPage() {
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       Cookies.remove(AUTH_TOKEN_KEY);
       message.success("Password reset successful!");

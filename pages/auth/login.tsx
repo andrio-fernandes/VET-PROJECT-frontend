@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import { api } from '@/services/api';
-import { API_ENDPOINTS, AUTH_TOKEN_KEY, getTokenExpiry, ROUTE_PATHS, TOKEN_KEY, USER_KEY } from '@/utils/constant';
+import { API_ENDPOINTS, AUTH_TOKEN_KEY, getTokenExpiry, ROUTE_PATHS, REFRESH_TOKEN_KEY, TOKEN_KEY, USER_KEY } from '@/utils/constant';
 
 const { useBreakpoint } = Grid;
 
@@ -36,17 +36,29 @@ export default function LoginPage() {
       });
 
       const token = data.data?.token;
+      const refreshToken = data.data?.refreshToken;
       const user = data.data?.user;
       if (token) {
         localStorage.setItem(TOKEN_KEY, token);
         Cookies.set(AUTH_TOKEN_KEY, token, { expires: getTokenExpiry(token) });
+      }
+      if (refreshToken) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
       }
       if (user) {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
       }
 
       message.success('Logged in successfully!');
-      setTimeout(() => router.push(ROUTE_PATHS.dashboardEnquiry), 600);
+      setTimeout(
+        () =>
+          router.push(
+            data.data?.user?.role === 'admin'
+              ? ROUTE_PATHS.adminDashboard
+              : ROUTE_PATHS.userDashboard
+          ),
+        600
+      );
     } catch (error: any) {
       message.error(error.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -82,12 +94,11 @@ export default function LoginPage() {
                     }
                     return Promise.resolve();
                   }
-                  if (inputValue.length < 4) return Promise.reject(new Error('Username must be at least 4 characters!'));
+                  if (inputValue.length < 3) return Promise.reject(new Error('Username must be at least 3 characters!'));
                   if (inputValue.length > 30) return Promise.reject(new Error('Username cannot exceed 30 characters!'));
                   if (!/^[a-zA-Z0-9_]+$/.test(inputValue)) {
                     return Promise.reject(new Error('Only letters (a-z, A-Z), numbers (0-9), and underscores allowed!'));
                   }
-                  if (inputValue.includes('__')) return Promise.reject(new Error('Consecutive underscores are not allowed!'));
                   return Promise.resolve();
                 },
               },

@@ -10,7 +10,6 @@ export const COMMON_PASSWORDS: string[] = [
 ];
 
 // OTP verification
-export const DEMO_OTP = "123456";
 export const OTP_LENGTH = 6;
 export const OTP_EXPIRY_SECONDS = 5 * 60;
 export const MAX_OTP_ATTEMPTS = 5;
@@ -42,27 +41,42 @@ export const PASSWORD_RULES: PasswordRule[] = [
 
 // Storage / cookie keys
 export const TOKEN_KEY = "token";
+export const REFRESH_TOKEN_KEY = "refresh_token";
 export const AUTH_TOKEN_KEY = "auth_token";
 export const USER_KEY = "user";
+
+const decodeJwtPayload = (
+  token: string
+): Record<string, unknown> | null => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+};
 
 // Derive the cookie expiry from the JWT "exp" claim so the session cookie
 // never outlives the token (avoids a "logged in but dead session" state).
 export const getTokenExpiry = (token: string): Date => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(atob(base64));
-    if (payload?.exp) {
-      return new Date(payload.exp * 1000);
-    }
-  } catch {
-    // Malformed token - fall through to the default expiry.
+  const payload = decodeJwtPayload(token);
+  if (typeof payload?.exp === "number") {
+    return new Date(payload.exp * 1000);
   }
+  // Malformed token - fall through to the default expiry.
   return new Date(Date.now() + 24 * 60 * 60 * 1000);
 };
 
-// User roles
-export const DEFAULT_USER_ROLE = "USER";
+// A token counts as expired when its "exp" claim has passed, or when it is
+// too malformed to carry an "exp" at all (e.g. leftover "undefined" strings).
+export const isTokenExpired = (token: string): boolean => {
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== "number") {
+    return true;
+  }
+  return payload.exp * 1000 <= Date.now();
+};
 
 // Route paths
 export const ROUTE_PATHS = {
@@ -72,17 +86,21 @@ export const ROUTE_PATHS = {
   forgotPassword: "/auth/forgot-password",
   otp: "/auth/otp",
   resetPassword: "/auth/reset-password",
-  userDashboard: "/user-dashboard",
-  dashboardEnquiry: "/user-dashboard",
+  adminDashboard: "/dashboard/admin-dashboard",
+  userDashboard: "/dashboard/user-dashboard",
 } as const;
 
 // Auth API endpoints
 export const API_ENDPOINTS = {
   register: "/auth/register",
   login: "/auth/login",
+  refresh: "/auth/refresh",
   forgotPassword: "/auth/forgot-password",
   verifyOtp: "/auth/verify-otp",
   resetPassword: "/auth/reset-password",
+  createFaq: "/faqs",
+  getMyFaqs: "/faqs/mine",
+  dashboardStats: "/dashboard/stats",
 } as const;
 
 // Session storage keys for password reset flow
