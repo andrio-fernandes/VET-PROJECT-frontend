@@ -74,6 +74,7 @@ export default function RegisterPage() {
       const formattedEmail = values.email.toLowerCase().trim();
 
       const payload = {
+        fullName: values.fullName.trim(),
         username: values.username.trim(),
         email: formattedEmail,
         password: values.password,
@@ -151,19 +152,11 @@ export default function RegisterPage() {
               validateFirst
               rules={[
                 { required: true, message: 'Username cannot be empty!' },
-                { min: 4, message: 'Username must be at least 4 characters!' },
+                { min: 3, message: 'Username must be at least 3 characters!' },
                 { max: 30, message: 'Username cannot exceed 30 characters!' },
                 {
-                  pattern: /^[a-z][a-z0-9_]*$/,
-                  message: 'Only lowercase letters (a-z), numbers (0-9) and underscores (_) allowed!',
-                },
-                {
-                  validator(_, value) {
-                    if (value && value.includes('__')) {
-                      return Promise.reject(new Error('Consecutive underscores are not allowed!'));
-                    }
-                    return Promise.resolve();
-                  },
+                  pattern: /^[a-zA-Z0-9_]+$/,
+                  message: 'Only letters (a-z, A-Z), numbers (0-9), and underscores (_) allowed!',
                 },
               ]}
               extra={
@@ -183,7 +176,7 @@ export default function RegisterPage() {
               }
             >
               <Input
-                placeholder="Enter your username"
+                // placeholder="Enter your username"
                 className="pill-input"
                 readOnly
                 onKeyDown={preventSpaces}
@@ -197,7 +190,7 @@ export default function RegisterPage() {
               validateFirst
               rules={[
                 { required: true, message: 'Email cannot be empty!' },
-                { max: 28, message: 'Email cannot exceed 28 characters!' },
+                { max: 254, message: 'Email cannot exceed 254 characters!' },
                 { type: 'email', message: 'Enter a valid email syntax (e.g. name@domain.com)!' },
               ]}
             >
@@ -213,7 +206,7 @@ export default function RegisterPage() {
               extra={<PasswordStrength password={formValues?.password || ''} />}
               rules={[
                 { required: true, message: 'Password cannot be empty!' },
-                // { max: 15, message: 'Password cannot exceed 15 characters!' },
+                { min: 8, message: 'Password must be at least 8 characters!' },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (value && value.includes(' ')) {

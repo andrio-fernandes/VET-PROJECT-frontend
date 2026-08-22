@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import {
@@ -15,10 +15,10 @@ import {
   UserOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Divider, Flex, Input, Layout, Menu, Row, Typography } from "antd";
+import { App as AntApp, Button, Card, Col, Divider, Flex, Input, Layout, Menu, Row, Typography } from "antd";
 
 import videoThumbnail from "@/assets/download.jpg";
-import { AUTH_TOKEN_KEY, TOKEN_KEY } from "@/utils/constant";
+import { AUTH_TOKEN_KEY, TOKEN_KEY, USER_KEY } from "@/utils/constant";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -37,14 +37,46 @@ const categoryItems = [
   { icon: <QuestionCircleOutlined />, label: "FAQs" },
 ];
 
+type StoredUser = { username?: string; email?: string } | null;
+
+const emptySubscribe = () => () => {};
+
+// Cached at module level so getSnapshot returns a stable reference between
+// renders - parsing a fresh object on every call would re-trigger the
+// subscriber and cause an infinite re-render loop.
+let storedUserCache: StoredUser;
+
+const readStoredUser = (): StoredUser => {
+  if (storedUserCache === undefined) {
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      storedUserCache = raw ? JSON.parse(raw) : null;
+    } catch {
+      storedUserCache = null;
+    }
+  }
+
+  return storedUserCache;
+};
+
 export default function UserDashboardPage() {
   const router = useRouter();
+  const { message } = AntApp.useApp();
   const [selectedMenu, setSelectedMenu] = useState("dashboard");
+
+  // Client-only snapshot: SSR renders null, the real value appears right
+  // after hydration, so server and first client render always match.
+  const user = useSyncExternalStore(emptySubscribe, readStoredUser, () => null);
 
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     Cookies.remove(AUTH_TOKEN_KEY);
     router.push("/auth/login");
+  };
+
+  const handleSendMessage = () => {
+    message.success("Message sent successfully!");
   };
 
   return (
@@ -62,7 +94,7 @@ export default function UserDashboardPage() {
 
       <Layout className="dashboard-main-layout">
         <Header className="dashboard-header">
-          <Text strong>Welcome, User!</Text>
+          <Text strong>Welcome, {user?.username || "User"}!</Text>
           <Flex align="center" gap={4}>
             <Button type="text" icon={<UserOutlined />} size="large" />
             <Button type="text" icon={<LogoutOutlined />} size="large" onClick={handleLogout} />
@@ -186,12 +218,12 @@ export default function UserDashboardPage() {
           <Flex vertical gap={22} className="contact-section">
             <Flex vertical gap={8}>
               <Text strong>Username</Text>
-              <Input placeholder="Username" size="large" />
+              <Input placeholder="Username" size="large" defaultValue={user?.username || ""} />
             </Flex>
 
             <Flex vertical gap={8}>
               <Text strong>Email</Text>
-              <Input placeholder="Email" size="large" />
+              <Input placeholder="Email" size="large" defaultValue={user?.email || ""} />
             </Flex>
 
             <Flex vertical gap={8}>
@@ -199,11 +231,15 @@ export default function UserDashboardPage() {
               <Input.TextArea rows={4} placeholder="Message" />
             </Flex>
 
-            <Button type="primary" block size="large" style={{ height: 42, borderRadius: 7 }}>
-              Sign Up
+            <Button
+              type="primary"
+              block
+              size="large"
+              style={{ height: 42, borderRadius: 7 }}
+              onClick={handleSendMessage}
+            >
+              Send Message
             </Button>
-
-            <Text className="login-text">Login</Text>
           </Flex>
         </Content>
       </Layout>
