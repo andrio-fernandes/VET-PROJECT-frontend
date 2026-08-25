@@ -2,6 +2,17 @@
 // COMMON CONSTANTS USED ACROSS THE FRONTEND
 // =============================================
 
+// Content module and category values (must mirror server-side enums)
+export const CONTENT_MODULES = ["sales"] as const;
+export type ContentModule = (typeof CONTENT_MODULES)[number];
+
+export const CONTENT_CATEGORIES = [
+  "customer-order",
+  "enquiry",
+  "quotation",
+] as const;
+export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
+
 // Commonly used weak passwords to reject during registration / reset
 export const COMMON_PASSWORDS: string[] = [
   "password",
