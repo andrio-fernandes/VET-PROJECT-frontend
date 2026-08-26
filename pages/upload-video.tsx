@@ -1,25 +1,42 @@
 import React, { useState } from "react";
 import { AdminLayout } from "@/components/layouts/admin-layout";
-import { Form, Input, Select, Upload, Button, message } from "antd";
-import { ArrowLeftOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import {
+  Form,
+  Input,
+  Select,
+  Upload,
+  Button,
+  message,
+} from "antd";
+import {
+  ArrowLeftOutlined,
+  PlayCircleOutlined,
+  UploadOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 
 const MAX_SIZE = 64 * 1024 * 1024;
 
+const countWords = (value = "") =>
+  value.trim() ? value.trim().split(/\s+/).length : 0;
+
 export default function UploadVideo() {
   const [file, setFile] = useState<File | null>(null);
+  const [titleWords, setTitleWords] = useState(0);
+  const [descriptionWords, setDescriptionWords] = useState(0);
 
-  const beforeUpload = (file: File) => {
-    if (!file.type.startsWith("video/")) {
+  const beforeUpload = (selectedFile: File) => {
+    if (!selectedFile.type.startsWith("video/")) {
       message.error("Please select a video file.");
       return Upload.LIST_IGNORE;
     }
 
-    if (file.size > MAX_SIZE) {
+    if (selectedFile.size > MAX_SIZE) {
       message.error("Video size must not exceed 64 MB.");
       return Upload.LIST_IGNORE;
     }
 
-    setFile(file);
+    setFile(selectedFile);
     return false;
   };
 
@@ -30,6 +47,17 @@ export default function UploadVideo() {
     }
 
     message.success("Video is ready to upload.");
+  };
+
+  const preview = () => {
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    window.open(url, "_blank");
+  };
+
+  const removeFile = () => {
+    setFile(null);
   };
 
   return (
@@ -43,15 +71,17 @@ export default function UploadVideo() {
             onClick={() => window.history.back()}
           />
 
-          <div>
+          <div className="video-header-text">
             <h1>Create New Video</h1>
             <p>Add new video to your list</p>
           </div>
 
-          <PlayCircleOutlined className="video-icon" />
+          <div className="video-header-icon">
+            <PlayCircleOutlined />
+          </div>
         </div>
 
-        {/* Card */}
+        {/* Video Details */}
         <div className="video-card">
 
           <div className="video-card-title">
@@ -62,42 +92,83 @@ export default function UploadVideo() {
 
             {/* Title */}
             <Form.Item
-              label="Title"
+              label={
+                <span>
+                  Title <span className="required-star">*</span>
+                </span>
+              }
               name="title"
               rules={[
                 {
                   required: true,
                   message: "Please enter video title.",
                 },
+                {
+                  validator: (_, value) =>
+                    countWords(value) <= 100
+                      ? Promise.resolve()
+                      : Promise.reject(
+                          new Error(
+                            "Title must not exceed 100 words."
+                          )
+                        ),
+                },
               ]}
             >
               <Input
                 placeholder="Enter video title"
-                maxLength={100}
-                showCount
+                onChange={(e) =>
+                  setTitleWords(countWords(e.target.value))
+                }
               />
+
+              <div className="word-counter">
+                {titleWords}/100
+              </div>
             </Form.Item>
 
             {/* Description */}
             <Form.Item
-              label="Description"
+              label={
+                <span>
+                  Description{" "}
+                  <span className="required-star">*</span>
+                </span>
+              }
               name="description"
               rules={[
                 {
                   required: true,
                   message: "Please enter video description.",
                 },
+                {
+                  validator: (_, value) =>
+                    countWords(value) <= 200
+                      ? Promise.resolve()
+                      : Promise.reject(
+                          new Error(
+                            "Description must not exceed 200 words."
+                          )
+                        ),
+                },
               ]}
             >
               <Input.TextArea
                 placeholder="Describe your video"
-                maxLength={200}
-                showCount
                 rows={5}
+                onChange={(e) =>
+                  setDescriptionWords(
+                    countWords(e.target.value)
+                  )
+                }
               />
+
+              <div className="word-counter">
+                {descriptionWords}/200
+              </div>
             </Form.Item>
 
-            {/* Category */}
+            {/* Module / Feature */}
             <div className="category-heading">
               <strong>
                 Select the module and categories
@@ -121,6 +192,7 @@ export default function UploadVideo() {
                 ]}
               >
                 <Select
+                  size="large"
                   placeholder="Module"
                   options={[
                     {
@@ -141,6 +213,7 @@ export default function UploadVideo() {
                 ]}
               >
                 <Select
+                  size="large"
                   placeholder="Feature"
                   options={[
                     {
@@ -162,65 +235,75 @@ export default function UploadVideo() {
             </div>
 
             {/* Upload */}
-            <div className="upload-heading">
-              <strong>Upload video</strong>
-              <span />
-            </div>
+            <div className="upload-section">
 
-            <small className="upload-subtitle">
-              Upload one video
-            </small>
+              <div className="upload-heading">
+                <strong>Upload video</strong>
+                <span />
+              </div>
 
-            <Upload.Dragger
-              accept="video/*"
-              beforeUpload={beforeUpload}
-              showUploadList={false}
-              className="video-upload"
-            >
-              {file ? (
-                <div className="selected-video">
-                  <span>{file.name}</span>
+              <div className="upload-subtitle">
+                Upload one video
+              </div>
 
+              <Upload.Dragger
+                accept="video/mp4,video/*"
+                beforeUpload={beforeUpload}
+                showUploadList={false}
+                multiple={false}
+                className="video-upload"
+              >
+                {file ? (
+                  <div className="selected-video">
+
+                    <span className="selected-video-name">
+                      {file.name}
+                    </span>
+
+                    <Button
+                      type="link"
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile();
+                      }}
+                    >
+                      Remove
+                    </Button>
+
+                  </div>
+                ) : (
                   <Button
-                    type="link"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                    }}
+                    icon={<UploadOutlined />}
+                    className="upload-button"
                   >
-                    Remove
+                    Upload
                   </Button>
-                </div>
-              ) : (
-                <Button>Upload</Button>
-              )}
-            </Upload.Dragger>
+                )}
+              </Upload.Dragger>
 
-            <div className="upload-info">
-              Maximum file 64MB | Supported format: MP4
+              <div className="upload-info">
+                Maximum file 64MB | Supported format: MP4
+              </div>
+
             </div>
 
             {/* Footer */}
             <div className="video-footer">
 
               <Button
+                className="preview-button"
                 disabled={!file}
-                onClick={() => {
-                  if (file) {
-                    window.open(
-                      URL.createObjectURL(file),
-                      "_blank"
-                    );
-                  }
-                }}
+                onClick={preview}
               >
                 Preview
               </Button>
 
               <div className="footer-actions">
+
                 <Button
                   danger
-                  onClick={() => setFile(null)}
+                  onClick={removeFile}
                 >
                   Cancel
                 </Button>
@@ -231,6 +314,7 @@ export default function UploadVideo() {
                 >
                   Upload
                 </Button>
+
               </div>
 
             </div>

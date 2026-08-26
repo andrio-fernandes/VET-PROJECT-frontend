@@ -11,8 +11,9 @@ import {
 } from "antd";
 import {
   HomeOutlined,
-  QuestionCircleOutlined,
   PlayCircleOutlined,
+  FileTextOutlined,
+  QuestionCircleOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import Cookies from "js-cookie";
@@ -62,8 +63,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const activeKey = router.pathname.includes("upload-video")
     ? "/upload-video"
+    : router.pathname.includes("create-video")
+    ? "/upload-video"
+    : router.pathname.includes("blog")
+    ? "/upload-blog"
     : router.pathname.includes("faq")
-    ? "/upload-faq"
+    ? "/create-faq"
     : router.pathname;
 
   return (
@@ -75,7 +80,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       >
         <div className="admin-sidebar-content">
 
-          {/* Logo */}
           <div className="admin-logo">
             <Image
               src="/logo.jpg"
@@ -86,9 +90,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             />
           </div>
 
-          {/* Menu */}
           <div className="admin-navigation">
-            <Text className="menu-title">MAIN MENU</Text>
+            <Text className="menu-title">
+              MAIN MENU
+            </Text>
 
             <ConfigProvider
               theme={{
@@ -120,7 +125,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     label: "Videos",
                   },
                   {
-                    key: "/upload-faq",
+                    key: "/upload-blog",
+                    icon: <FileTextOutlined />,
+                    label: "Blogs",
+                  },
+                  {
+                    key: "/create-faq",
                     icon: <QuestionCircleOutlined />,
                     label: "FAQs",
                   },
@@ -129,7 +139,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </ConfigProvider>
           </div>
 
-          {/* Admin */}
           <div className="admin-profile">
             <Avatar
               size={58}

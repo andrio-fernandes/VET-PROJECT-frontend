@@ -358,7 +358,7 @@ a {
 
 .video-page {
   width: 100%;
-  max-width: 790px;
+  max-width: 940px;
   margin: 0 auto;
 }
 
@@ -367,36 +367,40 @@ a {
 .video-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.video-header h1 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 600;
-}
-
-.video-header p {
-  margin: 3px 0 0;
-  color: #999;
-  font-size: 13px;
+  gap: 12px;
+  margin: 0 0 22px;
 }
 
 .video-back {
   color: #555;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
 }
 
-.video-icon {
+.video-header-text h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.video-header-text p {
+  margin: 4px 0 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.video-header-icon {
+  width: 42px;
+  height: 42px;
   margin-left: 2px;
-  padding: 8px;
   border-radius: 50%;
   background: #e5ffd2;
   color: #52c41a;
-  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
 }
 
 /* Card */
@@ -409,59 +413,51 @@ a {
 }
 
 .video-card-title {
-  padding: 13px 24px;
+  padding: 16px 28px;
   border-bottom: 1px solid #d5d5d5;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
 }
 
-/* Form */
-
 .video-card form {
-  padding: 15px 24px 0;
+  padding: 20px 28px 0;
 }
 
 .video-card .ant-form-item {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .video-card .ant-form-item-label {
-  padding-bottom: 5px;
+  padding-bottom: 6px;
 }
 
 .video-card .ant-form-item-label > label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
-}
-
-.video-card .ant-input,
-.video-card .ant-input-textarea,
-.video-card .ant-select-selector {
-  border-radius: 6px !important;
 }
 
 /* Category */
 
 .category-heading {
-  margin-top: 4px;
-  margin-bottom: 10px;
+  margin: 8px 0 10px;
 }
 
 .category-heading strong {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .category-heading strong span {
   color: red;
+  margin-left: 2px;
 }
 
 .category-heading small {
   display: block;
-  margin-top: 3px;
+  margin-top: 5px;
   color: #aaa;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .video-selects {
@@ -473,17 +469,20 @@ a {
   flex: 1;
 }
 
-/* Upload heading */
+/* Upload */
+
+.upload-section {
+  margin-top: 6px;
+}
 
 .upload-heading {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 3px;
 }
 
 .upload-heading strong {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -491,28 +490,27 @@ a {
 .upload-heading span {
   flex: 1;
   height: 1px;
-  background: #ccc;
+  background: #d0d0d0;
 }
 
 .upload-subtitle {
-  display: block;
-  margin: 4px 0 10px;
+  margin: 6px 0 10px;
   color: #aaa;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Upload box */
 
 .video-upload {
-  height: 125px !important;
-  border: 2px dashed #999 !important;
-  border-radius: 12px !important;
+  height: 145px !important;
+  border: 1px dashed #bdbdbd !important;
+  border-radius: 10px !important;
   background: #fff !important;
 }
 
 .video-upload .ant-upload-btn {
-  height: 121px !important;
-  padding: 0 !important;
+  height: 143px !important;
+  padding: 0 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -522,22 +520,25 @@ a {
   width: 100%;
 }
 
-.video-upload button {
-  color: #52c41a;
-  border-color: #52c41a;
+/* Upload button */
+
+.upload-button {
+  color: #52c41a !important;
+  border-color: #52c41a !important;
 }
 
 /* Selected video */
 
 .selected-video {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.selected-video span {
-  max-width: 430px;
+.selected-video-name {
+  max-width: 600px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -551,7 +552,7 @@ a {
 /* Upload information */
 
 .upload-info {
-  margin: 9px 0 18px;
+  margin: 10px 0 20px;
   color: #aaa;
   font-size: 13px;
 }
@@ -560,52 +561,63 @@ a {
 
 .video-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin: 0 -24px;
-  padding: 18px 24px;
+  justify-content: space-between;
+  margin: 0 -28px;
+  padding: 18px 28px;
   border-top: 1px solid #d5d5d5;
 }
 
-.video-footer > button {
-  color: #52c41a;
-  border-color: #52c41a;
+.preview-button {
+  color: #52c41a !important;
+  border-color: #52c41a !important;
 }
 
 .footer-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
 }
 
-/* =========================
-   ADMIN LAYOUT
-   ========================= */
+.footer-actions .ant-btn-primary {
+  background: #52c41a;
+  border-color: #52c41a;
+}
+
+.word-counter {
+  text-align: right;
+  margin-top: 3px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Admin Layout */
 
 .admin-layout {
   min-height: 100vh;
 }
 
-/* Sidebar */
-
+/* Fixed sidebar */
 .admin-sidebar {
   position: fixed !important;
-  left: 0;
   top: 0;
+  left: 0;
   bottom: 0;
+  width: 270px !important;
   height: 100vh !important;
+  min-height: 100vh !important;
   background: #fff !important;
   border-right: 1px solid #e8e8e8;
   z-index: 100;
 }
 
 .admin-sidebar .ant-layout-sider-children {
-  height: 100vh !important;
+  height: 100% !important;
 }
 
 /* Sidebar content */
-
 .admin-sidebar-content {
-  height: 100%;
+  height: 100% !important;
   display: flex;
   flex-direction: column;
   padding: 16px 14px;
@@ -613,7 +625,6 @@ a {
 }
 
 /* Logo */
-
 .admin-logo {
   height: 125px;
   border: 1px solid #e5e5e5;
@@ -630,9 +641,9 @@ a {
 }
 
 /* Navigation */
-
 .admin-navigation {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -661,10 +672,10 @@ a {
   font-weight: 600;
 }
 
-/* Admin section */
-
+/* Admin profile - always at bottom */
 .admin-profile {
-  margin-top: auto;
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
   padding: 18px 16px;
   border: 1px solid #9be878;
   border-radius: 12px;
@@ -695,10 +706,18 @@ a {
 }
 
 /* Main content */
-
 .admin-content {
   min-height: 100vh;
   margin-left: 270px;
   padding: 28px 32px;
   background: #fff;
+}
+
+.required-star {
+  color: #fa0a0e;
+  margin-left: 3px;
+}
+
+.video-card .ant-form-item-required::before {
+  display: none !important;
 }
