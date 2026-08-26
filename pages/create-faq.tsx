@@ -157,7 +157,7 @@ const UploadFAQ = () => {
                 Create New FAQs 
               </Title>
               <Text type="secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
-                add new FAQs to Your list
+                Add new FAQs to your list
               </Text>
             </div>
           </div>
@@ -209,7 +209,7 @@ const UploadFAQ = () => {
                 <span style={{ fontWeight: 600, fontSize: '14px' }}>Select the module and categories </span>
                 <span style={{ color: '#ff4d4f' }}>*</span>
                 <div style={{ fontSize: '13px', color: '#8c8c8c', marginTop: '4px', marginBottom: '12px' }}>
-                  select the module your FAQ should be places
+                  Select the module your FAQ should be placed in
                 </div>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>

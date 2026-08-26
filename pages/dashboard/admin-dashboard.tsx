@@ -7,7 +7,8 @@ import {
   QuestionCircleOutlined,
   VideoCameraAddOutlined,
   EyeOutlined,
-  EditOutlined
+  EditOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { AdminLayout } from '../../src/components/layouts/admin-layout';
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
@@ -171,6 +172,8 @@ const Dashboard = () => {
   ];
 
   const quickActions = [
+    { title: 'Create New Videos', path: '/create-video', icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Upload New Blog', path: '/upload-blog', icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
     { title: 'Create New FAQs', path: '/create-faq', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
   ];
 
