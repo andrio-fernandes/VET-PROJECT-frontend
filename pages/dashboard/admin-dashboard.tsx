@@ -7,7 +7,8 @@ import {
   QuestionCircleOutlined,
   VideoCameraAddOutlined,
   EyeOutlined,
-  EditOutlined
+  EditOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { AdminLayout } from '../../src/components/layouts/admin-layout';
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
@@ -36,6 +37,9 @@ interface FaqRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+const countWords = (text: string): number =>
+  text.trim().split(/\s+/).filter(Boolean).length;
 
 const Dashboard = () => {
   const router = useRouter();
@@ -132,7 +136,7 @@ const Dashboard = () => {
             { key: '1', title: '5 Sales Tips', uploadDate: '19 Aug 2026' },
           ]);
         } else {
-          setTableData([]);
+          fetchMyFaqs(1);
         }
 
         const data = await api(API_ENDPOINTS.dashboardStats);
@@ -159,7 +163,7 @@ const Dashboard = () => {
     return () => {
       ignore = true;
     };
-  }, [activeTab, message]);
+  }, [activeTab, message, fetchMyFaqs]);
 
   const summaryCards = [
     { title: 'Total Video', count: stats.totalVideos, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: undefined },
@@ -168,7 +172,9 @@ const Dashboard = () => {
   ];
 
   const quickActions = [
-    { title: 'Upload new FAQs', desc: 'Create new FAQ', path: '/upload-faq', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Create New Videos', path: '/create-video', icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Upload New Blog', path: '/upload-blog', icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Create New FAQs', path: '/create-faq', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
   ];
 
   const tableColumns = [
@@ -197,6 +203,40 @@ const Dashboard = () => {
           <Button type="text" icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />} />
           <Button type="text" icon={<EditOutlined style={{ color: '#000', fontSize: '16px' }} />} />
         </Space>
+      ),
+    },
+  ];
+
+  const faqTableColumns = [
+    {
+      title: 'Question',
+      dataIndex: 'question',
+      key: 'question',
+      ellipsis: true,
+      render: (text: string) => <Text strong style={{ color: '#000' }}>{text}</Text>,
+    },
+    {
+      title: 'Answer',
+      dataIndex: 'answer',
+      key: 'answer',
+      ellipsis: true,
+      render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>,
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 110,
+      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 80,
+      render: (_: unknown, record: FaqRecord) => (
+        <Button type="link" icon={<EditOutlined />} onClick={() => openEditFaq(record)}>
+          Edit
+        </Button>
       ),
     },
   ];
@@ -278,7 +318,7 @@ const Dashboard = () => {
             {action.icon}
             <div>
               <div style={{ fontWeight: 600, fontSize: '13px', color: '#000' }}>{action.title}</div>
-              <div style={{ color: '#8c8c8c', fontSize: '11px', marginTop: '2px' }}>{action.desc}</div>
+              {/* <div style={{ color: '#8c8c8c', fontSize: '11px', marginTop: '2px' }}>{action.desc}</div> */}
             </div>
           </Card>
         ))}
@@ -300,14 +340,31 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <Table 
-          columns={tableColumns} 
-          dataSource={tableData} 
-          pagination={false} 
-          bordered={false}
-          loading={loading}
-          locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab}s uploaded yet.` }}
-        />
+        {activeTab === 'FAQs' ? (
+          <Table
+            columns={faqTableColumns}
+            dataSource={faqs}
+            rowKey="_id"
+            loading={faqsLoading}
+            pagination={{
+              current: faqsPage,
+              pageSize: 10,
+              total: faqsTotal,
+              onChange: (page) => fetchMyFaqs(page),
+              hideOnSinglePage: true,
+            }}
+            locale={{ emptyText: faqsLoading ? 'Loading...' : 'No FAQs uploaded yet.' }}
+          />
+        ) : (
+          <Table
+            columns={tableColumns}
+            dataSource={tableData}
+            pagination={false}
+            bordered={false}
+            loading={loading}
+            locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab}s uploaded yet.` }}
+          />
+        )}
 
       </div>
 
