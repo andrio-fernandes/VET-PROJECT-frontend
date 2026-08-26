@@ -351,3 +351,228 @@ a {
 .register-page .strength-met {
   color: #000000;
 }
+
+/* =========================
+   VIDEO UPLOAD PAGE
+   ========================= */
+
+.video-page {
+  width: 100%;
+  max-width: 790px;
+  margin: 0 auto;
+}
+
+/* Header */
+
+.video-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.video-header h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.video-header p {
+  margin: 3px 0 0;
+  color: #999;
+  font-size: 13px;
+}
+
+.video-back {
+  color: #555;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.video-icon {
+  margin-left: 2px;
+  padding: 8px;
+  border-radius: 50%;
+  background: #e5ffd2;
+  color: #52c41a;
+  font-size: 34px;
+}
+
+/* Card */
+
+.video-card {
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.video-card-title {
+  padding: 13px 24px;
+  border-bottom: 1px solid #d5d5d5;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Form */
+
+.video-card form {
+  padding: 15px 24px 0;
+}
+
+.video-card .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.video-card .ant-form-item-label {
+  padding-bottom: 5px;
+}
+
+.video-card .ant-form-item-label > label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.video-card .ant-input,
+.video-card .ant-input-textarea,
+.video-card .ant-select-selector {
+  border-radius: 6px !important;
+}
+
+/* Category */
+
+.category-heading {
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.category-heading strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.category-heading strong span {
+  color: red;
+}
+
+.category-heading small {
+  display: block;
+  margin-top: 3px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.video-selects {
+  display: flex;
+  gap: 55px;
+}
+
+.video-selects .ant-form-item {
+  flex: 1;
+}
+
+/* Upload heading */
+
+.upload-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 3px;
+}
+
+.upload-heading strong {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.upload-heading span {
+  flex: 1;
+  height: 1px;
+  background: #ccc;
+}
+
+.upload-subtitle {
+  display: block;
+  margin: 4px 0 10px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* Upload box */
+
+.video-upload {
+  height: 125px !important;
+  border: 2px dashed #999 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+}
+
+.video-upload .ant-upload-btn {
+  height: 121px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.video-upload .ant-upload-drag-container {
+  width: 100%;
+}
+
+.video-upload button {
+  color: #52c41a;
+  border-color: #52c41a;
+}
+
+/* Selected video */
+
+.selected-video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.selected-video span {
+  max-width: 430px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.selected-video button {
+  color: #52c41a;
+}
+
+/* Upload information */
+
+.upload-info {
+  margin: 9px 0 18px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* Footer */
+
+.video-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 -24px;
+  padding: 18px 24px;
+  border-top: 1px solid #d5d5d5;
+}
+
+.video-footer > button {
+  color: #52c41a;
+  border-color: #52c41a;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 10px;
+}
