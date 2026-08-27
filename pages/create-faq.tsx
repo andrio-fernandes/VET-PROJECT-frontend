@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Form, Input, Button, Typography, Space, Popover, Select, Row, Col, Modal, App as AntApp } from 'antd';
+import { Form, Input, Button, Typography, Space, Select, Row, Col, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { AdminLayout } from '../src/components/layouts/admin-layout';
 import { withAdminAuth } from '../src/components/auth/with-admin-auth';
@@ -21,7 +21,7 @@ const UploadFAQ = () => {
   const [isDirty, setIsDirty] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
 
-  // Reactive values so the preview popover stays in sync while typing.
+  // Reactive values so the preview modal stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
 
@@ -127,7 +127,7 @@ const UploadFAQ = () => {
   }, [isDirty]);
 
   const previewContent = (
-    <div style={{ width: '400px', padding: '12px' }}>
+    <div style={{ padding: '12px' }}>
       <Text style={{ color: '#52c41a', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '12px' }}>
         Preview
       </Text>
@@ -175,7 +175,6 @@ const UploadFAQ = () => {
             >
               <Form.Item label={<span style={{ fontWeight: 600 }}>Question</span>} name="question" rules={[
                 { required: true, message: 'Please Enter The Question' },
-                // { min: 5, message: 'Question must be at least 5 characters' },
                 {
                   validator: (_rule, value) => {
                     if (!value) return Promise.resolve();
@@ -191,7 +190,6 @@ const UploadFAQ = () => {
 
               <Form.Item label={<span style={{ fontWeight: 600 }}>Answer</span>} name="answer" rules={[
                 { required: true, message: 'Please provide an answer' },
-                // { min: 10, message: 'Answer must be at least 10 characters' },
                 {
                   validator: (_rule, value) => {
                     if (!value) return Promise.resolve();
@@ -244,23 +242,37 @@ const UploadFAQ = () => {
 
               <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '32px 0 24px 0' }} />
 
+              {/* ACTION BUTTONS & PREVIEW MODAL */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Popover 
-                  content={previewContent} 
-                  trigger="click" 
-                  open={previewVisible}
-                  onOpenChange={setPreviewVisible}
-                  placement="topLeft"
-                  styles={{ container: { padding: 0, borderRadius: '12px' } }}
+                <Button 
+                  size="large" 
+                  onClick={() => setPreviewVisible(true)} 
+                  style={{ borderColor: '#52c41a', color: '#52c41a', borderRadius: '6px', padding: '0 32px' }}
                 >
-                  <Button size="large" style={{ borderColor: '#52c41a', color: '#52c41a', borderRadius: '6px', padding: '0 32px' }}>Preview</Button>
-                </Popover>
+                  Preview
+                </Button>
 
                 <Space size="middle">
                   <Button size="large" onClick={handleCancel} style={{ borderColor: '#ff4d4f', color: '#ff4d4f', borderRadius: '6px', padding: '0 24px' }}>Cancel</Button>
                   <Button type="primary" htmlType="submit" size="large" loading={loading} style={{ backgroundColor: '#52c41a', borderRadius: '6px', padding: '0 32px' }}>Create</Button>
                 </Space>
               </div>
+
+              {/* PREVIEW MODAL */}
+              <Modal
+                open={previewVisible}
+                onCancel={() => setPreviewVisible(false)}
+                footer={null}
+                width={736} /* Matches form width */
+                centered
+                maskStyle={{ 
+                  backdropFilter: 'blur(6px)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)' 
+                }}
+                styles={{ body: { borderRadius: '12px', padding: '24px' } }}
+              >
+                {previewContent}
+              </Modal>
             </Form>
           </div>
           
