@@ -1,30 +1,15 @@
-import React, { useSyncExternalStore } from "react";
-import Image from "next/image";
-import { useRouter } from "next/router";
-import {
-  Layout,
-  Menu,
-  Button,
-  Typography,
-  Avatar,
-  ConfigProvider,
-} from "antd";
+import React, { useSyncExternalStore } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/router';
+import { Layout, Menu, Button, Typography, Avatar, ConfigProvider } from 'antd';
 import {
   HomeOutlined,
-  PlayCircleOutlined,
-  FileTextOutlined,
   QuestionCircleOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import Cookies from "js-cookie";
+  UserOutlined
+} from '@ant-design/icons';
+import Cookies from 'js-cookie';
 
-import {
-  AUTH_TOKEN_KEY,
-  ROUTE_PATHS,
-  REFRESH_TOKEN_KEY,
-  TOKEN_KEY,
-  USER_KEY,
-} from "@/utils/constant";
+import { AUTH_TOKEN_KEY, ROUTE_PATHS, REFRESH_TOKEN_KEY, TOKEN_KEY, USER_KEY } from '@/utils/constant';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -35,25 +20,21 @@ interface AdminLayoutProps {
 
 const emptySubscribe = () => () => {};
 
-const readUserEmail = () => {
+const readUserEmail = (): string => {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw)?.email || "" : "";
+    const user = raw ? JSON.parse(raw) : null;
+    return user?.email || '';
   } catch {
-    return "";
+    return '';
   }
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const router = useRouter();
+  const userEmail = useSyncExternalStore(emptySubscribe, readUserEmail, () => '');
 
-  const userEmail = useSyncExternalStore(
-    emptySubscribe,
-    readUserEmail,
-    () => ""
-  );
-
-  const logout = () => {
+  const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -61,112 +42,89 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     router.replace(ROUTE_PATHS.login);
   };
 
-  const activeKey = router.pathname.includes("upload-video")
-    ? "/upload-video"
-    : router.pathname.includes("create-video")
-    ? "/upload-video"
-    : router.pathname.includes("blog")
-    ? "/upload-blog"
-    : router.pathname.includes("faq")
-    ? "/create-faq"
-    : router.pathname;
+  const activeKey = router.pathname.includes('/faq') ? '/create-faq' : router.pathname;
 
   return (
-    <Layout className="admin-layout">
-      <Sider
-        width={270}
-        theme="light"
-        className="admin-sidebar"
-      >
-        <div className="admin-sidebar-content">
+    <Layout style={{ minHeight: '100vh' }}>
+      <style>{`
+        .lively-sidebar .ant-menu-item {
+          transition: all 0.3s ease;
+          border-radius: 8px;
+          margin-bottom: 4px;
+        }
+        .lively-sidebar .ant-menu-item:hover {
+          transform: translateX(6px);
+          background-color: rgba(255, 255, 255, 0.15) !important;
+        }
+      `}</style>
 
-          <div className="admin-logo">
-            <Image
-              src="/logo.jpg"
-              alt="Sharp Minds Logo"
-              width={150}
-              height={80}
-              priority
+      <Sider width={250} style={{ backgroundColor: '#52c41a' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          
+          <div style={{ 
+            padding: '10px', 
+            backgroundColor: '#fff', 
+            margin: '15px', 
+            borderRadius: '4px', 
+            border: '1px solid #e8e8e8', 
+            display: 'flex', 
+            justifyContent: 'center',
+            alignItems: 'center' 
+          }}>
+            <Image 
+              src="/logo.jpg" 
+              alt="Sharp Minds Logo" 
+              width={160} 
+              height={80} 
+              style={{ objectFit: 'contain' }}
+              priority 
             />
           </div>
 
-          <div className="admin-navigation">
-            <Text className="menu-title">
-              MAIN MENU
-            </Text>
-
+          <div style={{ flex: 1, overflowY: 'auto', marginTop: '10px', padding: '0 10px' }}>
             <ConfigProvider
               theme={{
                 components: {
                   Menu: {
-                    itemSelectedBg: "#52c41a",
-                    itemSelectedColor: "#fff",
-                    itemColor: "#222",
-                    itemHoverColor: "#52c41a",
-                    itemHoverBg: "#f6ffed",
-                    itemBorderRadius: 8,
+                    itemSelectedBg: 'rgba(255, 255, 255, 0.25)',
+                    itemSelectedColor: '#fff',
+                    itemColor: '#fff',
+                    itemHoverColor: '#fff',
+                    itemHoverBg: 'transparent',
                   },
                 },
               }}
             >
               <Menu
+                className="lively-sidebar"
                 mode="inline"
-                selectedKeys={[activeKey]}
-                onClick={({ key }) => router.push(key)}
+                selectedKeys={[activeKey]} 
+                onClick={(e) => router.push(e.key)} 
+                style={{ backgroundColor: 'transparent', borderRight: 'none' }}
                 items={[
-                  {
-                    key: ROUTE_PATHS.adminDashboard,
-                    icon: <HomeOutlined />,
-                    label: "Dashboard",
-                  },
-                  {
-                    key: "/upload-video",
-                    icon: <PlayCircleOutlined />,
-                    label: "Videos",
-                  },
-                  {
-                    key: "/upload-blog",
-                    icon: <FileTextOutlined />,
-                    label: "Blogs",
-                  },
-                  {
-                    key: "/create-faq",
-                    icon: <QuestionCircleOutlined />,
-                    label: "FAQs",
-                  },
+                  { key: ROUTE_PATHS.adminDashboard, icon: <HomeOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 600 }}>Dashboard</span> },
+                  { key: '/create-faq', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
                 ]}
               />
             </ConfigProvider>
           </div>
 
-          <div className="admin-profile">
-            <Avatar
-              size={58}
-              icon={<UserOutlined />}
-            />
-
-            <Text strong>Admin</Text>
-
-            {userEmail && (
-              <Text className="admin-email">
-                {userEmail}
-              </Text>
-            )}
-
-            <Button
-              type="primary"
-              onClick={logout}
-              block
-            >
-              Log out
-            </Button>
+          <div style={{ margin: '15px', padding: '20px', textAlign: 'center', border: '1px solid #388e3c', borderRadius: '12px', backgroundColor: '#4caf50' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginBottom: '15px' }}>
+              <Avatar size={64} icon={<UserOutlined style={{ color: '#000' }} />} style={{ backgroundColor: 'transparent', border: '2px solid #000', marginBottom: '8px' }} />
+              <div style={{ lineHeight: '1.2' }}>
+                <Text strong style={{ color: '#fff', fontSize: '16px', display: 'block' }}>Admin</Text>
+                <Text style={{ color: '#fff', fontSize: '12px' }}>{userEmail}</Text>
+              </div>
+            </div>
+            <Button type="primary" onClick={handleLogout} style={{ width: '100%', backgroundColor: '#2e7d32', borderColor: '#2e7d32', borderRadius: '6px' }}>Log out</Button>
           </div>
 
         </div>
       </Sider>
 
       <Layout>
-        <Content className="admin-content">
+        <Content style={{ padding: '24px', backgroundColor: '#fff' }}>
           {children}
         </Content>
       </Layout>

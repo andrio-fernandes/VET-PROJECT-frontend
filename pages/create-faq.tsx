@@ -156,9 +156,9 @@ const UploadFAQ = () => {
               <Title level={3} style={{ margin: 0, color: '#262626' }}>
                 Create New FAQs 
               </Title>
-              <Text type="secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
+              {/* <Text type="secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
                 Add new FAQs to your list
-              </Text>
+              </Text> */}
             </div>
           </div>
 

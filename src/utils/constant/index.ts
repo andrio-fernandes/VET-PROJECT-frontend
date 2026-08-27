@@ -112,6 +112,12 @@ export const API_ENDPOINTS = {
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
   dashboardStats: "/dashboard/stats",
+  // Video endpoints
+  createVideo: "/videos",
+  getVideos: "/videos",
+  getVideo: (id: string) => `/videos/${id}`,
+  updateVideo: (id: string) => `/videos/${id}`,
+  deleteVideo: (id: string) => `/videos/${id}`,
 } as const;
 
 // Session storage keys for password reset flow
