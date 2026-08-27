@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "next/router";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import {
   Form,
@@ -21,6 +22,8 @@ const countWords = (value = "") =>
   value.trim() ? value.trim().split(/\s+/).length : 0;
 
 export default function UploadVideo() {
+  const router = useRouter();
+  const [form] = Form.useForm();
   const [file, setFile] = useState<File | null>(null);
   const [titleWords, setTitleWords] = useState(0);
   const [descriptionWords, setDescriptionWords] = useState(0);
@@ -52,8 +55,20 @@ export default function UploadVideo() {
   const preview = () => {
     if (!file) return;
 
+    const values = form.getFieldsValue();
     const url = URL.createObjectURL(file);
-    window.open(url, "_blank");
+
+    // Frontend-only preview hand-off (no backend / no upload).
+    sessionStorage.setItem(
+      "video_preview",
+      JSON.stringify({
+        src: url,
+        title: values.title || file.name,
+        description: values.description || "",
+      })
+    );
+
+    router.push("/video-preview");
   };
 
   const removeFile = () => {
@@ -88,7 +103,7 @@ export default function UploadVideo() {
             Video Details
           </div>
 
-          <Form layout="vertical" onFinish={submit}>
+          <Form form={form} layout="vertical" onFinish={submit}>
 
             {/* Title */}
             <Form.Item

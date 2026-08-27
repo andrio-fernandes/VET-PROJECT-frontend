@@ -61,10 +61,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     router.replace(ROUTE_PATHS.login);
   };
 
-  const activeKey = router.pathname.includes("upload-video")
-    ? "/upload-video"
-    : router.pathname.includes("create-video")
-    ? "/upload-video"
+  const activeKey = router.pathname.includes("videos") ||
+    router.pathname.includes("upload-video")
+    ? "/videos"
     : router.pathname.includes("blog")
     ? "/upload-blog"
     : router.pathname.includes("faq")
@@ -120,7 +119,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     label: "Dashboard",
                   },
                   {
-                    key: "/upload-video",
+                    key: ROUTE_PATHS.videos,
                     icon: <PlayCircleOutlined />,
                     label: "Videos",
                   },

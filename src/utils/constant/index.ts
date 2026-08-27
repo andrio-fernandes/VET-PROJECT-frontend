@@ -99,6 +99,8 @@ export const ROUTE_PATHS = {
   resetPassword: "/auth/reset-password",
   adminDashboard: "/dashboard/admin-dashboard",
   userDashboard: "/dashboard/user-dashboard",
+  videos: "/videos",
+  uploadVideo: "/upload-video",
 } as const;
 
 // Auth API endpoints
