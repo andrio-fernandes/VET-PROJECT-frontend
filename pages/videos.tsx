@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Button, Col, Modal, Row, Select, Table, Typography } from 'antd';
+import { Button, Col, Row, Select, Table, Typography } from 'antd';
 import {
   PlayCircleOutlined,
   PlusOutlined,
-  EyeOutlined,
   EditOutlined,
 } from '@ant-design/icons';
 import { AdminLayout } from '../src/components/layouts/admin-layout';
@@ -15,7 +14,8 @@ const { Title, Text } = Typography;
 interface Video {
   key: string;
   title: string;
-  uploadDate: string;
+  createdDate: string;
+  createdBy: string;
   module: string;
   feature: string;
 }
@@ -33,9 +33,9 @@ const FEATURE_OPTIONS = [
 ];
 
 const SAMPLE_VIDEOS: Video[] = [
-  { key: '1', title: 'Quotation', uploadDate: '15 Aug 2026', module: 'Sales', feature: 'Quotation' },
-  { key: '2', title: 'What is inquiry', uploadDate: '15 Aug 2026', module: 'Sales', feature: 'Inquiry' },
-  { key: '3', title: 'What is customer order', uploadDate: '15 Aug 2026', module: 'Sales', feature: 'Customer Order' },
+  { key: '1', title: 'Quotation', createdDate: '15 Aug 2026', createdBy: 'Admin', module: 'Sales', feature: 'Quotation' },
+  { key: '2', title: 'What is inquiry', createdDate: '15 Aug 2026', createdBy: 'Admin', module: 'Sales', feature: 'Inquiry' },
+  { key: '3', title: 'What is customer order', createdDate: '15 Aug 2026', createdBy: 'Admin', module: 'Sales', feature: 'Customer Order' },
 ];
 
 const Thumbnail = () => (
@@ -48,7 +48,6 @@ const Videos = () => {
   const router = useRouter();
   const [module, setModule] = useState('All');
   const [feature, setFeature] = useState('All');
-  const [preview, setPreview] = useState<Video | null>(null);
 
   const videos = useMemo(
     () =>
@@ -75,32 +74,31 @@ const Videos = () => {
       ),
     },
     {
-      title: 'Upload date',
-      dataIndex: 'uploadDate',
-      key: 'uploadDate',
+      title: 'Created date',
+      dataIndex: 'createdDate',
+      key: 'createdDate',
       render: (text: string) => <Text className="video-date">{text}</Text>,
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: 'Created by',
+      dataIndex: 'createdBy',
+      key: 'createdBy',
+      render: (text: string) => <Text className="video-date">{text}</Text>,
+    },
+    {
+      title: 'Edit',
+      key: 'edit',
       width: 140,
-      render: (_: unknown, record: Video) => (
-        <div className="video-actions">
-          <Button
-            className="video-action-btn"
-            icon={<EyeOutlined />}
-            onClick={() => setPreview(record)}
-            aria-label="View"
-          />
-          <Button
-            className="video-action-btn"
-            icon={<EditOutlined />}
-            onClick={() => {
-              window.history.back();
-            }}
-            aria-label="Edit"
-          />
-        </div>
+      render: () => (
+        <Button
+          type="link"
+          icon={<EditOutlined />}
+          onClick={() => {
+            window.history.back();
+          }}
+        >
+          Edit
+        </Button>
       ),
     },
   ];
@@ -171,32 +169,6 @@ const Videos = () => {
           />
         </div>
       </div>
-
-      {/* Preview modal */}
-      <Modal
-        title="Video Preview"
-        open={Boolean(preview)}
-        onCancel={() => setPreview(null)}
-        footer={null}
-        width={520}
-      >
-        {preview && (
-          <div className="video-preview">
-            <div className="video-preview-thumb">
-              <PlayCircleOutlined />
-            </div>
-            <div className="video-preview-meta">
-              <Text strong className="video-preview-title">
-                {preview.title}
-              </Text>
-              <Text className="video-preview-sub">
-                {preview.module} • {preview.feature}
-              </Text>
-              <Text className="video-preview-sub">Uploaded: {preview.uploadDate}</Text>
-            </div>
-          </div>
-        )}
-      </Modal>
     </AdminLayout>
   );
 };
