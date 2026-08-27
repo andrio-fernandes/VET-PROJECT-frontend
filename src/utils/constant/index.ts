@@ -3,13 +3,13 @@
 // =============================================
 
 // Content module and category values (must mirror server-side enums)
-export const CONTENT_MODULES = ["sales"] as const;
+export const CONTENT_MODULES = ["Sales"] as const;
 export type ContentModule = (typeof CONTENT_MODULES)[number];
 
 export const CONTENT_CATEGORIES = [
-  "customer-order",
-  "enquiry",
-  "quotation",
+  "Customer Order",
+  "Enquiry",
+  "Quotation",
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 
@@ -112,6 +112,12 @@ export const API_ENDPOINTS = {
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
   dashboardStats: "/dashboard/stats",
+  // Video endpoints
+  createVideo: "/videos",
+  getVideos: "/videos",
+  getVideo: (id: string) => `/videos/${id}`,
+  updateVideo: (id: string) => `/videos/${id}`,
+  deleteVideo: (id: string) => `/videos/${id}`,
 } as const;
 
 // Session storage keys for password reset flow

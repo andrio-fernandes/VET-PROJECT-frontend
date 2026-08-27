@@ -1,5 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { Typography, Card, Space, Table, Button, Spin, Modal, Form, Input, App as AntApp } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -13,7 +14,7 @@ import {
 import { AdminLayout } from '../../src/components/layouts/admin-layout';
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
 import { api } from '../../src/services/api';
-import { API_ENDPOINTS } from '../../src/utils/constant';
+import { API_ENDPOINTS, USER_KEY } from '../../src/utils/constant';
 
 const { Text } = Typography;
 
@@ -21,7 +22,9 @@ const { Text } = Typography;
 interface TableItem {
   key: string;
   title: string;
-  uploadDate: string;
+  createdAt: string;
+  createdByName: string;
+  thumbnailUrl?: string;
 }
 
 interface DashboardStats {
@@ -36,14 +39,38 @@ interface FaqRecord {
   answer: string;
   createdAt: string;
   updatedAt: string;
+  createdBy?: { fullName?: string; username?: string };
 }
 
 const countWords = (text: string): number =>
   text.trim().split(/\s+/).filter(Boolean).length;
 
+const emptySubscribe = () => () => {};
+
+let storedUserCache: { fullName?: string; username?: string } | null | undefined;
+
+const readStoredUser = (): { fullName?: string; username?: string } | null => {
+  if (storedUserCache === undefined) {
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      storedUserCache = raw ? JSON.parse(raw) : null;
+    } catch {
+      storedUserCache = null;
+    }
+  }
+  return storedUserCache ?? null;
+};
+
 const Dashboard = () => {
   const router = useRouter();
   const { message } = AntApp.useApp();
+  const storedUser = useSyncExternalStore(
+    emptySubscribe,
+    () => readStoredUser() ?? null,
+    () => null
+  );
+  const rawAdminName = storedUser?.fullName || storedUser?.username || 'Admin';
+  const adminDisplayName = rawAdminName.charAt(0).toUpperCase() + rawAdminName.slice(1);
   const [activeTab, setActiveTab] = useState('Video');
 
   // 2. Apply the interfaces to state variables
@@ -123,18 +150,26 @@ const Dashboard = () => {
       try {
         setLoading(true);
 
-        // Videos/blogs have no backend yet; FAQ count comes from the real API.
+        // Blogs have no backend yet; video and FAQ counts come from the real API.
         setStats({ totalVideos: 0, totalBlogs: 0, totalFaqs: 0 });
 
         if (activeTab === 'Video') {
-          setTableData([
-            { key: '1', title: 'Quotation Workflow', uploadDate: '20 Aug 2026' },
-            { key: '2', title: 'What is enquiry', uploadDate: '18 Aug 2026' },
-          ]);
+          const videoData = await api(`${API_ENDPOINTS.getVideos}?page=1&limit=10`);
+          if (!ignore) {
+            const rows: TableItem[] = (videoData?.videos ?? []).map(
+              (video: any) => ({
+                key: video._id,
+                title: video.title,
+                createdAt: video.createdAt,
+                createdByName:
+                  video.createdBy?.fullName || video.createdBy?.username || 'Unknown',
+                thumbnailUrl: video.thumbnailUrl,
+              })
+            );
+            setTableData(rows);
+          }
         } else if (activeTab === 'Blog') {
-          setTableData([
-            { key: '1', title: '5 Sales Tips', uploadDate: '19 Aug 2026' },
-          ]);
+          setTableData([]);
         } else {
           fetchMyFaqs(1);
         }
@@ -144,6 +179,7 @@ const Dashboard = () => {
           setStats((previous) => ({
             ...previous,
             totalFaqs: data?.data?.totalFaqs ?? 0,
+            totalVideos: data?.data?.totalVideos ?? 0,
           }));
         }
       } catch (error) {
@@ -172,9 +208,9 @@ const Dashboard = () => {
   ];
 
   const quickActions = [
-    { title: 'Create New Videos', path: '/create-video', icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Create New Videos', path: '/videos/create', icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
     { title: 'Upload New Blog', path: '/upload-blog', icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
-    { title: 'Create New FAQs', path: '/create-faq', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Create New FAQs', path: '/faqs/create', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
   ];
 
   const tableColumns = [
@@ -182,17 +218,32 @@ const Dashboard = () => {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
-      render: (text: string) => (
+      render: (text: string, record: TableItem) => (
         <Space>
-          <div style={{ width: 60, height: 40, backgroundColor: '#e6f7ff', borderRadius: 4, border: '1px solid #d9d9d9' }} />
+          {activeTab !== 'FAQs' &&
+            (activeTab === 'Video' && record.thumbnailUrl ? (
+              <img
+                src={record.thumbnailUrl}
+                alt={text}
+                style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+              />
+            ) : (
+              <div style={{ width: 60, height: 40, backgroundColor: '#e6f7ff', borderRadius: 4, border: '1px solid #d9d9d9' }} />
+            ))}
           <Text strong style={{ color: '#000' }}>{text}</Text>
         </Space>
       ),
     },
     {
-      title: 'Upload date',
-      dataIndex: 'uploadDate', 
-      key: 'uploadDate',
+      title: 'Created On',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>
+    },
+    {
+      title: 'Created By',
+      dataIndex: 'createdByName',
+      key: 'createdByName',
       render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>
     },
     {
@@ -201,45 +252,22 @@ const Dashboard = () => {
       render: () => (
         <Space size="middle">
           <Button type="text" icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />} />
-          <Button type="text" icon={<EditOutlined style={{ color: '#000', fontSize: '16px' }} />} />
         </Space>
       ),
     },
   ];
 
-  const faqTableColumns = [
-    {
-      title: 'Question',
-      dataIndex: 'question',
-      key: 'question',
-      ellipsis: true,
-      render: (text: string) => <Text strong style={{ color: '#000' }}>{text}</Text>,
-    },
-    {
-      title: 'Answer',
-      dataIndex: 'answer',
-      key: 'answer',
-      ellipsis: true,
-      render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>,
-    },
-    {
-      title: 'Created',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 110,
-      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>,
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 80,
-      render: (_: unknown, record: FaqRecord) => (
-        <Button type="link" icon={<EditOutlined />} onClick={() => openEditFaq(record)}>
-          Edit
-        </Button>
-      ),
-    },
-  ];
+  const faqRows: TableItem[] = useMemo(
+    () =>
+      faqs.map((faq) => ({
+        key: faq._id,
+        title: faq.question,
+        createdAt: faq.createdAt,
+        createdByName:
+          faq.createdBy?.fullName || faq.createdBy?.username || 'Unknown',
+      })),
+    [faqs]
+  );
 
   return (
     <AdminLayout>
@@ -254,8 +282,10 @@ const Dashboard = () => {
         }
       `}</style>
 
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: '24px', fontWeight: 700, color: '#000' }}>Welcome, Admin!</div>
+      <div style={{ padding: '32px', minHeight: '100vh' }}>
+      {/* Header Section */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '24px', fontWeight: 700, color: '#000' }}>Welcome, {adminDisplayName}</div>
         <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>Review the complete set of uploaded data</Text>
       </div>
 
@@ -342,9 +372,9 @@ const Dashboard = () => {
 
         {activeTab === 'FAQs' ? (
           <Table
-            columns={faqTableColumns}
-            dataSource={faqs}
-            rowKey="_id"
+            columns={tableColumns}
+            dataSource={faqRows}
+            rowKey="key"
             loading={faqsLoading}
             pagination={{
               current: faqsPage,
@@ -366,6 +396,7 @@ const Dashboard = () => {
           />
         )}
 
+      </div>
       </div>
 
       {/* MY FAQ LIST MODAL */}

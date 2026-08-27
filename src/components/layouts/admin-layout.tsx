@@ -3,11 +3,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { Layout, Menu, Button, Typography, Avatar, ConfigProvider } from 'antd';
 import {
-  HomeOutlined,
-  PlayCircleOutlined,
   FileTextOutlined,
+  HomeOutlined,
   QuestionCircleOutlined,
-  UserOutlined
+  UserOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 
@@ -44,10 +44,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     router.replace(ROUTE_PATHS.login);
   };
 
-  const activeKey = router.pathname.includes('/faq') ? '/create-faq'
-    : router.pathname.includes('/video') ? '/create-video'
-    : router.pathname.includes('/blog') ? '/upload-blog'
-    : router.pathname;
+  const activeKey = router.pathname.includes('/faq') ? '/faqs/create' : router.pathname;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -108,9 +105,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 style={{ backgroundColor: 'transparent', borderRight: 'none' }}
                 items={[
                   { key: ROUTE_PATHS.adminDashboard, icon: <HomeOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 600 }}>Dashboard</span> },
-                  { key: '/create-video', icon: <PlayCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Videos</span> },
-                  { key: '/upload-blog', icon: <FileTextOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Blogs</span> },
-                  { key: '/create-faq', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
+                  { key: '/videos/create', icon: <VideoCameraOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Video</span> },
+                  { key: '/upload-blog', icon: <FileTextOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Blog</span> },
+                  { key: '/faqs/create', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
                 ]}
               />
             </ConfigProvider>
@@ -131,7 +128,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </Sider>
 
       <Layout>
-        <Content style={{ padding: '24px', backgroundColor: '#fff' }}>
+        <Content style={{ backgroundColor: '#fff' }}>
           {children}
         </Content>
       </Layout>
