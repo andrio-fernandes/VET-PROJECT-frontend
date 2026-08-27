@@ -3,13 +3,13 @@
 // =============================================
 
 // Content module and category values (must mirror server-side enums)
-export const CONTENT_MODULES = ["sales"] as const;
+export const CONTENT_MODULES = ["Sales"] as const;
 export type ContentModule = (typeof CONTENT_MODULES)[number];
 
 export const CONTENT_CATEGORIES = [
-  "customer-order",
-  "enquiry",
-  "quotation",
+  "Customer Order",
+  "Enquiry",
+  "Quotation",
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 

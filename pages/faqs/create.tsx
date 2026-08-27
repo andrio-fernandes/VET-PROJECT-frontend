@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Input, Button, Typography, Space, Select, Row, Col, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
-import { AdminLayout } from '../src/components/layouts/admin-layout';
-import { withAdminAuth } from '../src/components/auth/with-admin-auth';
-import { api } from '../src/services/api';
-import { API_ENDPOINTS, ROUTE_PATHS, CONTENT_MODULES, CONTENT_CATEGORIES } from '../src/utils/constant';
+import { AdminLayout } from '../../src/components/layouts/admin-layout';
+import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
+import { api } from '../../src/services/api';
+import { API_ENDPOINTS, ROUTE_PATHS, CONTENT_MODULES, CONTENT_CATEGORIES } from '../../src/utils/constant';
 
 const { Title, Text } = Typography;
 
-const countWords = (text: string): number =>
-  text.trim().split(/\s+/).filter(Boolean).length;
+const countWords = (text: string | undefined = ""): number =>
+  text.trim() ? text.trim().split(/\s+/).length : 0;
 
 const UploadFAQ = () => {
   const [form] = Form.useForm();
@@ -19,17 +19,21 @@ const UploadFAQ = () => {
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
+  const confirmLeaveRef = useRef<(() => void) | null>(null);
+  const retainedDataRef = useRef<string | null>(null);
 
-  // Reactive values so the preview modal stays in sync while typing.
+  // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
 
   useEffect(() => {
     const retainedData = localStorage.getItem('retained_faq_progress');
     if (retainedData) {
-      form.setFieldsValue(JSON.parse(retainedData));
-      message.info('Restored your previous unsaved progress.'); 
+      retainedDataRef.current = retainedData;
+      setRestoreOpen(true);
     }
   }, [form, message]);
 
@@ -62,43 +66,72 @@ const UploadFAQ = () => {
     }
   };
 
-  const showLeaveConfirm = useCallback((onLeave: () => void) => {
-    Modal.confirm({
-      title: 'You have unsaved changes',
-      content: 'Do you want to save your changes before leaving?',
-      okText: 'Yes, Save',
-      cancelText: "No, Don't Save",
-      onOk() {
-        localStorage.setItem('retained_faq_progress', JSON.stringify(form.getFieldsValue()));
-        message.info('Progress saved.');
-        setIsDirty(false);
-        onLeave();
-      },
-      onCancel() {
-        localStorage.removeItem('retained_faq_progress');
-        setIsDirty(false);
-        onLeave();
-      },
-    });
-  }, [form, message]);
+  const openLeaveConfirm = useCallback((onLeave: () => void) => {
+    confirmLeaveRef.current = onLeave;
+    setConfirmOpen(true);
+  }, []);
+
+  const closeLeaveConfirm = () => {
+    confirmLeaveRef.current = null;
+    setConfirmOpen(false);
+  };
+
+  const confirmRestoreDraft = () => {
+    if (retainedDataRef.current) {
+      form.setFieldsValue(JSON.parse(retainedDataRef.current));
+      retainedDataRef.current = null;
+      message.info('Restored your previous unsaved progress.');
+    }
+    setRestoreOpen(false);
+  };
+
+  const confirmDiscardDraft = () => {
+    localStorage.removeItem('retained_faq_progress');
+    retainedDataRef.current = null;
+    setRestoreOpen(false);
+  };
+
+  const confirmSaveAndLeave = () => {
+    const onLeave = confirmLeaveRef.current;
+    localStorage.setItem('retained_faq_progress', JSON.stringify(form.getFieldsValue()));
+    message.info('Progress saved.');
+    setConfirmOpen(false);
+    setIsDirty(false);
+    if (onLeave) onLeave();
+  };
+
+  const confirmDiscardAndLeave = () => {
+    const onLeave = confirmLeaveRef.current;
+    localStorage.removeItem('retained_faq_progress');
+    setConfirmOpen(false);
+    setIsDirty(false);
+    if (onLeave) onLeave();
+  };
 
   const handleCancel = () => {
-    if (isDirty) {
-      showLeaveConfirm(() => {
-        form.resetFields();
-        router.push(ROUTE_PATHS.adminDashboard);
-      });
-    } else {
+    const values = form.getFieldsValue();
+    const hasContent =
+      Boolean(values.question?.trim()) ||
+      Boolean(values.answer?.trim()) ||
+      Boolean(values.module) ||
+      Boolean(values.category);
+
+    if (!hasContent) {
       form.resetFields();
       router.push(ROUTE_PATHS.adminDashboard);
+      return;
     }
+    openLeaveConfirm(() => {
+      form.resetFields();
+      router.push(ROUTE_PATHS.adminDashboard);
+    });
   };
 
   useEffect(() => {
     const handleRouteChange = (url: string) => {
       if (!isDirty) return;
       pendingNavRef.current = url;
-      showLeaveConfirm(() => {
+      openLeaveConfirm(() => {
         pendingNavRef.current = null;
         router.push(url);
       });
@@ -114,7 +147,7 @@ const UploadFAQ = () => {
       router.events.off('routeChangeStart', handleRouteChange);
       router.events.off('routeChangeError', handleRouteChangeError);
     };
-  }, [isDirty, router, showLeaveConfirm]);
+  }, [isDirty, router, openLeaveConfirm]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -127,17 +160,23 @@ const UploadFAQ = () => {
   }, [isDirty]);
 
   const previewContent = (
-    <div style={{ padding: '12px' }}>
-      <Text style={{ color: '#52c41a', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '12px' }}>
-        Preview
-      </Text>
-      <div style={{ marginBottom: '8px' }}>
-        <Text strong style={{ fontSize: '14px' }}>
+    <div>
+      <div style={{ marginBottom: '28px' }}>
+        <Text style={{ color: '#52c41a', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '12px' }}>
+          Question
+        </Text>
+        <Text strong style={{ fontSize: '18px', color: '#262626', lineHeight: 1.7, display: 'block' }}>
           {questionValue || 'Your question will appear here?'}
         </Text>
       </div>
-      <div style={{ backgroundColor: '#f6ffed', padding: '12px', borderRadius: '6px' }}>
-        <Text style={{ fontSize: '13px', color: '#595959' }}>
+
+      <div style={{ marginBottom: '12px' }}>
+        <Text style={{ color: '#52c41a', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
+          Answer
+        </Text>
+      </div>
+      <div style={{ backgroundColor: '#f6ffed', padding: '22px 24px', borderRadius: '12px' }}>
+        <Text style={{ fontSize: '16px', color: '#595959', lineHeight: 1.8, display: 'block' }}>
           {answerValue || 'Your answer description will appear here.'}
         </Text>
       </div>
@@ -171,44 +210,59 @@ const UploadFAQ = () => {
               layout="vertical"
               onFinish={onFinish}
               onValuesChange={handleValuesChange}
+              onFinishFailed={({ errorFields }) => {
+                if (errorFields && errorFields.length) {
+                  form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
+                }
+              }}
               requiredMark={(label, info) => <span>{label} {info.required && <span style={{ color: 'red' }}>*</span>}</span>}
             >
               <Form.Item label={<span style={{ fontWeight: 600 }}>Question</span>} name="question" rules={[
                 { required: true, message: 'Please Enter The Question' },
+                // { min: 5, message: 'Question must be at least 5 characters' },
                 {
                   validator: (_rule, value) => {
                     if (!value) return Promise.resolve();
                     const wordCount = countWords(value);
-                    if (wordCount < 10) return Promise.reject('Question must contain at least 10 words.');
+                    if (wordCount < 5) return Promise.reject('Question must contain at least 5 words.');
                     if (wordCount > 30) return Promise.reject('Question must not exceed 30 words.');
                     return Promise.resolve();
                   },
                 },
               ]}>
-                <Input placeholder="Enter Question" maxLength={200} showCount size="large" style={{ borderRadius: '6px' }} />
+                <Input placeholder="Enter Question" maxLength={200} size="large" style={{ borderRadius: '6px' }} />
               </Form.Item>
+
+              <div className="word-counter">
+                {countWords(questionValue)}/30
+              </div>
 
               <Form.Item label={<span style={{ fontWeight: 600 }}>Answer</span>} name="answer" rules={[
                 { required: true, message: 'Please provide an answer' },
+                // { min: 10, message: 'Answer must be at least 10 characters' },
                 {
                   validator: (_rule, value) => {
                     if (!value) return Promise.resolve();
                     const wordCount = countWords(value);
-                    if (wordCount < 20) return Promise.reject('Answer must contain at least 20 words.');
+                    if (wordCount < 10) return Promise.reject('Answer must contain at least 10 words.');
                     if (wordCount > 60) return Promise.reject('Answer must not exceed 60 words.');
                     return Promise.resolve();
                   },
                 },
               ]}>
-                <Input.TextArea placeholder="Describe your Answer" maxLength={2000} showCount size="large" rows={4} style={{ borderRadius: '6px', resize: 'none' }} />
+                <Input.TextArea placeholder="Describe your Answer" maxLength={2000} size="large" rows={4} style={{ borderRadius: '6px', resize: 'none' }} />
               </Form.Item>
 
-              <div style={{ marginBottom: '24px' }}>
-                <span style={{ fontWeight: 600, fontSize: '14px' }}>Select the module and categories </span>
-                <span style={{ color: '#ff4d4f' }}>*</span>
-                <div style={{ fontSize: '13px', color: '#8c8c8c', marginTop: '4px', marginBottom: '12px' }}>
-                  Select the module your FAQ should be placed in
-                </div>
+              <div className="word-counter">
+                {countWords(answerValue)}/60
+              </div>
+
+              <Form.Item
+                label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
+                required
+                style={{ marginBottom: '24px' }}
+                tooltip="Select the module your FAQ should be placed in"
+              >
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="module" rules={[
@@ -217,7 +271,7 @@ const UploadFAQ = () => {
                       <Select
                         placeholder="Select Module"
                         size="large"
-                        options={CONTENT_MODULES.map((m) => ({ value: m, label: m.charAt(0).toUpperCase() + m.slice(1) }))}
+                        options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
                         style={{ borderRadius: '6px' }}
                       />
                     </Form.Item>
@@ -231,18 +285,17 @@ const UploadFAQ = () => {
                         size="large"
                         options={CONTENT_CATEGORIES.map((c) => ({
                           value: c,
-                          label: c.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+                          label: c,
                         }))}
                         style={{ borderRadius: '6px' }}
                       />
                     </Form.Item>
                   </Col>
                 </Row>
-              </div>
+              </Form.Item>
 
               <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '32px 0 24px 0' }} />
 
-              {/* ACTION BUTTONS & PREVIEW MODAL */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Button 
                   size="large" 
@@ -263,7 +316,7 @@ const UploadFAQ = () => {
                 open={previewVisible}
                 onCancel={() => setPreviewVisible(false)}
                 footer={null}
-                width={736} /* Matches form width */
+                width={736}
                 centered
                 maskStyle={{ 
                   backdropFilter: 'blur(6px)', 
@@ -278,6 +331,43 @@ const UploadFAQ = () => {
           
         </div>
       </div>
+
+      <Modal
+        open={confirmOpen}
+        title="You have unsaved changes"
+        onCancel={closeLeaveConfirm}
+        closable
+        maskClosable
+        footer={
+          <Space>
+            <Button onClick={confirmDiscardAndLeave}>No, Don&apos;t Save</Button>
+            <Button type="primary" onClick={confirmSaveAndLeave}>
+              Yes, Save
+            </Button>
+          </Space>
+        }
+      >
+        <p>Do you want to save your changes before leaving?</p>
+      </Modal>
+
+      {/* RESTORE PREVIOUS DRAFT MODAL */}
+      <Modal
+        open={restoreOpen}
+        title="Restore previous draft?"
+        onCancel={confirmDiscardDraft}
+        closable
+        maskClosable
+        footer={
+          <Space>
+            <Button onClick={confirmDiscardDraft}>No, Start Fresh</Button>
+            <Button type="primary" onClick={confirmRestoreDraft}>
+              Yes, Restore
+            </Button>
+          </Space>
+        }
+      >
+        <p>You have a previously unsaved FAQ draft. Would you like to restore it?</p>
+      </Modal>
     </AdminLayout>
   );
 };
