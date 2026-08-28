@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { AdminLayout } from '../../src/components/layouts/admin-layout';
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
 import { api } from '../../src/services/api';
-import { API_ENDPOINTS, ROUTE_PATHS, CONTENT_MODULES, CONTENT_CATEGORIES } from '../../src/utils/constant';
+import { API_ENDPOINTS, ROUTE_PATHS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '../../src/utils/constant';
 
 const { Title, Text } = Typography;
 
@@ -28,6 +28,7 @@ const UploadFAQ = () => {
   // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
+  const selectedModule = Form.useWatch('module', form);
 
   useEffect(() => {
     const retainedData = localStorage.getItem('retained_faq_progress');
@@ -37,8 +38,11 @@ const UploadFAQ = () => {
     }
   }, [form, message]);
 
-  const handleValuesChange = (_changedValues: any, allValues: any) => {
+  const handleValuesChange = (changedValues: any, allValues: any) => {
     setIsDirty(true);
+    if ('module' in changedValues) {
+      form.setFieldsValue({ category: undefined });
+    }
     localStorage.setItem('retained_faq_progress', JSON.stringify(allValues));
   };
 
@@ -215,7 +219,16 @@ const UploadFAQ = () => {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
               }}
-              requiredMark={(label, info) => <span>{label} {info.required && <span style={{ color: 'red' }}>*</span>}</span>}
+              requiredMark={(label, { required }) =>
+                required ? (
+                  <span>
+                    {label}
+                    <span style={{ color: '#ff4d4f', marginLeft: 2 }}>*</span>
+                  </span>
+                ) : (
+                  label
+                )
+              }
             >
               <Form.Item label={<span style={{ fontWeight: 600 }}>Question</span>} name="question" rules={[
                 { required: true, message: 'Please Enter The Question' },
@@ -261,7 +274,6 @@ const UploadFAQ = () => {
                 label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
                 required
                 style={{ marginBottom: '24px' }}
-                tooltip="Select the module your FAQ should be placed in"
               >
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
@@ -271,6 +283,7 @@ const UploadFAQ = () => {
                       <Select
                         placeholder="Select Module"
                         size="large"
+                        allowClear
                         options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
                         style={{ borderRadius: '6px' }}
                       />
@@ -281,9 +294,10 @@ const UploadFAQ = () => {
                       { required: true, message: 'Please select a category' },
                     ]} style={{ marginBottom: 0 }}>
                       <Select
-                        placeholder="Select Category"
+                        placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
                         size="large"
-                        options={CONTENT_CATEGORIES.map((c) => ({
+                        disabled={!selectedModule}
+                        options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
                           value: c,
                           label: c,
                         }))}

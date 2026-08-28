@@ -202,7 +202,7 @@ const Dashboard = () => {
   }, [activeTab, message, fetchMyFaqs]);
 
   const summaryCards = [
-    { title: 'Total Video', count: stats.totalVideos, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: undefined },
+    { title: 'Total Video', count: stats.totalVideos, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: () => router.push('/videos') },
     { title: 'Total Blog', count: stats.totalBlogs, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: undefined },
     { title: 'Total FAQs', count: stats.totalFaqs, icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: openFaqList },
   ];
@@ -251,7 +251,11 @@ const Dashboard = () => {
       key: 'actions',
       render: () => (
         <Space size="middle">
-          <Button type="text" icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />} />
+          <Button
+            type="text"
+            icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
+            onClick={() => activeTab === 'Video' && router.push('/videos')}
+          />
         </Space>
       ),
     },

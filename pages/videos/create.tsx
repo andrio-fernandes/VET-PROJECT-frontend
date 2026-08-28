@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import { API_ENDPOINTS, CONTENT_MODULES, CONTENT_CATEGORIES, ROUTE_PATHS } from "@/utils/constant";
+import { API_ENDPOINTS, CONTENT_MODULES, MODULE_CATEGORIES, ROUTE_PATHS, type ContentModule, type ContentCategory } from "@/utils/constant";
 import { TOKEN_KEY } from "@/utils/constant";
 import { Form, Input, Select, Upload, Button, Modal, Space, App as AntApp, Typography, Row, Col } from "antd";
 import {
@@ -34,6 +34,8 @@ const UploadVideo = () => {
   const cancelLeaveRef = useRef<(() => void) | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
+
+  const selectedModule = Form.useWatch('module', form);
 
   const beforeUpload = (file: File) => {
     if (!file.type.startsWith("video/")) {
@@ -253,12 +255,26 @@ const UploadVideo = () => {
               form={form}
               layout="vertical"
               onFinish={onFinish}
+              onValuesChange={(changedValues: any) => {
+                if ('module' in changedValues) {
+                  form.setFieldsValue({ category: undefined });
+                }
+              }}
               onFinishFailed={({ errorFields }) => {
                 if (errorFields && errorFields.length) {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
               }}
-              requiredMark={(label, info) => <span>{label} {info.required && <span style={{ color: 'red' }}>*</span>}</span>}
+              requiredMark={(label, { required }) =>
+                required ? (
+                  <span>
+                    {label}
+                    <span style={{ color: '#ff4d4f', marginLeft: 2 }}>*</span>
+                  </span>
+                ) : (
+                  label
+                )
+              }
             >
 
             {/* Title */}
@@ -343,12 +359,11 @@ const UploadVideo = () => {
             </div>
 
             {/* Category */}
-            <Form.Item
-              label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
-              required
-              style={{ marginBottom: '24px' }}
-              tooltip="Select the module your video should be placed in"
-            >
+              <Form.Item
+                label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
+                required
+                style={{ marginBottom: '24px' }}
+              >
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
                   <Form.Item
@@ -364,6 +379,7 @@ const UploadVideo = () => {
                     <Select
                       placeholder="Select Module"
                       size="large"
+                      allowClear
                       style={{ borderRadius: '6px' }}
                       options={CONTENT_MODULES.map((m) => ({
                         value: m,
@@ -384,10 +400,11 @@ const UploadVideo = () => {
                     style={{ marginBottom: 0 }}
                   >
                     <Select
-                      placeholder="Select Category"
+                      placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
                       size="large"
+                      disabled={!selectedModule}
                       style={{ borderRadius: '6px' }}
-                      options={CONTENT_CATEGORIES.map((c) => ({
+                      options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
                         value: c,
                         label: c,
                       }))}
@@ -398,12 +415,11 @@ const UploadVideo = () => {
             </Form.Item>
 
             {/* Thumbnail Upload */}
-            <div style={{ marginTop: '8px', marginBottom: '8px' }}>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap' }}>Upload Thumbnail</strong>
-              </div>
-
+            <Form.Item
+              label={<span style={{ fontWeight: 600 }}>Upload Thumbnail</span>}
+              required
+              style={{ marginBottom: '8px' }}
+            >
               <div style={{ display: 'block', margin: '4px 0 10px', color: '#8c8c8c', fontSize: '13px' }}>
                 Choose a visual cover for your video (16:9)
               </div>
@@ -450,18 +466,16 @@ const UploadVideo = () => {
               <div className="upload-info">
                 Maximum file 5MB | Supported format: JPG, PNG
               </div>
-
-            </div>
+            </Form.Item>
 
             <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '24px 0' }} />
 
             {/* Upload Video */}
-            <div className="upload-section">
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '15px', fontWeight: 600, whiteSpace: 'nowrap' }}>Upload video</strong>
-              </div>
-
+            <Form.Item
+              label={<span style={{ fontWeight: 600 }}>Upload Video</span>}
+              required
+              className="upload-section"
+            >
               <div style={{ display: 'block', margin: '4px 0 10px', color: '#8c8c8c', fontSize: '13px' }}>
                 Upload one video
               </div>
@@ -504,8 +518,7 @@ const UploadVideo = () => {
               <div className="upload-info">
                 Maximum file 64MB | Supported format: MP4
               </div>
-
-            </div>
+            </Form.Item>
 
             <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '32px 0 24px 0' }} />
 
