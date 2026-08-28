@@ -18,6 +18,8 @@ const { Text } = Typography;
 
 interface AdminLayoutProps {
   children: React.ReactNode;
+  /** When provided, sidebar menu clicks route through this callback instead of router.push. */
+  onNavigate?: (path: string) => void;
 }
 
 const emptySubscribe = () => () => {};
@@ -32,7 +34,7 @@ const readUserEmail = (): string => {
   }
 };
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }) => {
   const router = useRouter();
   const userEmail = useSyncExternalStore(emptySubscribe, readUserEmail, () => '');
 
@@ -44,11 +46,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     router.replace(ROUTE_PATHS.login);
   };
 
-  const activeKey = router.pathname.includes('/faq')
-    ? '/faqs/create'
-    : router.pathname.startsWith('/videos')
-      ? '/videos'
-      : router.pathname;
+  const activeKey = router.pathname.startsWith('/blog')
+    ? '/blogs'
+    : router.pathname.includes('/faq')
+      ? '/faqs'
+      : router.pathname.startsWith('/videos')
+        ? '/videos'
+        : router.pathname;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -105,13 +109,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 className="lively-sidebar"
                 mode="inline"
                 selectedKeys={[activeKey]} 
-                onClick={(e) => router.push(e.key)} 
+                onClick={(e) => (onNavigate ? onNavigate(e.key) : router.push(e.key))} 
                 style={{ backgroundColor: 'transparent', borderRight: 'none' }}
                 items={[
                   { key: ROUTE_PATHS.adminDashboard, icon: <HomeOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 600 }}>Dashboard</span> },
                   { key: '/videos', icon: <VideoCameraOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Video</span> },
-                  { key: '/upload-blog', icon: <FileTextOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Blog</span> },
-                  { key: '/faqs/create', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
+                  { key: '/blogs', icon: <FileTextOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Blog</span> },
+                  { key: '/faqs', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
                 ]}
               />
             </ConfigProvider>

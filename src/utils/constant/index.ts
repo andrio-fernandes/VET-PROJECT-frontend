@@ -107,6 +107,10 @@ export const ROUTE_PATHS = {
   userDashboard: "/dashboard/user-dashboard",
   videos: "/videos",
   createVideo: "/videos/create",
+  uploadBlog: "/blogs/create",
+  blogs: "/blogs",
+  blogPreview: "/blogs/preview",
+  faqs: "/faqs",
 } as const;
 
 // Auth API endpoints
@@ -119,6 +123,7 @@ export const API_ENDPOINTS = {
   resetPassword: "/auth/reset-password",
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
+  deleteFaq: (id: string) => `/faqs/${id}`,
   dashboardStats: "/dashboard/stats",
   // Video endpoints
   createVideo: "/videos",
@@ -126,6 +131,9 @@ export const API_ENDPOINTS = {
   getVideo: (id: string) => `/videos/${id}`,
   updateVideo: (id: string) => `/videos/${id}`,
   deleteVideo: (id: string) => `/videos/${id}`,
+  // Blog endpoints
+  createBlog: "/blogs",
+  getMyBlogs: "/blogs/mine",
 } as const;
 
 // Session storage keys for password reset flow

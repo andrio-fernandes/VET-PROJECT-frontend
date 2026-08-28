@@ -8,6 +8,10 @@ export function proxy(request: NextRequest) {
   const dashboardPaths = [
     '/dashboard/user-dashboard',
     '/dashboard/admin-dashboard',
+    '/blogs/create',
+    '/blogs',
+    '/blogs/preview',
+    '/faqs',
   ];
 
   if (dashboardPaths.includes(pathname) && !userToken) {
@@ -35,6 +39,10 @@ export const config = {
   matcher: [
     '/dashboard/user-dashboard',
     '/dashboard/admin-dashboard',
+    '/blogs/create',
+    '/blogs',
+    '/blogs/preview',
+    '/faqs',
     '/auth/login',
     '/auth/register',
     '/auth/forgot-password',

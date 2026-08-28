@@ -1,0 +1,427 @@
+// =============================================
+// SHARED BLOG STYLES
+//
+// Styles that are genuinely common across the Create / Preview / List blog
+// pages. Page-specific one-off styles stay in the pages themselves.
+// =============================================
+
+$blog-green: #52c41a;
+$blog-border: #d9d9d9;
+$blog-divider: #e8e8e8;
+$blog-bg: #fbfbfb;
+
+// ------------------------------------------------------------
+// Blog page shell (sidebar + main content column)
+// ------------------------------------------------------------
+.blog-page {
+  height: 100vh;
+  overflow: hidden;
+  background-color: $blog-bg;
+}
+
+.blog-main {
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 40px 48px 40px;
+}
+
+.blog-content {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+// ------------------------------------------------------------
+// Sidebar
+// ------------------------------------------------------------
+.blog-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 285px;
+  background-color: $blog-green;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.blog-sidebar-logo {
+  margin: 20px 16px 0 16px;
+  padding: 10px 12px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid $blog-divider;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.blog-sidebar-divider {
+  border-color: rgba(255, 255, 255, 0.45);
+  margin: 18px 0 12px 0;
+}
+
+.blog-sidebar-nav {
+  padding-top: 4px;
+  flex: 1;
+}
+
+.blog-sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: calc(100% - 28px);
+  margin: 3px 14px;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.25);
+    font-weight: 700;
+  }
+}
+
+.blog-sidebar-nav-icon {
+  font-size: 18px;
+  display: inline-flex;
+}
+
+// Sidebar profile card (blogs list + preview pages)
+.blog-sidebar-profile {
+  margin: 16px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid #388e3c;
+  border-radius: 12px;
+  background-color: #4caf50;
+  flex-shrink: 0;
+}
+
+.blog-sidebar-profile-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.ant-avatar.blog-sidebar-profile-avatar {
+  background-color: transparent;
+  border: 2px solid #000;
+  margin-bottom: 8px;
+}
+
+.blog-sidebar-logout.ant-btn {
+  width: 100%;
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+  border-radius: 6px;
+}
+
+// ------------------------------------------------------------
+// Page header (back + icon + title)
+// ------------------------------------------------------------
+.blog-page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.blog-page-header-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blog-page-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: $blog-green;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+
+  &.lg {
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+  }
+}
+
+.blog-page-header-subtitle {
+  display: block;
+}
+
+// ------------------------------------------------------------
+// Content card wrapper
+// ------------------------------------------------------------
+.blog-card {
+  background-color: #ffffff;
+  border: 1px solid $blog-divider;
+  border-radius: 16px;
+}
+
+// ------------------------------------------------------------
+// Form sections
+// ------------------------------------------------------------
+.blog-section-label {
+  font-weight: 700;
+  font-size: 17px;
+  color: #262626;
+}
+
+.ant-typography.blog-field-label,
+.ant-typography.blog-section-hint {
+  display: block;
+}
+
+.blog-field-label {
+  font-weight: 600;
+}
+
+.blog-section-hint {
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.blog-required {
+  color: red;
+}
+
+.blog-divider,
+div.blog-divider.ant-divider {
+  margin: 28px 0 24px 0;
+}
+
+// ------------------------------------------------------------
+// Buttons
+// ------------------------------------------------------------
+.ant-btn.blog-outline-button {
+  border-color: $blog-green;
+  color: $blog-green;
+  border-radius: 6px;
+  padding: 0 32px;
+}
+
+.ant-btn.blog-green-button {
+  background-color: $blog-green;
+  border-radius: 6px;
+}
+
+// ------------------------------------------------------------
+// Upload areas (thumbnail + attachments)
+// ------------------------------------------------------------
+.blog-upload-area {
+  border: 2px dashed #b7eb8f;
+  border-radius: 12px;
+  background-color: #fafafa;
+  padding: 44px 24px;
+  text-align: center;
+}
+
+.blog-upload-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.blog-field-error {
+  font-size: 12px;
+  display: block;
+  margin-top: 6px;
+  color: #ff4d4f;
+}
+
+.blog-upload-button.ant-btn {
+  border-radius: 6px;
+  padding: 0 32px;
+}
+
+// ------------------------------------------------------------
+// Attachment list (Create page)
+// ------------------------------------------------------------
+.blog-attachment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+}
+
+.blog-attachment-name {
+  min-width: 0;
+  overflow: hidden;
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.blog-attachment-upload {
+  padding-top: 4px;
+}
+
+// ------------------------------------------------------------
+// Rich-text editor (Create page)
+// ------------------------------------------------------------
+.blog-editor {
+  border: 1px solid $blog-border;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.blog-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+
+  button {
+    min-width: 34px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #333333;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+      color: $blog-green;
+    }
+  }
+}
+
+.blog-editor-area {
+  min-height: 320px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.65;
+
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: #bfbfbf;
+  }
+}
+
+// Rich-text styling shared by the editor area and the preview content.
+.blog-rich-content {
+  img {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 12px 0 8px 0;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 10px 0 6px 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 24px;
+    margin: 0 0 10px 0;
+  }
+
+  p {
+    margin: 0 0 10px 0;
+  }
+}
+
+.blog-editor-area.blog-rich-content {
+  ul,
+  ol {
+    margin: 0;
+  }
+}
+
+// ------------------------------------------------------------
+// Blog list rows
+// ------------------------------------------------------------
+.blog-list-row-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.blog-list-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-list-thumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  display: block;
+}
+
+.blog-list-thumb-placeholder {
+  width: 120px;
+  height: 80px;
+  background-color: #f6ffed;
+  border-radius: 8px;
+  border: 1px solid #b7eb8f;
+  flex-shrink: 0;
+}
+
+// ------------------------------------------------------------
+// All Blogs table rows
+// ------------------------------------------------------------
+.blogs-table-row {
+  td {
+    border-bottom: 1px solid $blog-divider;
+    padding: 16px !important;
+  }
+
+  &:last-child td {
+    border-bottom: none;
+  }
+
+  &:hover td {
+    background-color: #fbfbfb !important;
+  }
+}
