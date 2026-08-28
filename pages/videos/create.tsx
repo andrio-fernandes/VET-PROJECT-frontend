@@ -241,7 +241,7 @@ const UploadVideo = () => {
           {/* Header Section */}
           <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Title level={3} style={{ margin: 0, color: '#262626' }}>
+              <Title level={3} style={{ margin: 0, fontWeight: 600, color: '#262626' }}>
                 Create New Video
               </Title>
             </div>

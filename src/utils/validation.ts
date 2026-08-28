@@ -1,5 +1,10 @@
 import type { Rule } from "antd/es/form";
-import { DESCRIPTION_MAX_WORDS, TITLE_MAX_WORDS } from "@/constants/blog";
+import {
+  DESCRIPTION_MAX_WORDS,
+  DESCRIPTION_MIN_WORDS,
+  TITLE_MAX_WORDS,
+  TITLE_MIN_WORDS,
+} from "@/constants/blog";
 import { stripHtmlTags } from "@/utils/richText";
 
 export const emailRules: Rule[] = [
@@ -65,25 +70,30 @@ export const wordCountFormatter =
 // React Hook Form blog validation
 // ---------------------------------------------------------------
 
-// RHF validator that rejects a value exceeding the word limit.
-// Returns a string error message (or true when valid), per RHF's contract.
-export const rhfWordLimitValidator =
-  (maxWords: number) =>
-  (value: string | undefined): string | true => {
-    if (!value || countWords(value) <= maxWords) return true;
-    return `Cannot exceed ${maxWords} words`;
-  };
-
-// RHF rules equivalent to blogTitleRules
+// RHF rules for the blog title (min/max word limits, like the video form).
 export const rhfTitleRules = {
   required: 'Please enter the blog title',
-  validate: rhfWordLimitValidator(TITLE_MAX_WORDS),
+  validate: (value: string | undefined): string | true => {
+    if (!value) return true;
+    const words = countWords(value);
+    if (words < TITLE_MIN_WORDS) return `Title must contain at least ${TITLE_MIN_WORDS} words.`;
+    if (words > TITLE_MAX_WORDS) return `Title must not exceed ${TITLE_MAX_WORDS} words.`;
+    return true;
+  },
 };
 
-// RHF rules equivalent to blogDescriptionRules
+// RHF rules for the blog description (min/max word limits, like the video form).
 export const rhfDescriptionRules = {
   required: 'Please describe your blog',
-  validate: rhfWordLimitValidator(DESCRIPTION_MAX_WORDS),
+  validate: (value: string | undefined): string | true => {
+    if (!value) return true;
+    const words = countWords(value);
+    if (words < DESCRIPTION_MIN_WORDS)
+      return `Description must contain at least ${DESCRIPTION_MIN_WORDS} words.`;
+    if (words > DESCRIPTION_MAX_WORDS)
+      return `Description must not exceed ${DESCRIPTION_MAX_WORDS} words.`;
+    return true;
+  },
 };
 
 // Validates that the rich-text content has at least some visible text.

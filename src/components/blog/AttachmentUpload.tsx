@@ -88,7 +88,7 @@ export const AttachmentUpload: React.FC<AttachmentUploadProps> = ({
           </Upload>
         </div>
         <div className="blog-upload-hint">
-          Maximum file {ATTACHMENT_MAX_BYTES / (1024 * 1024)}MB|sported format:Excel,PDF,DOC,PNG
+          Maximum file {ATTACHMENT_MAX_BYTES / (1024 * 1024)}MB | Supported format: Excel, PDF, DOC, PNG
         </div>
       </div>
       {error && (

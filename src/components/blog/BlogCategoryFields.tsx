@@ -43,10 +43,10 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
   return (
     <>
     <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
-      Select the module and catagories <span className="blog-required">*</span>
+      Select the module and categories <span className="blog-required">*</span>
     </Title>
     <Text type="secondary" className="blog-section-hint">
-      select the module where blog should be places
+      Select the module where the blog should be placed
     </Text>
 
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

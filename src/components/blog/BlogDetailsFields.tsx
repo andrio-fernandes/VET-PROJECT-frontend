@@ -58,7 +58,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
       )}
     />
 
-    <div style={{ height: 4 }} />
+    <div style={{ height: 16 }} />
 
     <Controller
       name="description"

@@ -185,8 +185,9 @@ const UploadBlog = () => {
 
   return (
     <AdminLayout onNavigate={requestNavigation}>
-      <div style={{ padding: '32px' }}>
-        <div className="blog-content">
+      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+        <div style={{ width: '100%' }}>
+          <div className="blog-content" style={{ maxWidth: '100%' }}>
           <PageHeader
             backHref={ROUTE_PATHS.blogs}
             backOnClick={(event) => {
@@ -198,7 +199,7 @@ const UploadBlog = () => {
             showBack={false}
           />
 
-          <div className="blog-card" style={{ padding: '32px 36px' }}>
+          <div className="blog-card" style={{ padding: '32px', borderRadius: '12px' }}>
             {seeding ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
                 <Spin size="large" />
@@ -255,6 +256,7 @@ const UploadBlog = () => {
               </form>
             )}
           </div>
+        </div>
         </div>
       </div>
 

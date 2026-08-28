@@ -118,7 +118,7 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
               </Button>
             </Upload>
             <div className="blog-upload-hint">
-              Maximum file {THUMBNAIL_MAX_BYTES / (1024 * 1024)}MB|PNG, JPG
+              Maximum file {THUMBNAIL_MAX_BYTES / (1024 * 1024)}MB | PNG, JPG
             </div>
           </>
         )}

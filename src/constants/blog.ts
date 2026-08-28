@@ -24,8 +24,10 @@ export const ATTACHMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', 
 export const THUMBNAIL_ACCEPT = '.png,.jpg,.jpeg,image/png,image/jpeg';
 export const ATTACHMENT_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.png';
 
-export const TITLE_MAX_WORDS = 100;
-export const DESCRIPTION_MAX_WORDS = 200;
+export const TITLE_MIN_WORDS = 5;
+export const TITLE_MAX_WORDS = 30;
+export const DESCRIPTION_MIN_WORDS = 10;
+export const DESCRIPTION_MAX_WORDS = 60;
 
 export const BLOG_DRAFT_STORAGE_KEY = 'create-blog-draft-v1';
 export const BLOG_PREVIEW_STORAGE_KEY = 'create-blog-preview-draft-v1';
