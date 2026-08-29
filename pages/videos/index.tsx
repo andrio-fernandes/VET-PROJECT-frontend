@@ -28,6 +28,7 @@ interface Video {
   createdBy: string;
   module: string;
   category: string;
+  videoUrl: string;
   thumbnailUrl?: string;
 }
 
@@ -54,6 +55,7 @@ const Videos = () => {
         createdBy: v.createdBy?.fullName || v.createdBy?.username || 'Unknown',
         module: v.module,
         category: v.category,
+        videoUrl: v.videoUrl,
         thumbnailUrl: v.thumbnailUrl,
       }))
     );
@@ -91,7 +93,7 @@ const Videos = () => {
       JSON.stringify({
         title: record.title,
         description: record.description,
-        src: '',
+        src: mediaUrl(record.videoUrl),
       })
     );
     router.push('/videos/preview');
