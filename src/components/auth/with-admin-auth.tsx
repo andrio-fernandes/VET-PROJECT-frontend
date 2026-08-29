@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 import { ROUTE_PATHS, isTokenExpired, TOKEN_KEY, USER_KEY } from '@/utils/constant';
+import { ensureDevSession } from '@/utils/dev-session';
 
 interface StoredUser {
   id?: string;
@@ -36,6 +37,9 @@ export const withAdminAuth = (WrappedComponent: React.ComponentType<any>) => {
     const [allowed, setAllowed] = useState<boolean | undefined>(undefined);
 
     useEffect(() => {
+      // Dev-only: seed a valid admin session when none exists (no backend).
+      ensureDevSession();
+
       const { token, user } = readAuth();
 
       // Missing, expired, or malformed tokens are all treated as logged out,

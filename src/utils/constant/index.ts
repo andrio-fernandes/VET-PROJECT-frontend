@@ -13,6 +13,12 @@ export const CONTENT_CATEGORIES = [
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 
+// Categories available per module. Add a new entry here when a new module
+// is introduced so its categories become selectable on the create forms.
+export const MODULE_CATEGORIES: Record<ContentModule, readonly ContentCategory[]> = {
+  Sales: ["Customer Order", "Enquiry", "Quotation"],
+};
+
 // Commonly used weak passwords to reject during registration / reset
 export const COMMON_PASSWORDS: string[] = [
   "password",
@@ -99,6 +105,12 @@ export const ROUTE_PATHS = {
   resetPassword: "/auth/reset-password",
   adminDashboard: "/dashboard/admin-dashboard",
   userDashboard: "/dashboard/user-dashboard",
+  videos: "/videos",
+  createVideo: "/videos/create",
+  uploadBlog: "/blogs/create",
+  blogs: "/blogs",
+  blogPreview: "/blogs/preview",
+  faqs: "/faqs",
 } as const;
 
 // Auth API endpoints
@@ -111,6 +123,7 @@ export const API_ENDPOINTS = {
   resetPassword: "/auth/reset-password",
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
+  deleteFaq: (id: string) => `/faqs/${id}`,
   dashboardStats: "/dashboard/stats",
   // Video endpoints
   createVideo: "/videos",
@@ -118,6 +131,9 @@ export const API_ENDPOINTS = {
   getVideo: (id: string) => `/videos/${id}`,
   updateVideo: (id: string) => `/videos/${id}`,
   deleteVideo: (id: string) => `/videos/${id}`,
+  // Blog endpoints
+  createBlog: "/blogs",
+  getMyBlogs: "/blogs/mine",
 } as const;
 
 // Session storage keys for password reset flow

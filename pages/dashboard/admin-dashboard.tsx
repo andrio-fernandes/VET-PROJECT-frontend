@@ -1,14 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
-import { Typography, Card, Space, Table, Button, Spin, Modal, Form, Input, App as AntApp } from 'antd';
+import { Typography, Card, Space, Table, Button, Spin, App as AntApp } from 'antd';
 import dayjs from 'dayjs';
 import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   VideoCameraAddOutlined,
   EyeOutlined,
-  EditOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
 import { AdminLayout } from '../../src/components/layouts/admin-layout';
@@ -78,24 +77,16 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({ totalVideos: 0, totalBlogs: 0, totalFaqs: 0 });
   const [tableData, setTableData] = useState<TableItem[]>([]);
 
-  // "View all" FAQ list + editing
-  const [isFaqListOpen, setIsFaqListOpen] = useState(false);
+  // "Recently uploaded" FAQ list
   const [faqs, setFaqs] = useState<FaqRecord[]>([]);
   const [faqsLoading, setFaqsLoading] = useState(false);
-  const [faqsPage, setFaqsPage] = useState(1);
-  const [faqsTotal, setFaqsTotal] = useState(0);
-  const [editingFaq, setEditingFaq] = useState<FaqRecord | null>(null);
-  const [savingFaq, setSavingFaq] = useState(false);
-  const [editForm] = Form.useForm<{ question: string; answer: string }>();
 
   const fetchMyFaqs = useCallback(
-    async (page = 1) => {
+    async () => {
       setFaqsLoading(true);
       try {
-        const data = await api(`${API_ENDPOINTS.getMyFaqs}?page=${page}&limit=10`);
+        const data = await api(`${API_ENDPOINTS.getMyFaqs}?limit=4`);
         setFaqs(data?.faqs ?? []);
-        setFaqsPage(data?.page ?? page);
-        setFaqsTotal(data?.totalFaqs ?? 0);
       } catch (error: any) {
         message.error(error.message || 'Failed to load FAQs.');
       } finally {
@@ -105,44 +96,6 @@ const Dashboard = () => {
     [message]
   );
 
-  const openFaqList = () => {
-    setIsFaqListOpen(true);
-    fetchMyFaqs(1);
-  };
-
-  const openEditFaq = (faq: FaqRecord) => {
-    setEditingFaq(faq);
-    editForm.resetFields();
-    editForm.setFieldsValue({ question: faq.question, answer: faq.answer });
-  };
-
-  const handleEditFaqSave = async () => {
-    if (!editingFaq) return;
-
-    let values: { question: string; answer: string };
-    try {
-      values = await editForm.validateFields();
-    } catch {
-      return;
-    }
-
-    setSavingFaq(true);
-    try {
-      await api(`${API_ENDPOINTS.createFaq}/${editingFaq._id}`, {
-        method: 'PUT',
-        body: JSON.stringify(values),
-      });
-
-      message.success('FAQ updated successfully!');
-      setEditingFaq(null);
-      fetchMyFaqs(faqsPage);
-    } catch (error: any) {
-      message.error(error.message || 'Failed to update FAQ.');
-    } finally {
-      setSavingFaq(false);
-    }
-  };
-
   useEffect(() => {
     let ignore = false;
 
@@ -150,11 +103,10 @@ const Dashboard = () => {
       try {
         setLoading(true);
 
-        // Blogs have no backend yet; video and FAQ counts come from the real API.
         setStats({ totalVideos: 0, totalBlogs: 0, totalFaqs: 0 });
 
         if (activeTab === 'Video') {
-          const videoData = await api(`${API_ENDPOINTS.getVideos}?page=1&limit=10`);
+          const videoData = await api(`${API_ENDPOINTS.getVideos}?page=1&limit=4`);
           if (!ignore) {
             const rows: TableItem[] = (videoData?.videos ?? []).map(
               (video: any) => ({
@@ -169,9 +121,22 @@ const Dashboard = () => {
             setTableData(rows);
           }
         } else if (activeTab === 'Blog') {
-          setTableData([]);
+          const blogData = await api(`${API_ENDPOINTS.getMyBlogs}?page=1&limit=4`);
+          if (!ignore) {
+            const rows: TableItem[] = (blogData?.blogs ?? []).map(
+              (blog: any) => ({
+                key: blog._id,
+                title: blog.title,
+                createdAt: blog.createdAt,
+                createdByName:
+                  blog.createdBy?.fullName || blog.createdBy?.username || adminDisplayName,
+                thumbnailUrl: blog.thumbnail,
+              })
+            );
+            setTableData(rows);
+          }
         } else {
-          fetchMyFaqs(1);
+          fetchMyFaqs();
         }
 
         const data = await api(API_ENDPOINTS.dashboardStats);
@@ -180,6 +145,7 @@ const Dashboard = () => {
             ...previous,
             totalFaqs: data?.data?.totalFaqs ?? 0,
             totalVideos: data?.data?.totalVideos ?? 0,
+            totalBlogs: data?.data?.totalBlogs ?? 0,
           }));
         }
       } catch (error) {
@@ -202,14 +168,14 @@ const Dashboard = () => {
   }, [activeTab, message, fetchMyFaqs]);
 
   const summaryCards = [
-    { title: 'Total Video', count: stats.totalVideos, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: undefined },
-    { title: 'Total Blog', count: stats.totalBlogs, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: undefined },
-    { title: 'Total FAQs', count: stats.totalFaqs, icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: openFaqList },
+    { title: 'Total Video', count: stats.totalVideos, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: () => router.push('/videos') },
+    { title: 'Total Blog', count: stats.totalBlogs, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: () => router.push('/blogs') },
+    { title: 'Total FAQs', count: stats.totalFaqs, icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />, onViewAll: () => router.push('/faqs') },
   ];
 
   const quickActions = [
     { title: 'Create New Videos', path: '/videos/create', icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
-    { title: 'Upload New Blog', path: '/upload-blog', icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Upload New Blog', path: '/blogs/create', icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
     { title: 'Create New FAQs', path: '/faqs/create', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
   ];
 
@@ -221,7 +187,7 @@ const Dashboard = () => {
       render: (text: string, record: TableItem) => (
         <Space>
           {activeTab !== 'FAQs' &&
-            (activeTab === 'Video' && record.thumbnailUrl ? (
+            (record.thumbnailUrl ? (
               <img
                 src={record.thumbnailUrl}
                 alt={text}
@@ -251,7 +217,17 @@ const Dashboard = () => {
       key: 'actions',
       render: () => (
         <Space size="middle">
-          <Button type="text" icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />} />
+          <Button
+            type="text"
+            icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
+            onClick={() =>
+              activeTab === 'Video'
+                ? router.push('/videos')
+                : activeTab === 'Blog'
+                  ? router.push('/blogs')
+                  : router.push('/faqs')
+            }
+          />
         </Space>
       ),
     },
@@ -376,13 +352,7 @@ const Dashboard = () => {
             dataSource={faqRows}
             rowKey="key"
             loading={faqsLoading}
-            pagination={{
-              current: faqsPage,
-              pageSize: 10,
-              total: faqsTotal,
-              onChange: (page) => fetchMyFaqs(page),
-              hideOnSinglePage: true,
-            }}
+            pagination={false}
             locale={{ emptyText: faqsLoading ? 'Loading...' : 'No FAQs uploaded yet.' }}
           />
         ) : (
@@ -398,103 +368,6 @@ const Dashboard = () => {
 
       </div>
       </div>
-
-      {/* MY FAQ LIST MODAL */}
-      <Modal
-        title={`My FAQs (${faqsTotal})`}
-        open={isFaqListOpen}
-        onCancel={() => setIsFaqListOpen(false)}
-        footer={null}
-        width={760}
-      >
-        <Table
-          dataSource={faqs}
-          rowKey="_id"
-          loading={faqsLoading}
-          pagination={{
-            current: faqsPage,
-            pageSize: 10,
-            total: faqsTotal,
-            onChange: (page) => fetchMyFaqs(page),
-            hideOnSinglePage: true,
-          }}
-          columns={[
-            {
-              title: 'Question',
-              dataIndex: 'question',
-              key: 'question',
-              ellipsis: true,
-              render: (text: string) => <Text strong style={{ color: '#000' }}>{text}</Text>,
-            },
-            {
-              title: 'Answer',
-              dataIndex: 'answer',
-              key: 'answer',
-              ellipsis: true,
-              render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>,
-            },
-            {
-              title: 'Created',
-              dataIndex: 'createdAt',
-              key: 'createdAt',
-              width: 110,
-              render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>,
-            },
-            {
-              title: 'Actions',
-              key: 'actions',
-              width: 80,
-              render: (_, record: FaqRecord) => (
-                <Button type="link" icon={<EditOutlined />} onClick={() => openEditFaq(record)}>
-                  Edit
-                </Button>
-              ),
-            },
-          ]}
-        />
-      </Modal>
-
-      {/* EDIT FAQ MODAL */}
-      <Modal
-        title="Edit FAQ"
-        open={Boolean(editingFaq)}
-        onCancel={() => setEditingFaq(null)}
-        onOk={handleEditFaqSave}
-        confirmLoading={savingFaq}
-        okText="Save"
-      >
-        <Form form={editForm} layout="vertical" requiredMark={false}>
-          <Form.Item
-            label={<Text strong>Question</Text>}
-            name="question"
-            rules={[
-              { required: true, message: 'Please enter the question' },
-              { min: 5, message: 'Question must be at least 5 characters' },
-              { max: 200, message: 'Question cannot exceed 200 characters' },
-            ]}
-          >
-            <Input placeholder="Enter Question" maxLength={200} showCount size="large" style={{ borderRadius: '6px' }} />
-          </Form.Item>
-
-          <Form.Item
-            label={<Text strong>Answer</Text>}
-            name="answer"
-            rules={[
-              { required: true, message: 'Please provide an answer' },
-              { min: 10, message: 'Answer must be at least 10 characters' },
-              { max: 2000, message: 'Answer cannot exceed 2000 characters' },
-            ]}
-          >
-            <Input.TextArea
-              placeholder="Describe your Answer"
-              maxLength={2000}
-              showCount
-              rows={4}
-              style={{ borderRadius: '6px', resize: 'none' }}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
     </AdminLayout>
   );
 };
