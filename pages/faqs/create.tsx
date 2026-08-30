@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Input, Button, Typography, Space, Select, Row, Col, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
-import { AdminLayout } from '../../src/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
-import { api } from '../../src/services/api';
-import { API_ENDPOINTS, ROUTE_PATHS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '../../src/utils/constant';
+import { createFaq } from '../../src/services/faqService';
+import { ROUTE_PATHS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '../../src/utils/constant';
 
 const { Title, Text } = Typography;
 
@@ -49,14 +49,11 @@ const UploadFAQ = () => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      await api(API_ENDPOINTS.createFaq, {
-        method: 'POST',
-        body: JSON.stringify({
-          module: values.module,
-          category: values.category,
-          question: values.question,
-          answer: values.answer,
-        }),
+      await createFaq({
+        module: values.module,
+        category: values.category,
+        question: values.question,
+        answer: values.answer,
       });
       message.success('FAQ uploaded successfully!');
       localStorage.removeItem('retained_faq_progress');
@@ -165,22 +162,22 @@ const UploadFAQ = () => {
 
   const previewContent = (
     <div>
-      <div style={{ marginBottom: '28px' }}>
-        <Text style={{ color: '#52c41a', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '12px' }}>
+      <div className="faqs-create-block">
+        <Text className="faqs-create-preview-label faqs-create-preview-label-q">
           Question
         </Text>
-        <Text strong style={{ fontSize: '18px', color: '#262626', lineHeight: 1.7, display: 'block' }}>
+        <Text strong className="faqs-create-preview-question">
           {questionValue || 'Your question will appear here?'}
         </Text>
       </div>
 
-      <div style={{ marginBottom: '12px' }}>
-        <Text style={{ color: '#52c41a', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
+      <div className="faqs-create-preview-answer-block">
+        <Text className="faqs-create-preview-label">
           Answer
         </Text>
       </div>
-      <div style={{ backgroundColor: '#f6ffed', padding: '22px 24px', borderRadius: '12px' }}>
-        <Text style={{ fontSize: '16px', color: '#595959', lineHeight: 1.8, display: 'block' }}>
+      <div className="faqs-create-preview-answer-box">
+        <Text className="faqs-create-preview-answer">
           {answerValue || 'Your answer description will appear here.'}
         </Text>
       </div>
@@ -189,14 +186,14 @@ const UploadFAQ = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+      <div className="faqs-create-page">
         
-        <div style={{ width: '100%' }}>
+        <div className="faqs-create-inner">
           
           {/* Header Section */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Title level={3} style={{ margin: 0, fontWeight: 600, color: '#262626' }}>
+          <div className="faqs-create-header">
+            <div className="faqs-create-header-body">
+              <Title level={3} className="faqs-create-header-title">
                 Create New FAQs 
               </Title>
               {/* <Text type="secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
@@ -206,8 +203,8 @@ const UploadFAQ = () => {
           </div>
 
           {/* Main Form Card */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '32px', border: '1px solid #e8e8e8' }}>
-            <Title level={5} style={{ margin: '0 0 24px 0' }}>FAQ Details</Title>
+          <div className="faqs-create-card">
+            <Title level={5} className="faqs-create-card-title">FAQ Details</Title>
 
             <Form
               form={form}
@@ -223,14 +220,14 @@ const UploadFAQ = () => {
                 required ? (
                   <span>
                     {label}
-                    <span style={{ color: '#ff4d4f', marginLeft: 2 }}>*</span>
+                    <span className="faqs-create-required">*</span>
                   </span>
                 ) : (
                   label
                 )
               }
             >
-              <Form.Item label={<span style={{ fontWeight: 600 }}>Question</span>} name="question" rules={[
+              <Form.Item label={<span className="faqs-create-label">Question</span>} name="question" rules={[
                 { required: true, message: 'Please Enter The Question' },
                 // { min: 5, message: 'Question must be at least 5 characters' },
                 {
@@ -243,14 +240,14 @@ const UploadFAQ = () => {
                   },
                 },
               ]}>
-                <Input placeholder="Enter Question" maxLength={200} size="large" style={{ borderRadius: '6px' }} />
+                <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-create-input" />
               </Form.Item>
 
               <div className="word-counter">
                 {countWords(questionValue)}/30
               </div>
 
-              <Form.Item label={<span style={{ fontWeight: 600 }}>Answer</span>} name="answer" rules={[
+              <Form.Item label={<span className="faqs-create-label">Answer</span>} name="answer" rules={[
                 { required: true, message: 'Please provide an answer' },
                 // { min: 10, message: 'Answer must be at least 10 characters' },
                 {
@@ -263,7 +260,7 @@ const UploadFAQ = () => {
                   },
                 },
               ]}>
-                <Input.TextArea placeholder="Describe your Answer" maxLength={2000} size="large" rows={4} style={{ borderRadius: '6px', resize: 'none' }} />
+                <Input.TextArea placeholder="Describe your Answer" maxLength={2000} size="large" rows={4} className="faqs-create-textarea" />
               </Form.Item>
 
               <div className="word-counter">
@@ -271,28 +268,28 @@ const UploadFAQ = () => {
               </div>
 
               <Form.Item
-                label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
+                label={<span className="faqs-create-label">Select the module and categories</span>}
                 required
-                style={{ marginBottom: '24px' }}
+                className="faqs-create-select-block"
               >
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="module" rules={[
                       { required: true, message: 'Please select a module' },
-                    ]} style={{ marginBottom: 0 }}>
+                    ]} className="faqs-create-select-item">
                       <Select
                         placeholder="Select Module"
                         size="large"
                         allowClear
                         options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
-                        style={{ borderRadius: '6px' }}
+                        className="faqs-create-select"
                       />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
                     <Form.Item name="category" rules={[
                       { required: true, message: 'Please select a category' },
-                    ]} style={{ marginBottom: 0 }}>
+                    ]} className="faqs-create-select-item">
                       <Select
                         placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
                         size="large"
@@ -301,27 +298,27 @@ const UploadFAQ = () => {
                           value: c,
                           label: c,
                         }))}
-                        style={{ borderRadius: '6px' }}
+                        className="faqs-create-select"
                       />
                     </Form.Item>
                   </Col>
                 </Row>
               </Form.Item>
 
-              <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '32px 0 24px 0' }} />
+              <div className="faqs-create-divider" />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="faqs-create-footer">
                 <Button 
                   size="large" 
                   onClick={() => setPreviewVisible(true)} 
-                  style={{ borderColor: '#52c41a', color: '#52c41a', borderRadius: '6px', padding: '0 32px' }}
+                  className="faqs-create-btn-preview"
                 >
                   Preview
                 </Button>
 
                 <Space size="middle">
-                  <Button size="large" onClick={handleCancel} style={{ borderColor: '#ff4d4f', color: '#ff4d4f', borderRadius: '6px', padding: '0 24px' }}>Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} style={{ backgroundColor: '#52c41a', borderRadius: '6px', padding: '0 32px' }}>Create</Button>
+                  <Button size="large" onClick={handleCancel} className="faqs-create-btn-cancel">Cancel</Button>
+                  <Button type="primary" htmlType="submit" size="large" loading={loading} className="faqs-create-btn-create">Create</Button>
                 </Space>
               </div>
 

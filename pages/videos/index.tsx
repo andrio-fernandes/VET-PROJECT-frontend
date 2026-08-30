@@ -8,29 +8,20 @@ import {
   PlayCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import { AdminLayout } from '@/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { api } from '@/services/api';
-import { API_ENDPOINTS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
+import { deleteVideo, getVideos } from '@/services/videoService';
+import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
 import { mediaUrl } from '@/utils/media';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
+import type { VideoRecord } from '@/types/video';
 
 const { Title, Text } = Typography;
 
 const PAGE_SIZE = 10;
 
-interface Video {
-  key: string;
-  title: string;
-  description: string;
-  createdAt: string;
-  createdBy: string;
-  module: string;
-  category: string;
-  videoUrl: string;
-  thumbnailUrl?: string;
-}
+type Video = VideoRecord;
 
 const Videos = () => {
   const router = useRouter();
@@ -71,7 +62,7 @@ const Videos = () => {
       if (categoryFilter !== 'All') params.set('category', categoryFilter);
 
       try {
-        const data = await api(`${API_ENDPOINTS.getVideos}?${params.toString()}`);
+        const data = await getVideos(params.toString());
         if (!ignore) applyVideosFromData(data);
       } catch (error: any) {
         if (!ignore) message.error(error.message || 'Failed to load videos.');
@@ -113,7 +104,7 @@ const Videos = () => {
       onOk: async () => {
         setDeletingId(record.key);
         try {
-          await api(API_ENDPOINTS.deleteVideo(record.key), { method: 'DELETE' });
+          await deleteVideo(record.key);
           message.success('Video deleted successfully.');
           if (videos.length === 1 && page > 1) {
             setPage(page - 1);
@@ -143,20 +134,20 @@ const Videos = () => {
       dataIndex: 'title',
       key: 'title',
       render: (text: string, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 380 }}>
+        <div className="videos-cell-title">
           {record.thumbnailUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={mediaUrl(record.thumbnailUrl)}
               alt={text}
-              style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0', flexShrink: 0, display: 'block' }}
+              className="videos-cell-thumb"
             />
           ) : (
-            <div style={{ width: 96, height: 64, backgroundColor: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#52c41a' }}>
-              <PlayCircleOutlined style={{ fontSize: 22 }} />
+            <div className="videos-cell-thumb-placeholder">
+              <PlayCircleOutlined className="videos-cell-play" />
             </div>
           )}
-          <Text strong style={{ color: '#262626', fontSize: 15 }}>{text}</Text>
+          <Text strong className="videos-cell-name">{text}</Text>
         </div>
       ),
     },
@@ -166,7 +157,7 @@ const Videos = () => {
       key: 'createdAt',
       width: 180,
       render: (text: string) => (
-        <Text style={{ color: '#595959' }}>{dayjs(text).format('DD MMM YYYY')}</Text>
+        <Text className="videos-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
       ),
     },
     {
@@ -175,7 +166,7 @@ const Videos = () => {
       key: 'createdBy',
       width: 160,
       render: (text: string) => (
-        <Text style={{ color: '#595959' }}>{text}</Text>
+        <Text className="videos-cell-muted">{text}</Text>
       ),
     },
     {
@@ -183,24 +174,24 @@ const Videos = () => {
       key: 'actions',
       width: 160,
       render: (_, record) => (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="videos-action-group">
           <Button
             type="text"
             title="View"
-            icon={<EyeOutlined style={{ fontSize: 16, color: '#52c41a' }} />}
+            icon={<EyeOutlined className="videos-action-icon" />}
             onClick={() => handleView(record)}
           />
           <Button
             type="text"
             title="Edit"
-            icon={<EditOutlined style={{ fontSize: 16, color: '#52c41a' }} />}
+            icon={<EditOutlined className="videos-action-icon" />}
             onClick={handleEdit}
           />
           <Button
             type="text"
             title="Delete"
             loading={deletingId === record.key}
-            icon={<DeleteOutlined style={{ fontSize: 16, color: '#ff4d4f' }} />}
+            icon={<DeleteOutlined className="videos-action-delete" />}
             onClick={() => handleDelete(record)}
           />
         </div>
@@ -210,35 +201,35 @@ const Videos = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 40px 48px' }}>
-        <div className="blog-content" style={{ maxWidth: 1080 }}>
+      <div className="videos-page-pad">
+        <div className="blog-content videos-content">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ width: 54, height: 54, borderRadius: '50%', backgroundColor: '#52c41a', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 24, flexShrink: 0 }}>
+          <div className="videos-header">
+            <div className="videos-header-icon">
               <PlayCircleOutlined />
             </div>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#262626' }}>
+            <Title level={3} className="videos-header-title">
               Videos
             </Title>
           </div>
 
           {/* Create button */}
-          <div style={{ textAlign: 'right', marginBottom: 20 }}>
+          <div className="videos-create-wrap">
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => router.push('/videos/create')}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: 6, padding: '0 24px', height: 38 }}
+              className="videos-create-btn"
             >
               Create
             </Button>
           </div>
 
           {/* Filters */}
-          <Row gutter={24} style={{ marginBottom: 16 }}>
+          <Row gutter={24} className="videos-filters">
             <Col span={12}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="videos-filter-group">
+                <Text strong className="videos-filter-label">
                   Select module:
                 </Text>
                 <Select
@@ -249,13 +240,13 @@ const Videos = () => {
                     setPage(1);
                   }}
                   options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                  style={{ width: 200 }}
+                  className="videos-filter-select"
                 />
               </div>
             </Col>
             <Col span={12}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="videos-filter-group">
+                <Text strong className="videos-filter-label">
                   Select Category:
                 </Text>
                 <Select
@@ -266,21 +257,14 @@ const Videos = () => {
                   }}
                   disabled={moduleFilter === 'All'}
                   options={categoryOptions}
-                  style={{ width: 200 }}
+                  className="videos-filter-select"
                 />
               </div>
             </Col>
           </Row>
 
           {/* Video table */}
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e8e8e8',
-              borderRadius: 16,
-              overflow: 'hidden',
-            }}
-          >
+          <div className="videos-table-wrap">
             <Table<Video>
               rowKey="key"
               columns={columns}
@@ -299,7 +283,7 @@ const Videos = () => {
           </div>
 
           {!loading && total > 0 && (
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'right', marginTop: 12 }}>
+            <Text type="secondary" className="videos-count-text">
               Showing {videos.length} of {total} videos
             </Text>
           )}

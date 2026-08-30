@@ -1,0 +1,147 @@
+/* =============================================
+   FAQS CREATE PAGE
+   Styles extracted from faqs/create.tsx inline styles.
+   Values preserved exactly - do not change
+   colors, sizes or geometry.
+   ============================================= */
+
+.faqs-create-page {
+  padding: 32px;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.faqs-create-inner {
+  width: 100%;
+}
+
+.faqs-create-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.faqs-create-header-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.faqs-create-header-title {
+  margin: 0;
+  font-weight: 600;
+  color: #262626;
+}
+
+.faqs-create-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  border: 1px solid #e8e8e8;
+}
+
+.faqs-create-card-title {
+  margin: 0 0 24px 0;
+}
+
+.faqs-create-label {
+  font-weight: 600;
+}
+
+.faqs-create-required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.faqs-create-input {
+  border-radius: 6px;
+}
+
+.faqs-create-textarea {
+  border-radius: 6px;
+  resize: none;
+}
+
+.faqs-create-select {
+  border-radius: 6px;
+}
+
+.faqs-create-select-block {
+  margin-bottom: 24px;
+}
+
+.faqs-create-select-item {
+  margin-bottom: 0;
+}
+
+.faqs-create-divider {
+  height: 1px;
+  background-color: #f0f0f0;
+  margin: 32px 0 24px 0;
+}
+
+.faqs-create-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faqs-create-btn-preview {
+  border-color: #52c41a;
+  color: #52c41a;
+  border-radius: 6px;
+  padding: 0 32px;
+}
+
+.faqs-create-btn-cancel {
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+  border-radius: 6px;
+  padding: 0 24px;
+}
+
+.faqs-create-btn-create {
+  background-color: #52c41a;
+  border-radius: 6px;
+  padding: 0 32px;
+}
+
+.faqs-create-block {
+  margin-bottom: 28px;
+}
+
+.faqs-create-preview-label {
+  color: #52c41a;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: block;
+}
+
+.faqs-create-preview-label-q {
+  margin-bottom: 12px;
+}
+
+.faqs-create-preview-question {
+  font-size: 18px;
+  color: #262626;
+  line-height: 1.7;
+  display: block;
+}
+
+.faqs-create-preview-answer-block {
+  margin-bottom: 12px;
+}
+
+.faqs-create-preview-answer-box {
+  background-color: #f6ffed;
+  padding: 22px 24px;
+  border-radius: 12px;
+}
+
+.faqs-create-preview-answer {
+  font-size: 16px;
+  color: #595959;
+  line-height: 1.8;
+  display: block;
+}

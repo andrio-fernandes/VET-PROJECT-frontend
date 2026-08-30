@@ -9,10 +9,11 @@ import {
   QuestionCircleOutlined,
   PlusOutlined
 } from '@ant-design/icons';
-import { AdminLayout } from '@/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { api } from '@/services/api';
-import { API_ENDPOINTS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
+import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
+import { deleteFaq, getMyFaqs, updateFaq } from '@/services/faqService';
+import type { FaqRecord } from '@/types/faq';
 
 const { Title, Text } = Typography;
 
@@ -20,17 +21,6 @@ const countWords = (text: string | undefined = ''): number =>
   text.trim() ? text.trim().split(/\s+/).length : 0;
 
 const PAGE_SIZE = 10;
-
-interface FaqRecord {
-  _id: string;
-  question: string;
-  answer: string;
-  createdBy?: { fullName?: string; username?: string };
-  createdAt: string;
-  updatedAt: string;
-  module?: string;
-  category?: string;
-}
 
 const ViewFaqs = () => {
   const router = useRouter();
@@ -56,12 +46,13 @@ const ViewFaqs = () => {
     let ignore = false;
 
     const fetchFaqs = async () => {
-      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
-      if (moduleFilter && moduleFilter !== 'All') params.set('module', moduleFilter);
-      if (categoryFilter && categoryFilter !== 'All') params.set('category', categoryFilter);
-
       try {
-        const data = await api(`${API_ENDPOINTS.getMyFaqs}?${params.toString()}`);
+        const data = await getMyFaqs({
+          page,
+          limit: PAGE_SIZE,
+          module: moduleFilter,
+          category: categoryFilter,
+        });
         if (!ignore) {
           setFaqs(data?.faqs ?? []);
           setPage(data?.page ?? page);
@@ -83,7 +74,7 @@ const ViewFaqs = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await api(API_ENDPOINTS.deleteFaq(id), { method: 'DELETE' });
+      await deleteFaq(id);
       message.success('FAQ deleted successfully!');
       if (faqs.length === 1 && page > 1) {
         setPage(page - 1);
@@ -128,10 +119,7 @@ const ViewFaqs = () => {
 
     setSavingFaq(true);
     try {
-      await api(`${API_ENDPOINTS.createFaq}/${editingFaq._id}`, {
-        method: 'PUT',
-        body: JSON.stringify(values),
-      });
+      await updateFaq(editingFaq._id, values);
 
       message.success('FAQ updated successfully!');
       setEditingFaq(null);
@@ -156,19 +144,19 @@ const ViewFaqs = () => {
       title: 'Title',
       dataIndex: 'question',
       key: 'question',
-      render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>,
+      render: (text: string) => <Text className="faqs-cell-text">{text}</Text>,
     },
     {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>,
+      render: (text: string) => <Text className="faqs-cell-text">{dayjs(text).format('DD MMM YYYY')}</Text>,
     },
     {
       title: 'Created By',
       key: 'createdBy',
       render: (_: unknown, record: FaqRecord) => (
-        <Text style={{ color: '#000' }}>{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
+        <Text className="faqs-cell-text">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
       ),
     },
     {
@@ -179,19 +167,19 @@ const ViewFaqs = () => {
           <Button
             type="text"
             title="View"
-            icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
+            icon={<EyeOutlined className="faqs-action-icon" />}
             onClick={() => setViewingFaq(record)}
           />
           <Button
             type="text"
             title="Edit"
-            icon={<EditOutlined style={{ color: '#000', fontSize: '16px' }} />}
+            icon={<EditOutlined className="faqs-action-icon" />}
             onClick={() => openEditFaq(record)}
           />
           <Button
             type="text"
             title="Delete"
-            icon={<DeleteOutlined style={{ color: '#ff4d4f', fontSize: '16px' }} />}
+            icon={<DeleteOutlined className="faqs-action-delete" />}
             onClick={() => showDeleteConfirm(record._id)}
           />
         </Space>
@@ -201,23 +189,23 @@ const ViewFaqs = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 40px 48px' }}>
-        <div style={{ maxWidth: 1080 }}>
+      <div className="faqs-page-pad">
+        <div className="faqs-page-inner">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{ width: 54, height: 54, borderRadius: '50%', backgroundColor: '#52c41a', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 24, flexShrink: 0 }}>
+          <div className="faqs-header">
+            <div className="faqs-header-icon">
               <QuestionCircleOutlined />
             </div>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#262626' }}>
+            <Title level={3} className="faqs-header-title">
               FAQs
             </Title>
           </div>
 
           {/* Filters + Create */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div className="faqs-toolbar">
             <Space size="large" wrap>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="faqs-filter-group">
+                <Text strong className="faqs-filter-label">
                   Select Module :
                 </Text>
                 <Select
@@ -228,12 +216,12 @@ const ViewFaqs = () => {
                     setPage(1);
                     setLoading(true);
                   }}
-                  style={{ width: 180 }}
+                  className="faqs-select-module"
                   options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
                 />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="faqs-filter-group">
+                <Text strong className="faqs-filter-label">
                   Select Categories :
                 </Text>
                 <Select
@@ -243,7 +231,7 @@ const ViewFaqs = () => {
                     setPage(1);
                     setLoading(true);
                   }}
-                  style={{ width: 210 }}
+                  className="faqs-select-category"
                   disabled={moduleFilter === 'All'}
                   options={categoryOptions}
                 />
@@ -253,14 +241,14 @@ const ViewFaqs = () => {
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => router.push('/faqs/create')}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: 6, padding: '0 24px', height: 38, fontWeight: 500 }}
+              className="faqs-create-btn"
             >
               Create
             </Button>
           </div>
 
           {/* Table */}
-          <div style={{ backgroundColor: '#ffffff', border: '1px solid #e8e8e8', borderRadius: 16, overflow: 'hidden' }}>
+          <div className="faqs-table-wrap">
             <Table
               columns={columns}
               dataSource={faqs}
@@ -281,7 +269,7 @@ const ViewFaqs = () => {
           </div>
 
           {!loading && total > 0 && (
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'right', marginTop: 12 }}>
+            <Text type="secondary" className="faqs-count-text">
               Showing {faqs.length} of {total} FAQs
             </Text>
           )}
@@ -298,17 +286,17 @@ const ViewFaqs = () => {
       >
         {viewingFaq && (
           <div>
-            <div style={{ marginBottom: 20 }}>
-              <Text strong style={{ color: '#52c41a', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <div className="faqs-view-block">
+              <Text strong className="faqs-view-label">
                 Question
               </Text>
-              <Text style={{ fontSize: '16px', color: '#262626' }}>{viewingFaq.question}</Text>
+              <Text className="faqs-view-question">{viewingFaq.question}</Text>
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <Text strong style={{ color: '#52c41a', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <div className="faqs-view-block">
+              <Text strong className="faqs-view-label">
                 Answer
               </Text>
-              <Text style={{ fontSize: '15px', color: '#595959', display: 'block', whiteSpace: 'pre-wrap' }}>{viewingFaq.answer}</Text>
+              <Text className="faqs-view-answer">{viewingFaq.answer}</Text>
             </div>
             <Space size="large" wrap>
               {viewingFaq.module && <Text type="secondary">Module: {viewingFaq.module}</Text>}
@@ -345,7 +333,7 @@ const ViewFaqs = () => {
               },
             ]}
           >
-            <Input placeholder="Enter Question" maxLength={200} size="large" style={{ borderRadius: '6px' }} />
+            <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-modal-input" />
           </Form.Item>
 
           <div className="word-counter">
@@ -372,7 +360,7 @@ const ViewFaqs = () => {
               placeholder="Describe your Answer"
               maxLength={2000}
               rows={4}
-              style={{ borderRadius: '6px', resize: 'none' }}
+              className="faqs-modal-textarea"
             />
           </Form.Item>
 

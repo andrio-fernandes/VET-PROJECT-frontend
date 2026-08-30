@@ -1,0 +1,142 @@
+/* =============================================
+   FAQs PAGES (index / create)
+   Styles extracted from faqs/*.tsx inline styles.
+   Values preserved exactly - do not change
+   colors, sizes or geometry.
+   ============================================= */
+
+.faqs-page-pad {
+  padding: 32px 40px 48px;
+}
+
+.faqs-page-inner {
+  width: 100%;
+}
+
+.faqs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.faqs-header-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: #52c41a;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.faqs-header-title {
+  margin: 0;
+  font-weight: 700;
+  color: #262626;
+}
+
+.faqs-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.faqs-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.faqs-filter-label {
+  color: #262626;
+  font-size: 14px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.faqs-select-module {
+  width: 180px;
+}
+
+.faqs-select-category {
+  width: 210px;
+}
+
+.faqs-create-btn {
+  background-color: #52c41a;
+  border-color: #52c41a;
+  border-radius: 6px;
+  padding: 0 24px;
+  height: 38px;
+  font-weight: 500;
+}
+
+.faqs-table-wrap {
+  background-color: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.faqs-count-text {
+  font-size: 12px;
+  display: block;
+  text-align: right;
+  margin-top: 12px;
+}
+
+.faqs-cell-text {
+  color: #000;
+}
+
+.faqs-action-icon {
+  color: #000;
+  font-size: 16px;
+}
+
+.faqs-action-delete {
+  color: #ff4d4f;
+  font-size: 16px;
+}
+
+.faqs-view-block {
+  margin-bottom: 20px;
+}
+
+.faqs-view-label {
+  color: #52c41a;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.faqs-view-question {
+  font-size: 16px;
+  color: #262626;
+}
+
+.faqs-view-answer {
+  font-size: 15px;
+  color: #595959;
+  display: block;
+  white-space: pre-wrap;
+}
+
+.faqs-modal-input {
+  border-radius: 6px;
+}
+
+.faqs-modal-textarea {
+  border-radius: 6px;
+  resize: none;
+}

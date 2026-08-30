@@ -2,9 +2,9 @@ import { useState, useSyncExternalStore } from "react";
 import { Button, Card, Flex, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
-import { api } from "@/services/api";
+import { forgotPassword } from "@/services/authService";
 import { emailRules } from "@/utils/validation";
-import { API_ENDPOINTS, MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
 
 const { Title, Text } = Typography;
 
@@ -37,10 +37,7 @@ export default function ForgotPasswordPage() {
     try {
       const email = values.email.toLowerCase().trim();
 
-      const data = await api(API_ENDPOINTS.forgotPassword, {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
+      const data = await forgotPassword(email);
 
       // Session storage is the source of truth so the attempt counter survives
       // navigation between the forgot-password and OTP pages. A different

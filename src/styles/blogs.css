@@ -1,0 +1,138 @@
+/* =============================================
+   BLOGS PAGES (index)
+   Styles extracted from blogs/index.tsx inline styles.
+   Values preserved exactly - do not change
+   colors, sizes or geometry.
+   ============================================= */
+
+.blogs-page-pad {
+  padding: 32px 40px 48px;
+}
+
+.blogs-content {
+  max-width: none;
+  width: 100%;
+}
+
+.blogs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.blogs-header-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: #52c41a;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.blogs-header-title {
+  margin: 0;
+  font-weight: 700;
+  color: #262626;
+}
+
+.blogs-create-wrap {
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+.blogs-create-btn {
+  background-color: #52c41a;
+  border-color: #52c41a;
+  border-radius: 6px;
+  padding: 0 24px;
+  height: 38px;
+}
+
+.blogs-filters {
+  margin-bottom: 16px;
+}
+
+.blogs-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blogs-filter-label {
+  color: #262626;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.blogs-filter-select {
+  width: 200px;
+}
+
+.blogs-table-wrap {
+  background-color: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.blogs-count-text {
+  font-size: 12px;
+  display: block;
+  text-align: right;
+  margin-top: 12px;
+}
+
+.blogs-cell-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 380px;
+}
+
+.blogs-cell-thumb {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  display: block;
+}
+
+.blogs-cell-thumb-placeholder {
+  width: 96px;
+  height: 64px;
+  background-color: #f6ffed;
+  border-radius: 6px;
+  border: 1px solid #b7eb8f;
+  flex-shrink: 0;
+}
+
+.blogs-cell-name {
+  color: #262626;
+  font-size: 15px;
+}
+
+.blogs-cell-muted {
+  color: #595959;
+}
+
+.blogs-action-group {
+  display: flex;
+  gap: 4px;
+}
+
+.blogs-action-icon {
+  font-size: 16px;
+  color: #52c41a;
+}
+
+.blogs-action-delete {
+  font-size: 16px;
+  color: #ff4d4f;
+}

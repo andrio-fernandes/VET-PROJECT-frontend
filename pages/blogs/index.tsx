@@ -5,7 +5,7 @@ import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlin
 import dayjs from 'dayjs';
 
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
-import { AdminLayout } from '../../src/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 
 import {
   CONTENT_MODULES,
@@ -98,18 +98,18 @@ const BlogsPage = () => {
       dataIndex: 'title',
       key: 'title',
       render: (text: string, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 380 }}>
+        <div className="blogs-cell-title">
           {record.thumbnail ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={mediaUrl(record.thumbnail)}
               alt={text}
-              style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0', flexShrink: 0, display: 'block' }}
+              className="blogs-cell-thumb"
             />
           ) : (
-            <div style={{ width: 96, height: 64, backgroundColor: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f', flexShrink: 0 }} />
+            <div className="blogs-cell-thumb-placeholder" />
           )}
-          <Text strong style={{ color: '#262626', fontSize: 15 }}>{text}</Text>
+          <Text strong className="blogs-cell-name">{text}</Text>
         </div>
       ),
     },
@@ -119,7 +119,7 @@ const BlogsPage = () => {
       key: 'createdAt',
       width: 180,
       render: (text: string) => (
-        <Text style={{ color: '#595959' }}>{dayjs(text).format('DD MMM YYYY')}</Text>
+        <Text className="blogs-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
       ),
     },
     {
@@ -128,7 +128,7 @@ const BlogsPage = () => {
       key: 'createdBy',
       width: 160,
       render: (_: unknown, record: BlogListItem) => (
-        <Text style={{ color: '#595959' }}>{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
+        <Text className="blogs-cell-muted">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
       ),
     },
     {
@@ -136,24 +136,24 @@ const BlogsPage = () => {
       key: 'actions',
       width: 160,
       render: (_, record) => (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="blogs-action-group">
           <Button
             type="text"
             title="View"
-            icon={<EyeOutlined style={{ fontSize: 16, color: '#52c41a' }} />}
+            icon={<EyeOutlined className="blogs-action-icon" />}
             onClick={() => router.push(`${ROUTE_PATHS.blogPreview}?id=${record._id}`)}
           />
           <Button
             type="text"
             title="Edit"
-            icon={<EditOutlined style={{ fontSize: 16, color: '#52c41a' }} />}
+            icon={<EditOutlined className="blogs-action-icon" />}
             onClick={() => router.push(`${ROUTE_PATHS.uploadBlog}?id=${record._id}`)}
           />
           <Button
             type="text"
             title="Delete"
             loading={deletingId === record._id}
-            icon={<DeleteOutlined style={{ fontSize: 16, color: '#ff4d4f' }} />}
+            icon={<DeleteOutlined className="blogs-action-delete" />}
             onClick={() => handleDelete(record)}
           />
         </div>
@@ -163,35 +163,35 @@ const BlogsPage = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 40px 48px' }}>
-        <div className="blog-content" style={{ maxWidth: 1080 }}>
+      <div className="blogs-page-pad">
+        <div className="blog-content blogs-content">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ width: 54, height: 54, borderRadius: '50%', backgroundColor: '#52c41a', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 24, flexShrink: 0 }}>
+          <div className="blogs-header">
+            <div className="blogs-header-icon">
               <FileTextOutlined />
             </div>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#262626' }}>
+            <Title level={3} className="blogs-header-title">
               Blog
             </Title>
           </div>
 
           {/* Create button */}
-          <div style={{ textAlign: 'right', marginBottom: 20 }}>
+          <div className="blogs-create-wrap">
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => router.push(ROUTE_PATHS.uploadBlog)}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: 6, padding: '0 24px', height: 38 }}
+              className="blogs-create-btn"
             >
               Create
             </Button>
           </div>
 
           {/* Filters */}
-          <Row gutter={24} style={{ marginBottom: 16 }}>
+          <Row gutter={24} className="blogs-filters">
             <Col span={12}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="blogs-filter-group">
+                <Text strong className="blogs-filter-label">
                   Select module:
                 </Text>
                 <Select
@@ -201,13 +201,13 @@ const BlogsPage = () => {
                     setCategoryFilter('All');
                   }}
                   options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                  style={{ width: 200 }}
+                  className="blogs-filter-select"
                 />
               </div>
             </Col>
             <Col span={12}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ color: '#262626', fontSize: 14, whiteSpace: 'nowrap' }}>
+              <div className="blogs-filter-group">
+                <Text strong className="blogs-filter-label">
                   Select Category:
                 </Text>
                 <Select
@@ -215,21 +215,14 @@ const BlogsPage = () => {
                   onChange={setCategoryFilter}
                   disabled={moduleFilter === 'All'}
                   options={categoryOptions}
-                  style={{ width: 200 }}
+                  className="blogs-filter-select"
                 />
               </div>
             </Col>
           </Row>
 
           {/* Blog table */}
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e8e8e8',
-              borderRadius: 16,
-              overflow: 'hidden',
-            }}
-          >
+          <div className="blogs-table-wrap">
             <Table<BlogListItem>
               rowKey="_id"
               columns={columns}
@@ -248,7 +241,7 @@ const BlogsPage = () => {
           </div>
 
           {!loading && !loadError && total > 0 && (
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'right', marginTop: 12 }}>
+            <Text type="secondary" className="blogs-count-text">
               Showing {filteredBlogs.length} of {total} blogs
             </Text>
           )}

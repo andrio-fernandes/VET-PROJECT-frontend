@@ -7,6 +7,14 @@ import { reportsTheme } from '@/theme';
 import { store } from '@/redux/store';
 import '@/styles/globals.css';
 import '@/styles/blog.scss';
+import '@/styles/admin-layout.css';
+import '@/styles/admin-dashboard.css';
+import '@/styles/faqs.css';
+import '@/styles/faqs-create.css';
+import '@/styles/videos.css';
+import '@/styles/videos-create.css';
+import '@/styles/blogs.css';
+import '@/styles/blogs-preview.css';
 
 const cache = createCache();
 

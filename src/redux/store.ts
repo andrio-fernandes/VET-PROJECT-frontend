@@ -5,10 +5,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 
 import blogReducer from "./blog/blogSlice";
+import dashboardReducer from "./dashboard/dashboardSlice";
 
 export const store = configureStore({
   reducer: {
     blog: blogReducer,
+    dashboard: dashboardReducer,
   },
 });
 

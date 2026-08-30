@@ -1,10 +1,10 @@
 ﻿/* eslint-disable @next/next/no-img-element */
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout } from "@/components/layouts/admin-layout";
+import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import { API_ENDPOINTS, CONTENT_MODULES, MODULE_CATEGORIES, ROUTE_PATHS, type ContentModule, type ContentCategory } from "@/utils/constant";
-import { TOKEN_KEY } from "@/utils/constant";
+import { createVideo } from "@/services/videoService";
+import { CONTENT_MODULES, MODULE_CATEGORIES, ROUTE_PATHS, type ContentModule, type ContentCategory } from "@/utils/constant";
 import { Form, Input, Select, Upload, Button, Modal, Space, App as AntApp, Typography, Row, Col } from "antd";
 import {
   UploadOutlined,
@@ -13,7 +13,6 @@ import {
 
 const { Title, Text } = Typography;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const MAX_SIZE = 64 * 1024 * 1024;
 const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024;
 
@@ -82,32 +81,14 @@ const UploadVideo = () => {
 
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("title", values.title);
-      formData.append("description", values.description);
-      formData.append("module", values.module);
-      formData.append("category", values.category);
-      formData.append("video", file);
-      formData.append("thumbnail", thumbnail);
-
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem(TOKEN_KEY)
-          : null;
-
-      const response = await fetch(`${API_URL}${API_ENDPOINTS.createVideo}`, {
-        method: "POST",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: formData,
+      await createVideo({
+        title: values.title,
+        description: values.description,
+        module: values.module,
+        category: values.category,
+        video: file,
+        thumbnail,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to upload video");
-      }
 
       message.success("Video uploaded successfully!");
       localStorage.removeItem("retained_video_progress");
@@ -235,21 +216,21 @@ const UploadVideo = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-        <div style={{ width: '100%' }}>
+      <div className="vc-page">
+        <div className="vc-inner">
 
           {/* Header Section */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Title level={3} style={{ margin: 0, fontWeight: 600, color: '#262626' }}>
+          <div className="vc-header">
+            <div className="vc-header-body">
+              <Title level={3} className="vc-header-title">
                 Create New Video
               </Title>
             </div>
           </div>
 
           {/* Main Form Card */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '32px', border: '1px solid #e8e8e8' }}>
-            <Title level={5} style={{ margin: '0 0 24px 0' }}>Video Details</Title>
+          <div className="vc-card">
+            <Title level={5} className="vc-card-title">Video Details</Title>
 
             <Form
               form={form}
@@ -269,7 +250,7 @@ const UploadVideo = () => {
                 required ? (
                   <span>
                     {label}
-                    <span style={{ color: '#ff4d4f', marginLeft: 2 }}>*</span>
+                    <span className="vc-required">*</span>
                   </span>
                 ) : (
                   label
@@ -279,7 +260,7 @@ const UploadVideo = () => {
 
             {/* Title */}
             <Form.Item
-              label={<span style={{ fontWeight: 600 }}>Title</span>}
+              label={<span className="vc-label">Title</span>}
               name="title"
               rules={[
                 {
@@ -305,7 +286,7 @@ const UploadVideo = () => {
               <Input
                 placeholder="Enter video title"
                 size="large"
-                style={{ borderRadius: '6px' }}
+                className="vc-input"
                 onChange={(e) =>
                   setTitleWords(countWords(e.target.value))
                 }
@@ -318,7 +299,7 @@ const UploadVideo = () => {
 
             {/* Description */}
             <Form.Item
-              label={<span style={{ fontWeight: 600 }}>Description</span>}
+              label={<span className="vc-label">Description</span>}
               name="description"
               rules={[
                 {
@@ -345,7 +326,7 @@ const UploadVideo = () => {
                 placeholder="Describe your video"
                 rows={5}
                 size="large"
-                style={{ borderRadius: '6px', resize: 'none' }}
+                className="vc-textarea"
                 onChange={(e) =>
                   setDescriptionWords(
                     countWords(e.target.value)
@@ -360,9 +341,9 @@ const UploadVideo = () => {
 
             {/* Category */}
               <Form.Item
-                label={<span style={{ fontWeight: 600 }}>Select the module and categories</span>}
+                label={<span className="vc-label">Select the module and categories</span>}
                 required
-                style={{ marginBottom: '24px' }}
+                className="vc-select-block"
               >
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
@@ -374,13 +355,13 @@ const UploadVideo = () => {
                         message: "Please select module.",
                       },
                     ]}
-                    style={{ marginBottom: 0 }}
+                    className="vc-select-item"
                   >
                     <Select
                       placeholder="Select Module"
                       size="large"
                       allowClear
-                      style={{ borderRadius: '6px' }}
+                      className="vc-select"
                       options={CONTENT_MODULES.map((m) => ({
                         value: m,
                         label: m,
@@ -397,13 +378,13 @@ const UploadVideo = () => {
                         message: "Please select category.",
                       },
                     ]}
-                    style={{ marginBottom: 0 }}
+                    className="vc-select-item"
                   >
                     <Select
                       placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
                       size="large"
                       disabled={!selectedModule}
-                      style={{ borderRadius: '6px' }}
+                      className="vc-select"
                       options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
                         value: c,
                         label: c,
@@ -416,11 +397,11 @@ const UploadVideo = () => {
 
             {/* Thumbnail Upload */}
             <Form.Item
-              label={<span style={{ fontWeight: 600 }}>Upload Thumbnail</span>}
+              label={<span className="vc-label">Upload Thumbnail</span>}
               required
-              style={{ marginBottom: '8px' }}
+              className="vc-thumb-block"
             >
-              <div style={{ display: 'block', margin: '4px 0 10px', color: '#8c8c8c', fontSize: '13px' }}>
+              <div className="vc-hint">
                 Choose a visual cover for your video (16:9)
               </div>
 
@@ -468,15 +449,15 @@ const UploadVideo = () => {
               </div>
             </Form.Item>
 
-            <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '24px 0' }} />
+            <div className="vc-divider" />
 
             {/* Upload Video */}
             <Form.Item
-              label={<span style={{ fontWeight: 600 }}>Upload Video</span>}
+              label={<span className="vc-label">Upload Video</span>}
               required
               className="upload-section"
             >
-              <div style={{ display: 'block', margin: '4px 0 10px', color: '#8c8c8c', fontSize: '13px' }}>
+              <div className="vc-hint">
                 Upload one video
               </div>
 
@@ -487,10 +468,10 @@ const UploadVideo = () => {
                 multiple={false}
                 className="video-upload"
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', height: '100%', minHeight: '121px' }}>
+                <div className="vc-drop-inner">
                   {file ? (
                     <>
-                      <span style={{ maxWidth: 430, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>{file.name}</span>
+                      <span className="vc-file-name">{file.name}</span>
                       <Button
                         danger
                         type="link"
@@ -520,22 +501,22 @@ const UploadVideo = () => {
               </div>
             </Form.Item>
 
-            <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '32px 0 24px 0' }} />
+            <div className="vc-divider-wide" />
 
             {/* Footer */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="vc-footer">
 
               <Button
                 size="large"
                 disabled={!file}
                 onClick={preview}
-                style={{ borderColor: '#52c41a', color: '#52c41a', borderRadius: '6px', padding: '0 32px' }}
+                className="vc-btn-preview"
               >
                 Preview
               </Button>
 
               <Space size="middle">
-                <Button size="large" onClick={handleCancel} style={{ borderColor: '#ff4d4f', color: '#ff4d4f', borderRadius: '6px', padding: '0 24px' }}>
+                <Button size="large" onClick={handleCancel} className="vc-btn-cancel">
                   Cancel
                 </Button>
 
@@ -544,7 +525,7 @@ const UploadVideo = () => {
                   htmlType="submit"
                   size="large"
                   loading={loading}
-                  style={{ backgroundColor: '#52c41a', borderRadius: '6px', padding: '0 32px' }}
+                  className="vc-btn-create"
                 >
                   Create
                 </Button>

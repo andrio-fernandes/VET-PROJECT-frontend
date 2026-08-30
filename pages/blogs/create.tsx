@@ -4,7 +4,7 @@ import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
-import { AdminLayout } from '../../src/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { PageHeader } from '../../src/components/blog/PageHeader';
 import { ThumbnailUpload } from '../../src/components/blog/ThumbnailUpload';
 import { AttachmentUpload } from '../../src/components/blog/AttachmentUpload';

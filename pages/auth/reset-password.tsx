@@ -1,21 +1,17 @@
 import { useEffect, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { Button, Card, Flex, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
-import Cookies from "js-cookie";
 
-import { api } from "@/services/api";
+import { resetPassword } from "@/services/authService";
 import { passwordRules } from "@/utils/validation";
-import { API_ENDPOINTS, AUTH_TOKEN_KEY, ROUTE_PATHS, REFRESH_TOKEN_KEY, STORAGE_KEYS, TOKEN_KEY, USER_KEY } from "@/utils/constant";
+import { clearSession } from "@/hooks/useAuth";
+import { ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
 import PasswordStrength from "@/components/password-strength";
+import type { ResetPasswordFormValues } from "@/types/auth";
 
 const { Title, Text } = Typography;
 
 const emptySubscribe = () => () => {};
-
-interface ResetPasswordFormValues {
-  password: string;
-  confirmPassword: string;
-}
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -55,10 +51,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await api(API_ENDPOINTS.resetPassword, {
-        method: "POST",
-        body: JSON.stringify({ email, otp, newPassword: values.password }),
-      });
+      await resetPassword(email, otp, values.password);
 
       sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtp);
@@ -66,10 +59,7 @@ export default function ResetPasswordPage() {
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      Cookies.remove(AUTH_TOKEN_KEY);
+      clearSession();
       message.success("Password reset successful!");
       setTimeout(() => router.push(ROUTE_PATHS.login), 600);
     } catch (error: any) {

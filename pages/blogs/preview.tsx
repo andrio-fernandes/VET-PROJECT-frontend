@@ -4,10 +4,10 @@ import { EyeOutlined, FileTextOutlined, PaperClipOutlined } from '@ant-design/ic
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
-import { AdminLayout } from '../../src/components/layouts/admin-layout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import { PageHeader } from '../../src/components/blog/PageHeader';
 
-import { BLOG_PREVIEW_STORAGE_KEY, GREEN } from '../../src/constants/blog';
+import { BLOG_PREVIEW_STORAGE_KEY } from '../../src/constants/blog';
 import { ROUTE_PATHS } from '../../src/utils/constant';
 import { fileNameFromUrl, mediaUrl } from '../../src/utils/media';
 import { hasVisibleText, sanitizeRichText } from '../../src/utils/richText';
@@ -156,7 +156,7 @@ const BlogPreview = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 40px 48px' }}>
+      <div className="bp-page">
         <div className="blog-content">
           <PageHeader
             backHref={isPreviewMode ? ROUTE_PATHS.uploadBlog : ROUTE_PATHS.adminDashboard}
@@ -164,31 +164,31 @@ const BlogPreview = () => {
             icon={<FileTextOutlined />}
           />
 
-          <div className="blog-card" style={{ padding: '32px 36px', minHeight: 320 }}>
+          <div className="blog-card bp-card">
             {loading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+              <div className="bp-loading">
                 <Spin size="large" />
               </div>
             ) : loadError && !blog ? (
-              <Text type="secondary" style={{ fontSize: 15 }}>
+              <Text type="secondary" className="bp-empty-text">
                 {loadError}
               </Text>
             ) : !blog ? (
-              <Text type="secondary" style={{ fontSize: 15 }}>
+              <Text type="secondary" className="bp-empty-text">
                 No blog selected to preview.
               </Text>
             ) : (
               <>
-                <Title level={2} style={{ margin: '0 0 10px 0', fontWeight: 700, color: '#262626' }}>
+                <Title level={2} className="bp-title">
                   {blog.title}
                 </Title>
 
-                <Text type="secondary" style={{ fontSize: 15, display: 'block', lineHeight: 1.6 }}>
+                <Text type="secondary" className="bp-description">
                   {blog.description}
                 </Text>
 
                 {(blog.module || blog.category) && (
-                  <div style={{ margin: '12px 0' }}>
+                  <div className="bp-tags">
                     <Space size="small" wrap>
                       {blog.module && <Tag color="green">{blog.module}</Tag>}
                       {blog.category && <Tag color="green">{blog.category}</Tag>}
@@ -201,15 +201,7 @@ const BlogPreview = () => {
                   <img
                     src={mediaUrl(blog.thumbnail)}
                     alt={blog.title || 'Blog thumbnail'}
-                    style={{
-                      width: '100%',
-                      height: 320,
-                      objectFit: 'cover',
-                      borderRadius: 12,
-                      border: '1px solid #f0f0f0',
-                      margin: '20px 0 4px 0',
-                      display: 'block',
-                    }}
+                    className="bp-thumb"
                   />
                 )}
 
@@ -217,8 +209,7 @@ const BlogPreview = () => {
                   <>
                     <Divider className="blog-divider" />
                     <div
-                      className="blog-rich-content"
-                      style={{ fontSize: 15, lineHeight: 1.7, color: '#333333' }}
+                      className="blog-rich-content bp-rich-content"
                       dangerouslySetInnerHTML={{ __html: contentHtml }}
                     />
                   </>
@@ -227,31 +218,23 @@ const BlogPreview = () => {
                 {attachmentUrls.length > 0 && (
                   <>
                     <Divider className="blog-divider" />
-                    <Title level={5} style={{ margin: '0 0 12px 0', fontWeight: 700, color: '#262626' }}>
+                    <Title level={5} className="bp-attachment-title">
                       Attachment
                     </Title>
                     {attachmentUrls.map((att, idx) => (
                       <div
                         key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          border: '1px solid #d9d9d9',
-                          borderRadius: 8,
-                          padding: '12px 16px',
-                          marginBottom: idx < attachmentUrls.length - 1 ? 8 : 0,
-                        }}
+                        className={`bp-attachment-item${idx < attachmentUrls.length - 1 ? '' : ' bp-attachment-item-last'}`}
                       >
-                        <PaperClipOutlined style={{ fontSize: 20, color: GREEN }} />
-                        <span style={{ flex: 1, fontSize: 14, color: isPreviewMode ? GREEN : '#333333', wordBreak: 'break-all' }}>
+                        <PaperClipOutlined className="bp-attachment-icon" />
+                        <span className={`bp-attachment-name${isPreviewMode ? ' bp-attachment-name-preview' : ''}`}>
                           {att.name}
                         </span>
                         <Button
                           type="text"
                           icon={<EyeOutlined />}
                           onClick={() => openAttachment(att)}
-                          style={{ color: GREEN }}
+                          className="bp-attachment-view"
                         >
                           View
                         </Button>

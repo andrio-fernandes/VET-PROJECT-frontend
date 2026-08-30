@@ -2,8 +2,8 @@ import { App, Button, Card, Flex, Input, Typography } from "antd";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useSyncExternalStore, type ClipboardEvent, type KeyboardEvent } from "react";
 
-import { api } from "@/services/api";
-import { API_ENDPOINTS, MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { forgotPassword, verifyOtp } from "@/services/authService";
+import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
 
 const { Text } = Typography;
 
@@ -168,10 +168,7 @@ export default function OtpVerificationPage() {
     setIsVerifying(true);
 
     try {
-      await api(API_ENDPOINTS.verifyOtp, {
-        method: "POST",
-        body: JSON.stringify({ email, otp: otpValue }),
-      });
+      await verifyOtp(email, otpValue);
 
       sessionStorage.setItem(STORAGE_KEYS.resetOtp, otpValue);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
@@ -219,10 +216,7 @@ export default function OtpVerificationPage() {
     setIsResending(true);
 
     try {
-      const data = await api(API_ENDPOINTS.forgotPassword, {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
+      const data = await forgotPassword(email);
 
       setOtp(Array(OTP_LENGTH).fill(""));
       deadlineRef.current = Date.now() + OTP_EXPIRY_SECONDS * 1000;

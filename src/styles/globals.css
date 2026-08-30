@@ -838,8 +838,6 @@ a {
 /* Main content */
 .admin-content {
   min-height: 100vh;
-  margin-left: 270px;
-  padding: 28px 32px;
   background: #fff;
 }
 

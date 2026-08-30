@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
-import Cookies from "js-cookie";
 import {
   AppstoreOutlined,
   BookOutlined,
@@ -18,7 +17,7 @@ import {
 import { App as AntApp, Button, Card, Col, Divider, Flex, Input, Layout, Menu, Row, Typography } from "antd";
 
 import videoThumbnail from "@/assets/download.jpg";
-import { AUTH_TOKEN_KEY, TOKEN_KEY, USER_KEY } from "@/utils/constant";
+import { clearSession, useCurrentUser } from "@/hooks/useAuth";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -37,41 +36,15 @@ const categoryItems = [
   { icon: <QuestionCircleOutlined />, label: "FAQs" },
 ];
 
-type StoredUser = { username?: string; email?: string } | null;
-
-const emptySubscribe = () => () => {};
-
-// Cached at module level so getSnapshot returns a stable reference between
-// renders - parsing a fresh object on every call would re-trigger the
-// subscriber and cause an infinite re-render loop.
-let storedUserCache: StoredUser;
-
-const readStoredUser = (): StoredUser => {
-  if (storedUserCache === undefined) {
-    try {
-      const raw = localStorage.getItem(USER_KEY);
-      storedUserCache = raw ? JSON.parse(raw) : null;
-    } catch {
-      storedUserCache = null;
-    }
-  }
-
-  return storedUserCache;
-};
-
 export default function UserDashboardPage() {
   const router = useRouter();
   const { message } = AntApp.useApp();
   const [selectedMenu, setSelectedMenu] = useState("dashboard");
 
-  // Client-only snapshot: SSR renders null, the real value appears right
-  // after hydration, so server and first client render always match.
-  const user = useSyncExternalStore(emptySubscribe, readStoredUser, () => null);
+  const user = useCurrentUser();
 
   const handleLogout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    Cookies.remove(AUTH_TOKEN_KEY);
+    clearSession();
     router.push("/auth/login");
   };
 

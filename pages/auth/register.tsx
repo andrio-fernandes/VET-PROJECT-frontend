@@ -3,10 +3,9 @@ import React, { useState } from 'react';
 import { Button, Flex, Form, Input, Typography, App as AntApp } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { api } from '@/services/api';
+import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
-import { API_ENDPOINTS, COMMON_PASSWORDS, ROUTE_PATHS } from '@/utils/constant';
-
+import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/utils/constant';
 const { Title, Paragraph } = Typography;
 
 export default function RegisterPage() {
@@ -73,16 +72,11 @@ export default function RegisterPage() {
     try {
       const formattedEmail = values.email.toLowerCase().trim();
 
-      const payload = {
+      await register({
         fullName: values.fullName.trim(),
         username: values.username.trim(),
         email: formattedEmail,
         password: values.password,
-      };
-
-      await api(API_ENDPOINTS.register, {
-        method: 'POST',
-        body: JSON.stringify(payload),
       });
 
       message.success('Account created successfully!');
