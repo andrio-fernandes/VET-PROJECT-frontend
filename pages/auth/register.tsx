@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
-import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/utils/constant';
+import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/constants';
 const { Title, Paragraph } = Typography;
 
 export default function RegisterPage() {

@@ -1,10 +1,11 @@
 import { useState, useSyncExternalStore } from "react";
-import { Button, Card, Flex, Form, Input, Typography, App as AntApp } from "antd";
+import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
 import { forgotPassword } from "@/services/authService";
 import { emailRules } from "@/utils/validation";
-import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
+import AuthCard from "@/components/AuthCard";
 
 const { Title, Text } = Typography;
 
@@ -78,8 +79,7 @@ export default function ForgotPasswordPage() {
   const attemptsRemaining = Math.max(MAX_OTP_ATTEMPTS - otpAttempts, 0);
 
   return (
-    <Flex justify="center" align="center" className="auth-page">
-      <Card className="auth-card">
+    <AuthCard>
         <Title level={2} className="auth-card-title">
           Forgot Your Password?
         </Title>
@@ -105,7 +105,6 @@ export default function ForgotPasswordPage() {
             SEND OTP
           </Button>
         </Form>
-      </Card>
-    </Flex>
+    </AuthCard>
   );
 }

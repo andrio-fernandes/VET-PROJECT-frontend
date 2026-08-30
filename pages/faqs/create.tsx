@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Form, Input, Button, Typography, Space, Select, Row, Col, Modal, App as AntApp } from 'antd';
+import { Form, Input, Button, Typography, Space, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { AdminLayout } from '@/layouts/AdminLayout';
-import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
-import { createFaq } from '../../src/services/faqService';
-import { ROUTE_PATHS, CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '../../src/utils/constant';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { createFaq } from '@/services/faqService';
+import { ROUTE_PATHS, RETAINED_FAQ_STORAGE_KEY, countWords } from '@/constants';
+import WordCount from '@/components/WordCount';
+import ModuleCategorySelects from '@/components/ModuleCategorySelects';
 
 const { Title, Text } = Typography;
-
-const countWords = (text: string | undefined = ""): number =>
-  text.trim() ? text.trim().split(/\s+/).length : 0;
 
 const UploadFAQ = () => {
   const [form] = Form.useForm();
@@ -28,10 +27,9 @@ const UploadFAQ = () => {
   // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
-  const selectedModule = Form.useWatch('module', form);
 
   useEffect(() => {
-    const retainedData = localStorage.getItem('retained_faq_progress');
+    const retainedData = localStorage.getItem(RETAINED_FAQ_STORAGE_KEY);
     if (retainedData) {
       retainedDataRef.current = retainedData;
       setRestoreOpen(true);
@@ -43,7 +41,7 @@ const UploadFAQ = () => {
     if ('module' in changedValues) {
       form.setFieldsValue({ category: undefined });
     }
-    localStorage.setItem('retained_faq_progress', JSON.stringify(allValues));
+    localStorage.setItem(RETAINED_FAQ_STORAGE_KEY, JSON.stringify(allValues));
   };
 
   const onFinish = async (values: any) => {
@@ -56,7 +54,7 @@ const UploadFAQ = () => {
         answer: values.answer,
       });
       message.success('FAQ uploaded successfully!');
-      localStorage.removeItem('retained_faq_progress');
+      localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
       setIsDirty(false);
       form.resetFields();
       setPreviewVisible(false);
@@ -87,14 +85,14 @@ const UploadFAQ = () => {
   };
 
   const confirmDiscardDraft = () => {
-    localStorage.removeItem('retained_faq_progress');
+    localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
     retainedDataRef.current = null;
     setRestoreOpen(false);
   };
 
   const confirmSaveAndLeave = () => {
     const onLeave = confirmLeaveRef.current;
-    localStorage.setItem('retained_faq_progress', JSON.stringify(form.getFieldsValue()));
+    localStorage.setItem(RETAINED_FAQ_STORAGE_KEY, JSON.stringify(form.getFieldsValue()));
     message.info('Progress saved.');
     setConfirmOpen(false);
     setIsDirty(false);
@@ -103,7 +101,7 @@ const UploadFAQ = () => {
 
   const confirmDiscardAndLeave = () => {
     const onLeave = confirmLeaveRef.current;
-    localStorage.removeItem('retained_faq_progress');
+    localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
     setConfirmOpen(false);
     setIsDirty(false);
     if (onLeave) onLeave();
@@ -243,9 +241,7 @@ const UploadFAQ = () => {
                 <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-create-input" />
               </Form.Item>
 
-              <div className="word-counter">
-                {countWords(questionValue)}/30
-              </div>
+              <WordCount value={questionValue} max={30} />
 
               <Form.Item label={<span className="faqs-create-label">Answer</span>} name="answer" rules={[
                 { required: true, message: 'Please provide an answer' },
@@ -263,46 +259,21 @@ const UploadFAQ = () => {
                 <Input.TextArea placeholder="Describe your Answer" maxLength={2000} size="large" rows={4} className="faqs-create-textarea" />
               </Form.Item>
 
-              <div className="word-counter">
-                {countWords(answerValue)}/60
-              </div>
+              <WordCount value={answerValue} max={60} />
 
               <Form.Item
                 label={<span className="faqs-create-label">Select the module and categories</span>}
                 required
                 className="faqs-create-select-block"
               >
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="module" rules={[
-                      { required: true, message: 'Please select a module' },
-                    ]} className="faqs-create-select-item">
-                      <Select
-                        placeholder="Select Module"
-                        size="large"
-                        allowClear
-                        options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
-                        className="faqs-create-select"
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name="category" rules={[
-                      { required: true, message: 'Please select a category' },
-                    ]} className="faqs-create-select-item">
-                      <Select
-                        placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
-                        size="large"
-                        disabled={!selectedModule}
-                        options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
-                          value: c,
-                          label: c,
-                        }))}
-                        className="faqs-create-select"
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <ModuleCategorySelects
+                  moduleItemClassName="faqs-create-select-item"
+                  moduleSelectClassName="faqs-create-select"
+                  categoryItemClassName="faqs-create-select-item"
+                  categorySelectClassName="faqs-create-select"
+                  moduleRequiredMessage="Please select a module"
+                  categoryRequiredMessage="Please select a category"
+                />
               </Form.Item>
 
               <div className="faqs-create-divider" />

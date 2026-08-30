@@ -1,12 +1,13 @@
 import { useEffect, useState, useSyncExternalStore, type KeyboardEvent } from "react";
-import { Button, Card, Flex, Form, Input, Typography, App as AntApp } from "antd";
+import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
 import { resetPassword } from "@/services/authService";
 import { passwordRules } from "@/utils/validation";
 import { clearSession } from "@/hooks/useAuth";
-import { ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import PasswordStrength from "@/components/password-strength";
+import AuthCard from "@/components/AuthCard";
 import type { ResetPasswordFormValues } from "@/types/auth";
 
 const { Title, Text } = Typography;
@@ -74,8 +75,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <Flex justify="center" align="center" className="auth-page">
-      <Card className="auth-card">
+    <AuthCard>
         <Title level={3} className="auth-card-title">
           Reset Password
         </Title>
@@ -118,7 +118,6 @@ export default function ResetPasswordPage() {
             </Button>
           </Form.Item>
         </Form>
-      </Card>
-    </Flex>
+    </AuthCard>
   );
 }

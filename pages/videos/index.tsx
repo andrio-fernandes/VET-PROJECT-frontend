@@ -11,15 +11,13 @@ import {
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { deleteVideo, getVideos } from '@/services/videoService';
-import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
+import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY, type ContentModule, type ContentCategory } from '@/constants';
 import { mediaUrl } from '@/utils/media';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import type { VideoRecord } from '@/types/video';
 
 const { Title, Text } = Typography;
-
-const PAGE_SIZE = 10;
 
 type Video = VideoRecord;
 
@@ -80,7 +78,7 @@ const Videos = () => {
 
   const handleView = (record: Video) => {
     sessionStorage.setItem(
-      'video_preview',
+      VIDEO_PREVIEW_STORAGE_KEY,
       JSON.stringify({
         title: record.title,
         description: record.description,

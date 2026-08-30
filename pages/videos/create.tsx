@@ -4,20 +4,16 @@ import { useRouter } from "next/router";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
 import { createVideo } from "@/services/videoService";
-import { CONTENT_MODULES, MODULE_CATEGORIES, ROUTE_PATHS, type ContentModule, type ContentCategory } from "@/utils/constant";
-import { Form, Input, Select, Upload, Button, Modal, Space, App as AntApp, Typography, Row, Col } from "antd";
+import { ROUTE_PATHS, MAX_VIDEO_SIZE, MAX_THUMBNAIL_SIZE, RETAINED_VIDEO_STORAGE_KEY, countWords } from "@/constants";
+import { Form, Input, Upload, Button, Modal, Space, App as AntApp, Typography } from "antd";
 import {
   UploadOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+import WordCount from "@/components/WordCount";
+import ModuleCategorySelects from "@/components/ModuleCategorySelects";
 
 const { Title, Text } = Typography;
-
-const MAX_SIZE = 64 * 1024 * 1024;
-const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024;
-
-const countWords = (value = "") =>
-  value.trim() ? value.trim().split(/\s+/).length : 0;
 
 const UploadVideo = () => {
   const { message } = AntApp.useApp();
@@ -27,14 +23,13 @@ const UploadVideo = () => {
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [titleWords, setTitleWords] = useState(0);
-  const [descriptionWords, setDescriptionWords] = useState(0);
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelLeaveRef = useRef<(() => void) | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
 
-  const selectedModule = Form.useWatch('module', form);
+  const titleValue = Form.useWatch('title', form);
+  const descriptionValue = Form.useWatch('description', form);
 
   const beforeUpload = (file: File) => {
     if (!file.type.startsWith("video/")) {
@@ -42,7 +37,7 @@ const UploadVideo = () => {
       return Upload.LIST_IGNORE;
     }
 
-    if (file.size > MAX_SIZE) {
+    if (file.size > MAX_VIDEO_SIZE) {
       message.error("Video size must not exceed 64 MB.");
       return Upload.LIST_IGNORE;
     }
@@ -91,14 +86,12 @@ const UploadVideo = () => {
       });
 
       message.success("Video uploaded successfully!");
-      localStorage.removeItem("retained_video_progress");
+      localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
       form.resetFields();
       setFile(null);
       if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
       setThumbnail(null);
       setThumbnailPreview("");
-      setTitleWords(0);
-      setDescriptionWords(0);
     } catch (error: any) {
       message.error(error.message || "Failed to upload video");
     } finally {
@@ -163,7 +156,7 @@ const UploadVideo = () => {
     const onLeave = cancelLeaveRef.current;
     const values = form.getFieldsValue();
     localStorage.setItem(
-      "retained_video_progress",
+      RETAINED_VIDEO_STORAGE_KEY,
       JSON.stringify({
         title: values.title,
         description: values.description,
@@ -192,8 +185,6 @@ const UploadVideo = () => {
         module: parsed.module,
         category: parsed.category,
       });
-      setTitleWords(countWords(parsed.title || ""));
-      setDescriptionWords(countWords(parsed.description || ""));
       retainedDataRef.current = null;
       message.info("Restored your previous unsaved progress.");
     }
@@ -201,13 +192,13 @@ const UploadVideo = () => {
   };
 
   const confirmDiscardDraft = () => {
-    localStorage.removeItem("retained_video_progress");
+    localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
     retainedDataRef.current = null;
     setRestoreOpen(false);
   };
 
   useEffect(() => {
-    const retainedData = localStorage.getItem("retained_video_progress");
+    const retainedData = localStorage.getItem(RETAINED_VIDEO_STORAGE_KEY);
     if (retainedData) {
       retainedDataRef.current = retainedData;
       setRestoreOpen(true);
@@ -287,15 +278,10 @@ const UploadVideo = () => {
                 placeholder="Enter video title"
                 size="large"
                 className="vc-input"
-                onChange={(e) =>
-                  setTitleWords(countWords(e.target.value))
-                }
               />
             </Form.Item>
 
-            <div className="word-counter">
-              {titleWords}/30
-            </div>
+            <WordCount value={titleValue} max={30} />
 
             {/* Description */}
             <Form.Item
@@ -327,17 +313,10 @@ const UploadVideo = () => {
                 rows={5}
                 size="large"
                 className="vc-textarea"
-                onChange={(e) =>
-                  setDescriptionWords(
-                    countWords(e.target.value)
-                  )
-                }
               />
             </Form.Item>
 
-            <div className="word-counter">
-              {descriptionWords}/60
-            </div>
+            <WordCount value={descriptionValue} max={60} />
 
             {/* Category */}
               <Form.Item
@@ -345,55 +324,15 @@ const UploadVideo = () => {
                 required
                 className="vc-select-block"
               >
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="module"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please select module.",
-                      },
-                    ]}
-                    className="vc-select-item"
-                  >
-                    <Select
-                      placeholder="Select Module"
-                      size="large"
-                      allowClear
-                      className="vc-select"
-                      options={CONTENT_MODULES.map((m) => ({
-                        value: m,
-                        label: m,
-                      }))}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    name="category"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please select category.",
-                      },
-                    ]}
-                    className="vc-select-item"
-                  >
-                    <Select
-                      placeholder={selectedModule ? 'Select Category' : 'Select a module first'}
-                      size="large"
-                      disabled={!selectedModule}
-                      className="vc-select"
-                      options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
-                        value: c,
-                        label: c,
-                      }))}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Form.Item>
+                <ModuleCategorySelects
+                  moduleItemClassName="vc-select-item"
+                  moduleSelectClassName="vc-select"
+                  categoryItemClassName="vc-select-item"
+                  categorySelectClassName="vc-select"
+                  moduleRequiredMessage="Please select module."
+                  categoryRequiredMessage="Please select category."
+                />
+              </Form.Item>
 
             {/* Thumbnail Upload */}
             <Form.Item

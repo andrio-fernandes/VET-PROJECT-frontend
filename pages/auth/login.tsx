@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { login } from '@/services/authService';
 import { storeSession } from '@/hooks/useAuth';
-import { ROUTE_PATHS } from '@/utils/constant';
+import { ROUTE_PATHS } from '@/constants';
 
 const { useBreakpoint } = Grid;
 

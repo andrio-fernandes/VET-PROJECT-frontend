@@ -11,16 +11,12 @@ import {
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentModule, type ContentCategory } from '@/utils/constant';
+import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, countWords, type ContentModule, type ContentCategory } from '@/constants';
 import { deleteFaq, getMyFaqs, updateFaq } from '@/services/faqService';
 import type { FaqRecord } from '@/types/faq';
+import WordCount from '@/components/WordCount';
 
 const { Title, Text } = Typography;
-
-const countWords = (text: string | undefined = ''): number =>
-  text.trim() ? text.trim().split(/\s+/).length : 0;
-
-const PAGE_SIZE = 10;
 
 const ViewFaqs = () => {
   const router = useRouter();
@@ -336,9 +332,7 @@ const ViewFaqs = () => {
             <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-modal-input" />
           </Form.Item>
 
-          <div className="word-counter">
-            {countWords(editQuestionValue)}/30
-          </div>
+          <WordCount value={editQuestionValue} max={30} />
 
           <Form.Item
             label={<Text strong>Answer</Text>}
@@ -364,9 +358,7 @@ const ViewFaqs = () => {
             />
           </Form.Item>
 
-          <div className="word-counter">
-            {countWords(editAnswerValue)}/60
-          </div>
+          <WordCount value={editAnswerValue} max={60} />
         </Form>
       </Modal>
     </AdminLayout>

@@ -20,7 +20,7 @@ import {
 } from '@/redux/dashboard/dashboardSlice';
 import { selectDashboard, selectDashboardError } from '@/redux/dashboard/selectors';
 import { useCurrentUser } from '@/hooks/useAuth';
-import { ROUTE_PATHS } from '@/utils/constant';
+import { ROUTE_PATHS } from '@/constants';
 
 const { Text } = Typography;
 

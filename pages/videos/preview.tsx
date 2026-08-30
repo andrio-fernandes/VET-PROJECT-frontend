@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { useRouter } from "next/router";
 import { Button, Empty, Typography } from "antd";
 import { ArrowLeftOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { VIDEO_PREVIEW_STORAGE_KEY } from "@/constants";
 
 const { Title, Paragraph, Text } = Typography;
-
-const STORAGE_KEY = "video_preview";
 
 interface PreviewData {
   src: string;
@@ -15,7 +14,7 @@ interface PreviewData {
 
 const readPreview = (): PreviewData | null => {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(VIDEO_PREVIEW_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as PreviewData) : null;
   } catch {
     return null;

@@ -1,9 +1,11 @@
-import { App, Button, Card, Flex, Input, Typography } from "antd";
+import { App, Button, Flex, Typography } from "antd";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, useSyncExternalStore, type ClipboardEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { forgotPassword, verifyOtp } from "@/services/authService";
-import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/utils/constant";
+import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
+import AuthCard from "@/components/AuthCard";
+import OtpInput, { type OtpInputHandle } from "@/components/OtpInput";
 
 const { Text } = Typography;
 
@@ -30,7 +32,7 @@ export default function OtpVerificationPage() {
     () => false,
   );
 
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const otpInputRef = useRef<OtpInputHandle>(null);
   const lastSubmitTime = useRef<number>(0);
 
   const expired = timeLeft <= 0;
@@ -78,49 +80,6 @@ export default function OtpVerificationPage() {
     return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
   };
 
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) {
-      return;
-    }
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
-    event.preventDefault();
-
-    const pastedText = event.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, OTP_LENGTH);
-
-    if (!pastedText) {
-      return;
-    }
-
-    const newOtp = Array(OTP_LENGTH).fill("");
-    pastedText.split("").forEach((digit, index) => {
-      newOtp[index] = digit;
-    });
-
-    setOtp(newOtp);
-
-    const nextIndex = Math.min(pastedText.length, OTP_LENGTH - 1);
-    inputRefs.current[nextIndex]?.focus();
-  };
-
   const handleVerify = async () => {
     const now = Date.now();
 
@@ -143,7 +102,7 @@ export default function OtpVerificationPage() {
 
     if (!otpValue) {
       message.error("Please enter your OTP.");
-      inputRefs.current[0]?.focus();
+      otpInputRef.current?.focusFirst();
       return;
     }
 
@@ -187,7 +146,7 @@ export default function OtpVerificationPage() {
         );
       }
       setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      otpInputRef.current?.focusFirst();
 
       if (currentAttempts >= MAX_OTP_ATTEMPTS) {
         message.error("Maximum attempts reached. Verification is blocked.");
@@ -223,7 +182,7 @@ export default function OtpVerificationPage() {
       setTimeLeft(OTP_EXPIRY_SECONDS);
       setAttempts(0);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
-      inputRefs.current[0]?.focus();
+      otpInputRef.current?.focusFirst();
 
       // The server is the source of truth for how many send requests were
       // consumed. Fall back to the local mirror only when it does not report.
@@ -256,8 +215,7 @@ export default function OtpVerificationPage() {
   }
 
   return (
-    <Flex justify="center" align="center" className="auth-page">
-      <Card className="auth-card">
+    <AuthCard>
         <Flex vertical align="center">
           <Text strong className="auth-card-title">
             Enter Your OTP
@@ -267,23 +225,12 @@ export default function OtpVerificationPage() {
             Enter the 6-digit OTP sent to your registered email address.
           </Text>
 
-          <Flex justify="center" gap={8} className="otp-inputs" onPaste={handlePaste}>
-            {otp.map((digit, index) => (
-              <Input
-                key={index}
-                id={`otp-${index}`}
-                ref={(element) => {
-                  inputRefs.current[index] = element?.input ?? null;
-                }}
-                maxLength={1}
-                value={digit}
-                inputMode="numeric"
-                disabled={verificationBlocked || expired || isVerifying}
-                onChange={(event) => handleChange(index, event.target.value)}
-                onKeyDown={(event) => handleKeyDown(index, event)}
-              />
-            ))}
-          </Flex>
+          <OtpInput
+            ref={otpInputRef}
+            value={otp}
+            disabled={verificationBlocked || expired || isVerifying}
+            onChange={setOtp}
+          />
 
           {!expired ? (
             <Text className="otp-timer">
@@ -332,7 +279,6 @@ export default function OtpVerificationPage() {
             ← Back
           </Button>
         </Flex>
-      </Card>
-    </Flex>
+    </AuthCard>
   );
 }
