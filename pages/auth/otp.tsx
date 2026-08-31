@@ -26,9 +26,17 @@ export default function OtpVerificationPage() {
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isResending, setIsResending] = useState<boolean>(false);
 
+  const queryEmail =
+    typeof router.query.email === "string" ? router.query.email.trim().toLowerCase() : "";
+  const queryToken =
+    typeof router.query.token === "string" ? router.query.token.trim() : "";
+
   const canAccess = useSyncExternalStore(
     emptySubscribe,
-    () => Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)),
+    () =>
+      (queryEmail !== "" && queryToken !== "") ||
+      (Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)) &&
+        Boolean(sessionStorage.getItem(STORAGE_KEYS.resetToken))),
     () => false,
   );
 
@@ -38,12 +46,30 @@ export default function OtpVerificationPage() {
   const expired = timeLeft <= 0;
   const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
 
+  // Origin from the emailed reset link: seed sessionStorage so the page works
+  // like a normal in-flow visit without leaking the email/token into the URL.
   useEffect(() => {
-    if (!canAccess) {
-      router.replace(ROUTE_PATHS.forgotPassword);
-      message.error("Session expired. Please start over from Forgot Password.");
+    if (!router.isReady || queryEmail === "" || queryToken === "") {
+      return;
     }
-  }, [canAccess, router, message]);
+
+    sessionStorage.setItem(STORAGE_KEYS.resetEmail, queryEmail);
+    sessionStorage.setItem(STORAGE_KEYS.resetToken, queryToken);
+    router.replace(ROUTE_PATHS.otp, undefined, { shallow: true });
+  }, [queryEmail, queryToken, router, router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady) {
+      return;
+    }
+
+    if (canAccess) {
+      return;
+    }
+    message.error("Session expired. Please start over from Forgot Password.");
+    router.replace(ROUTE_PATHS.forgotPassword);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   // The countdown targets an absolute deadline timestamp so a single
   // interval computes the remaining seconds instead of being torn down and
@@ -117,8 +143,9 @@ export default function OtpVerificationPage() {
     }
 
     const email = sessionStorage.getItem(STORAGE_KEYS.resetEmail);
+    const token = sessionStorage.getItem(STORAGE_KEYS.resetToken);
 
-    if (!email) {
+    if (!email || !token) {
       message.error("Session expired. Please start over from Forgot Password.");
       router.push(ROUTE_PATHS.forgotPassword);
       return;
@@ -127,10 +154,11 @@ export default function OtpVerificationPage() {
     setIsVerifying(true);
 
     try {
-      await verifyOtp(email, otpValue);
+      await verifyOtp(email, otpValue, token);
 
-      sessionStorage.setItem(STORAGE_KEYS.resetOtp, otpValue);
+      sessionStorage.setItem(STORAGE_KEYS.resetOtpVerified, "true");
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
+      // The reset token is kept: it must be presented again at reset-password.
       message.success("OTP verified successfully.");
       router.push(ROUTE_PATHS.resetPassword);
     } catch (error: any) {
@@ -177,12 +205,13 @@ export default function OtpVerificationPage() {
     try {
       const data = await forgotPassword(email);
 
-      setOtp(Array(OTP_LENGTH).fill(""));
-      deadlineRef.current = Date.now() + OTP_EXPIRY_SECONDS * 1000;
-      setTimeLeft(OTP_EXPIRY_SECONDS);
-      setAttempts(0);
+      // A re-send mints a brand new OTP and reset token that are only
+      // delivered through the new email link, so the current link is
+      // invalidated. Clear local state and send the user back so they use
+      // the freshly emailed link.
+      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
-      otpInputRef.current?.focusFirst();
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
 
       // The server is the source of truth for how many send requests were
       // consumed. Fall back to the local mirror only when it does not report.
@@ -202,7 +231,10 @@ export default function OtpVerificationPage() {
       }
       sessionStorage.setItem(STORAGE_KEYS.resetOtpSentAt, String(now));
 
-      message.success("A new OTP has been sent.");
+      message.success(
+        "A new OTP has been sent. Please use the new link from your email."
+      );
+      setTimeout(() => router.replace(ROUTE_PATHS.forgotPassword), 600);
     } catch (error: any) {
       message.error(error.message || "Failed to resend OTP. Please try again.");
     } finally {

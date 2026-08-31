@@ -59,6 +59,11 @@ export default function ForgotPasswordPage() {
             : previousAttempts + 1;
 
       sessionStorage.setItem(STORAGE_KEYS.resetEmail, email);
+      // A fresh OTP link (with a new single-use token) is sent by email, so
+      // any token cached from a previous flow is now stale. The token is only
+      // restored when the user opens the emailed link.
+      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
       sessionStorage.setItem(STORAGE_KEYS.resetOtpAttempts, String(nextAttempt));
       if (isNewResetFlow || !withinRequestWindow) {
         sessionStorage.setItem(STORAGE_KEYS.resetOtpWindowStart, String(now));
@@ -67,8 +72,10 @@ export default function ForgotPasswordPage() {
       // after a refresh instead of restarting it.
       sessionStorage.setItem(STORAGE_KEYS.resetOtpSentAt, String(now));
 
-      message.success("OTP sent to your email address.");
-      setTimeout(() => router.push(ROUTE_PATHS.otp), 600);
+      message.success(
+        "If an account exists for this email, an OTP has been sent to your inbox.",
+      );
+      setTimeout(() => router.push(ROUTE_PATHS.login), 600);
     } catch (error: any) {
       message.error(error.message || "Failed to send OTP. Please try again.");
     } finally {

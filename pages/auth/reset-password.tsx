@@ -25,7 +25,8 @@ export default function ResetPasswordPage() {
     emptySubscribe,
     () =>
       Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)) &&
-      Boolean(sessionStorage.getItem(STORAGE_KEYS.resetOtp)),
+      Boolean(sessionStorage.getItem(STORAGE_KEYS.resetToken)) &&
+      sessionStorage.getItem(STORAGE_KEYS.resetOtpVerified) === "true",
     () => false,
   );
 
@@ -33,18 +34,23 @@ export default function ResetPasswordPage() {
     if (e.key === " ") e.preventDefault();
   };
 
+  // Guard the page on initial load only. After a successful reset we clear
+  // sessionStorage which flips canAccess to false; must not treat that as a
+  // "session expired" interruption in the middle of navigation.
   useEffect(() => {
-    if (!canAccess) {
-      router.replace(ROUTE_PATHS.forgotPassword);
-      message.error("Session expired. Please start over from Forgot Password.");
+    if (canAccess) {
+      return;
     }
-  }, [canAccess, router, message]);
+    message.error("Session expired. Please start over from Forgot Password.");
+    router.replace(ROUTE_PATHS.forgotPassword);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onFinish = async (values: ResetPasswordFormValues) => {
     const email = sessionStorage.getItem(STORAGE_KEYS.resetEmail);
-    const otp = sessionStorage.getItem(STORAGE_KEYS.resetOtp);
+    const token = sessionStorage.getItem(STORAGE_KEYS.resetToken);
 
-    if (!email || !otp) {
+    if (!email || !token) {
       message.error("Session expired. Please start over from Forgot Password.");
       router.replace(ROUTE_PATHS.forgotPassword);
       return;
@@ -52,10 +58,11 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await resetPassword(email, otp, values.password);
+      await resetPassword(email, token, values.password);
 
       sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtp);
+      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);

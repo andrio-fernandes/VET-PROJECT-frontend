@@ -142,7 +142,8 @@ export const API_ENDPOINTS = {
 // Session storage keys for password reset flow
 export const STORAGE_KEYS = {
   resetEmail: "reset_email",
-  resetOtp: "reset_otp",
+  resetToken: "reset_token",
+  resetOtpVerified: "reset_otp_verified",
   resetOtpAttempts: "reset_otp_attempts",
   resetOtpVerifyAttempts: "reset_otp_verify_attempts",
   resetOtpWindowStart: "reset_otp_window_start",

@@ -44,20 +44,24 @@ export const forgotPassword = async (email: string): Promise<any> => {
   });
 };
 
-export const verifyOtp = async (email: string, otp: string): Promise<void> => {
+export const verifyOtp = async (
+  email: string,
+  otp: string,
+  token: string
+): Promise<void> => {
   await api(API_ENDPOINTS.verifyOtp, {
     method: "POST",
-    body: JSON.stringify({ email, otp }),
+    body: JSON.stringify({ email, otp, token }),
   });
 };
 
 export const resetPassword = async (
   email: string,
-  otp: string,
+  token: string,
   newPassword: string
 ): Promise<void> => {
   await api(API_ENDPOINTS.resetPassword, {
     method: "POST",
-    body: JSON.stringify({ email, otp, newPassword }),
+    body: JSON.stringify({ email, token, newPassword }),
   });
 };
