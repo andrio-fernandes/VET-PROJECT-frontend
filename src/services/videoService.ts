@@ -2,18 +2,15 @@
 // VIDEO API SERVICE LAYER
 //
 // Centralizes every video API call so pages never build
-// endpoints or parse responses themselves. getVideos /
-// deleteVideo go through the `api` helper (auth headers,
-// token refresh, error normalization). createVideo uses a
-// raw multipart fetch exactly as the page did originally
-// (files must keep the browser-generated boundary).
+// endpoints or parse responses themselves. All calls go
+// through the `api` helper (auth headers, token refresh,
+// error normalization); the multipart body keeps the
+// browser-generated boundary for file uploads.
 // =============================================
 
 import { api } from "./api";
-import { API_ENDPOINTS, TOKEN_KEY } from "@/utils/constant";
+import { API_ENDPOINTS } from "@/constants";
 import type { VideoRecord } from "@/types/video";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface PaginatedVideos {
   videos: VideoRecord[];
@@ -50,22 +47,8 @@ export const createVideo = async (payload: CreateVideoPayload): Promise<void> =>
   formData.append("video", payload.video);
   formData.append("thumbnail", payload.thumbnail);
 
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem(TOKEN_KEY)
-      : null;
-
-  const response = await fetch(`${API_URL}${API_ENDPOINTS.createVideo}`, {
+  await api(API_ENDPOINTS.createVideo, {
     method: "POST",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
     body: formData,
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data?.message || "Failed to upload video");
-  }
 };

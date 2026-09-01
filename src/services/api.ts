@@ -8,7 +8,7 @@ import {
   ROUTE_PATHS,
   TOKEN_KEY,
   USER_KEY,
-} from "@/utils/constant";
+} from "@/constants";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

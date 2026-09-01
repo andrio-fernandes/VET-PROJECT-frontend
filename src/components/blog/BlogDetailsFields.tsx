@@ -10,7 +10,7 @@ import { Controller } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
 import { Divider, Input, Typography } from 'antd';
 
-import { DESCRIPTION_MAX_WORDS, TITLE_MAX_WORDS } from '@/constants/blog';
+import { DESCRIPTION_MAX_WORDS, TITLE_MAX_WORDS } from '@/constants';
 import {
   rhfDescriptionRules,
   rhfTitleRules,

@@ -3,16 +3,16 @@ import { App as AntApp, Button, Divider, Space, Spin, Tag, Typography } from 'an
 import { EyeOutlined, FileTextOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 
-import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '../../src/components/blog/PageHeader';
+import { PageHeader } from '@/components/blog/PageHeader';
 
-import { BLOG_PREVIEW_STORAGE_KEY } from '../../src/constants/blog';
-import { ROUTE_PATHS } from '../../src/utils/constant';
-import { fileNameFromUrl, mediaUrl } from '../../src/utils/media';
-import { hasVisibleText, sanitizeRichText } from '../../src/utils/richText';
-import { getBlogById } from '../../src/services/blogService';
-import type { BlogRecord, ParsedAttachment, PreviewDraft } from '../../src/types/blog';
+import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
+import { ROUTE_PATHS } from '@/constants';
+import { fileNameFromUrl, mediaUrl } from '@/utils/media';
+import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
+import { getBlogById } from '@/services/blogService';
+import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
 
 const { Title, Text } = Typography;
 

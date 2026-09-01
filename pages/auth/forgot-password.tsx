@@ -6,10 +6,9 @@ import { forgotPassword } from "@/services/authService";
 import { emailRules } from "@/utils/validation";
 import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import AuthCard from "@/components/AuthCard";
+import { emptySubscribe } from "@/utils/input";
 
 const { Title, Text } = Typography;
-
-const emptySubscribe = () => () => {};
 
 // Mirror the server's rolling request window: once it lapses the quota is
 // considered fresh again instead of staying exhausted forever.

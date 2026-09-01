@@ -16,6 +16,7 @@ export interface RecentItem {
   title: string;
   createdAt: string;
   createdByName: string;
+  category?: string;
   thumbnailUrl?: string;
 }
 
@@ -25,5 +26,6 @@ export interface DashboardFaqRecord {
   answer: string;
   createdAt: string;
   updatedAt: string;
+  category?: string;
   createdBy?: { fullName?: string; username?: string };
 }

@@ -29,6 +29,7 @@ interface TableItem {
   title: string;
   createdAt: string;
   createdByName: string;
+  category?: string;
   thumbnailUrl?: string;
 }
 
@@ -86,6 +87,7 @@ const Dashboard = () => {
       createdAt: faq.createdAt,
       createdByName:
         faq.createdBy?.fullName || faq.createdBy?.username || 'Unknown',
+      category: faq.category,
     }));
   }, [activeTab, recentVideos, recentBlogs, recentFaqs]);
 
@@ -109,6 +111,12 @@ const Dashboard = () => {
           <Text strong style={{ color: '#000' }}>{text}</Text>
         </Space>
       ),
+    },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>
     },
     {
       title: 'Created On',

@@ -143,6 +143,12 @@ const ViewFaqs = () => {
       render: (text: string) => <Text className="faqs-cell-text">{text}</Text>,
     },
     {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      render: (text: string) => <Text className="faqs-cell-text">{text}</Text>,
+    },
+    {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
@@ -278,27 +284,35 @@ const ViewFaqs = () => {
         open={Boolean(viewingFaq)}
         onCancel={() => setViewingFaq(null)}
         footer={null}
-        width={680}
+        width={736}
+        centered
+        maskStyle={{
+          backdropFilter: 'blur(6px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        }}
+        styles={{ body: { borderRadius: '12px', padding: '24px' } }}
       >
         {viewingFaq && (
           <div>
-            <div className="faqs-view-block">
-              <Text strong className="faqs-view-label">
+            <div className="faqs-create-block">
+              <Text className="faqs-create-preview-label faqs-create-preview-label-q">
                 Question
               </Text>
-              <Text className="faqs-view-question">{viewingFaq.question}</Text>
+              <Text strong className="faqs-create-preview-question">
+                {viewingFaq.question}
+              </Text>
             </div>
-            <div className="faqs-view-block">
-              <Text strong className="faqs-view-label">
+
+            <div className="faqs-create-preview-answer-block">
+              <Text className="faqs-create-preview-label">
                 Answer
               </Text>
-              <Text className="faqs-view-answer">{viewingFaq.answer}</Text>
             </div>
-            <Space size="large" wrap>
-              {viewingFaq.module && <Text type="secondary">Module: {viewingFaq.module}</Text>}
-              {viewingFaq.category && <Text type="secondary">Category: {viewingFaq.category}</Text>}
-              <Text type="secondary">Created: {dayjs(viewingFaq.createdAt).format('DD MMM YYYY')}</Text>
-            </Space>
+            <div className="faqs-create-preview-answer-box">
+              <Text className="faqs-create-preview-answer">
+                {viewingFaq.answer}
+              </Text>
+            </div>
           </div>
         )}
       </Modal>

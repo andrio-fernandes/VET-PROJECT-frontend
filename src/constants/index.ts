@@ -2,8 +2,7 @@
 // SHARED FRONTEND CONSTANTS
 // =============================================
 // Central home for constants reused across pages, hooks, services and
-// components. `src/utils/constant` re-exports this module so existing
-// imports keep working unchanged.
+// components.
 
 // Content module and category values (must mirror server-side enums)
 export const CONTENT_MODULES = ["Sales"] as const;
@@ -183,9 +182,3 @@ export const VIDEO_PREVIEW_STORAGE_KEY = "video_preview";
 // because the answer/question fields reuse the same rule).
 export const countWords = (text: string | undefined = ""): number =>
   text.trim() ? text.trim().split(/\s+/).length : 0;
-
-// Word-count helper used by the create forms' counter labels.
-export const countWordsWith = (
-  text: string | undefined,
-  max: number
-): string => `${countWords(text)}/${max}`;

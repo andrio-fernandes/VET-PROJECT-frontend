@@ -11,7 +11,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "@/services/api";
-import { API_ENDPOINTS } from "@/utils/constant";
+import { API_ENDPOINTS } from "@/constants";
 import type {
   DashboardStats,
   RecentItem,
@@ -47,6 +47,7 @@ const toRecentItem = (
   createdAt: record.createdAt,
   createdByName:
     record.createdBy?.fullName || record.createdBy?.username || fallbackName,
+  category: record.category,
   thumbnailUrl: record.thumbnailUrl ?? record.thumbnail,
 });
 

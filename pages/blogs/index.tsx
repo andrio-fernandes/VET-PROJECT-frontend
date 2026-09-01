@@ -4,7 +4,7 @@ import { App as AntApp, Button, Col, Modal, Row, Select, Table, Typography } fro
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { AdminLayout } from '@/layouts/AdminLayout';
 
 import {
@@ -13,13 +13,13 @@ import {
   ROUTE_PATHS,
   type ContentCategory,
   type ContentModule,
-} from '../../src/utils/constant';
-import { mediaUrl } from '../../src/utils/media';
-import { deleteBlog } from '../../src/services/blogService';
-import { fetchBlogsPage } from '../../src/redux/blog/blogSlice';
-import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '../../src/redux/blog/selectors';
-import { useAppDispatch, useAppSelector } from '../../src/redux/hooks';
-import type { BlogListItem } from '../../src/types/blog';
+} from '@/constants';
+import { mediaUrl } from '@/utils/media';
+import { deleteBlog } from '@/services/blogService';
+import { fetchBlogsPage } from '@/redux/blog/blogSlice';
+import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '@/redux/blog/selectors';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import type { BlogListItem } from '@/types/blog';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
@@ -111,6 +111,15 @@ const BlogsPage = () => {
           )}
           <Text strong className="blogs-cell-name">{text}</Text>
         </div>
+      ),
+    },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      width: 180,
+      render: (text: string) => (
+        <Text className="blogs-cell-muted">{text}</Text>
       ),
     },
     {

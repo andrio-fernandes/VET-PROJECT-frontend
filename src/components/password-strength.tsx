@@ -1,5 +1,5 @@
 import { Tag, Typography } from "antd";
-import { PASSWORD_RULES } from "@/utils/constant";
+import { PASSWORD_RULES } from "@/constants";
 
 const { Text } = Typography;
 

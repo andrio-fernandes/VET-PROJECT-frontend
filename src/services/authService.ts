@@ -9,7 +9,7 @@
 // =============================================
 
 import { api } from "./api";
-import { API_ENDPOINTS } from "@/utils/constant";
+import { API_ENDPOINTS } from "@/constants";
 
 export interface LoginPayload {
   username: string;

@@ -21,7 +21,8 @@ import {
   REFRESH_TOKEN_KEY,
   TOKEN_KEY,
   USER_KEY,
-} from "@/utils/constant";
+} from "@/constants";
+import { emptySubscribe } from "@/utils/input";
 
 export interface StoredUser {
   _id?: string;
@@ -37,8 +38,6 @@ interface StoreSessionPayload {
   refreshToken?: string;
   user?: StoredUser | null;
 }
-
-const emptySubscribe = () => () => {};
 
 let storedUserCache: StoredUser | null = undefined as unknown as StoredUser;
 

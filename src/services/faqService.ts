@@ -9,7 +9,7 @@
 // =============================================
 
 import { api } from "./api";
-import { API_ENDPOINTS } from "@/utils/constant";
+import { API_ENDPOINTS } from "@/constants";
 import type {
   FaqRecord,
   CreateFaqPayload,

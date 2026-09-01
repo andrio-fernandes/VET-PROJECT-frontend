@@ -3,25 +3,25 @@ import { useForm } from 'react-hook-form';
 import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
-import { withAdminAuth } from '../../src/components/auth/with-admin-auth';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '../../src/components/blog/PageHeader';
-import { ThumbnailUpload } from '../../src/components/blog/ThumbnailUpload';
-import { AttachmentUpload } from '../../src/components/blog/AttachmentUpload';
-import { BlogDetailsFields } from '../../src/components/blog/BlogDetailsFields';
-import { BlogCategoryFields } from '../../src/components/blog/BlogCategoryFields';
-import { BlogContentField } from '../../src/components/blog/BlogContentField';
-import { BlogFormActions } from '../../src/components/blog/BlogFormActions';
+import { PageHeader } from '@/components/blog/PageHeader';
+import { ThumbnailUpload } from '@/components/blog/ThumbnailUpload';
+import { AttachmentUpload } from '@/components/blog/AttachmentUpload';
+import { BlogDetailsFields } from '@/components/blog/BlogDetailsFields';
+import { BlogCategoryFields } from '@/components/blog/BlogCategoryFields';
+import { BlogContentField } from '@/components/blog/BlogContentField';
+import { BlogFormActions } from '@/components/blog/BlogFormActions';
 
-import { GREEN } from '../../src/constants/blog';
-import { ROUTE_PATHS } from '../../src/utils/constant';
-import { createBlog, getBlogById, updateBlog } from '../../src/services/blogService';
-import { fileNameFromUrl, mediaUrl, parseBlogAttachments } from '../../src/utils/media';
+import { GREEN } from '@/constants/blog';
+import { ROUTE_PATHS } from '@/constants';
+import { createBlog, getBlogById, updateBlog } from '@/services/blogService';
+import { fileNameFromUrl, mediaUrl, parseBlogAttachments } from '@/utils/media';
 import {
   DEFAULT_FORM_VALUES,
   useBlogDraft,
   type BlogFormValues,
-} from '../../src/hooks/useBlogDraft';
+} from '@/hooks/useBlogDraft';
 
 const { Title, Text } = Typography;
 

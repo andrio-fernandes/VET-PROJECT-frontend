@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { login } from '@/services/authService';
 import { storeSession } from '@/hooks/useAuth';
 import { ROUTE_PATHS } from '@/constants';
+import { preventSpaces } from '@/utils/input';
 
 const { useBreakpoint } = Grid;
 
@@ -17,10 +18,6 @@ export default function LoginPage() {
   const isMobile = (screens.xs || screens.sm) && !screens.md;
 
   const [loading, setLoading] = useState(false);
-
-  const preventSpaces = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === ' ') e.preventDefault();
-  };
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);

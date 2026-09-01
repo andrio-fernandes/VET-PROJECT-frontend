@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
@@ -8,11 +8,10 @@ import { clearSession } from "@/hooks/useAuth";
 import { ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import PasswordStrength from "@/components/password-strength";
 import AuthCard from "@/components/AuthCard";
+import { preventSpaces, emptySubscribe } from "@/utils/input";
 import type { ResetPasswordFormValues } from "@/types/auth";
 
 const { Title, Text } = Typography;
-
-const emptySubscribe = () => () => {};
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -29,10 +28,6 @@ export default function ResetPasswordPage() {
       sessionStorage.getItem(STORAGE_KEYS.resetOtpVerified) === "true",
     () => false,
   );
-
-  const preventSpaces = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === " ") e.preventDefault();
-  };
 
   // Guard the page on initial load only. After a successful reset we clear
   // sessionStorage which flips canAccess to false; must not treat that as a

@@ -6,10 +6,9 @@ import { forgotPassword, verifyOtp } from "@/services/authService";
 import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import AuthCard from "@/components/AuthCard";
 import OtpInput, { type OtpInputHandle } from "@/components/OtpInput";
+import { emptySubscribe } from "@/utils/input";
 
 const { Text } = Typography;
-
-const emptySubscribe = () => () => {};
 
 export default function OtpVerificationPage() {
   const router = useRouter();

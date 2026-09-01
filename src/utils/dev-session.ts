@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie';
-import { AUTH_TOKEN_KEY, getTokenExpiry, TOKEN_KEY, USER_KEY } from './constant';
+import { AUTH_TOKEN_KEY, getTokenExpiry, TOKEN_KEY, USER_KEY } from '@/constants';
 
 // DEVELOPMENT-ONLY preview helper.
 // With no backend running, the real login/register flow cannot persist a

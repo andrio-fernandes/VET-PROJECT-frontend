@@ -1,10 +1,11 @@
 import type { Rule } from "antd/es/form";
 import {
+  countWords,
   DESCRIPTION_MAX_WORDS,
   DESCRIPTION_MIN_WORDS,
   TITLE_MAX_WORDS,
   TITLE_MIN_WORDS,
-} from "@/constants/blog";
+} from "@/constants";
 import { stripHtmlTags } from "@/utils/richText";
 
 export const emailRules: Rule[] = [
@@ -19,17 +20,6 @@ export const emailRules: Rule[] = [
   {
     max: 254,
     message: "Email is too long.",
-  },
-];
-
-export const otpRules: Rule[] = [
-  {
-    required: true,
-    message: "Please enter OTP.",
-  },
-  {
-    pattern: /^[0-9]{6}$/,
-    message: "OTP must contain exactly 6 digits.",
   },
 ];
 
@@ -55,10 +45,6 @@ export const passwordRules: Rule[] = [
 // ---------------------------------------------------------------
 // Blog form validation
 // ---------------------------------------------------------------
-
-// Count the whitespace-separated words in a value.
-const countWords = (value: string): number =>
-  value.trim().split(/\s+/).filter(Boolean).length;
 
 // Reusable App count formatter ("{words}/{max}") for showCount props.
 export const wordCountFormatter =

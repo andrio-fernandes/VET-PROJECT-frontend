@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
-import { ROUTE_PATHS, isTokenExpired, TOKEN_KEY, USER_KEY } from '@/utils/constant';
+import { ROUTE_PATHS, isTokenExpired, TOKEN_KEY, USER_KEY } from '@/constants';
 import { ensureDevSession } from '@/utils/dev-session';
 
 interface StoredUser {

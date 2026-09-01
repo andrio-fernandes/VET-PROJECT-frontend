@@ -150,6 +150,15 @@ const Videos = () => {
       ),
     },
     {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      width: 160,
+      render: (text: string) => (
+        <Text className="videos-cell-muted">{text}</Text>
+      ),
+    },
+    {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',

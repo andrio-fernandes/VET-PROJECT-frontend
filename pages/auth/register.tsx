@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
 import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/constants';
+import { preventSpaces } from '@/utils/input';
 const { Title, Paragraph } = Typography;
 
 export default function RegisterPage() {
@@ -25,10 +26,6 @@ export default function RegisterPage() {
     formValues?.password &&
     formValues?.confirm &&
     form.getFieldsError().every((field) => field.errors.length === 0);
-
-  const preventSpaces = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === ' ') e.preventDefault();
-  };
 
   const MAX_USERNAME_LENGTH = 30;
   const SUFFIX_LENGTH = 3;

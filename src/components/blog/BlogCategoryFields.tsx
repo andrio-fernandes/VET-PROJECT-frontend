@@ -15,7 +15,7 @@ import {
   MODULE_CATEGORIES,
   type ContentCategory,
   type ContentModule,
-} from '@/utils/constant';
+} from '@/constants';
 import { RequiredLabel } from '@/components/blog/RequiredLabel';
 import type { BlogFormValues } from '@/hooks/useBlogDraft';
 

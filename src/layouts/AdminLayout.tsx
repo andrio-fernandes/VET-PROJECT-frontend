@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 
 import { clearSession, useCurrentUser } from '@/hooks/useAuth';
-import { ROUTE_PATHS } from '@/utils/constant';
+import { ROUTE_PATHS } from '@/constants';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;

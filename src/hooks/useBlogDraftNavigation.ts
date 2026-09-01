@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 import type { NextRouter } from 'next/router';
 
 import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
-import { ROUTE_PATHS } from '@/utils/constant';
+import { ROUTE_PATHS } from '@/constants';
 import { fileToDataUrl } from '@/utils/file';
 import type { PickedAttachment } from '@/types/blog';
 import type { BlogFormValues } from './useBlogDraft';
