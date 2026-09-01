@@ -1,0 +1,106 @@
+// =============================================
+// SHARED "VIEW-ALL" TABLE PAGE STYLES (index pages)
+//
+// Consolidates the near-identical header / create-button / filter / table
+// styles shared by the FAQ, Video and Blog view-all pages (faqs/index.tsx,
+// videos/index.tsx, blogs/index.tsx).
+//
+// Each page file uses the generator mixin with its own namespace prefix, e.g.:
+//   @include view-all('faqs');
+//   @include view-all('videos');
+//   @include view-all('blogs');
+//
+// Page-specific cell / action / extra styles stay in each page's own SCSS.
+//
+// Values preserved exactly - do not change colors, sizes or geometry.
+// =============================================
+
+$brand-green: #52c41a;
+$white: #ffffff;
+$border: #e8e8e8;
+$text: #262626;
+$muted: #595959;
+$danger: #ff4d4f;
+$bg-light: #f6ffed;
+$border-light: #b7eb8f;
+
+@mixin view-all($ns) {
+  .#{$ns}-page-pad {
+    padding: 32px 40px 48px;
+  }
+
+  .#{$ns}-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .#{$ns}-header-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background-color: $brand-green;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .#{$ns}-header-title {
+    margin: 0;
+    font-weight: 700;
+    color: $text;
+  }
+
+  .#{$ns}-create-wrap {
+    text-align: right;
+    margin-bottom: 20px;
+  }
+
+  .#{$ns}-create-btn {
+    background-color: $brand-green;
+    border-color: $brand-green;
+    border-radius: 6px;
+    padding: 0 24px;
+    height: 38px;
+    font-size: 19px;
+    font-weight: 600;
+  }
+
+  .#{$ns}-filters {
+    margin-bottom: 16px;
+  }
+
+  .#{$ns}-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .#{$ns}-filter-label {
+    color: $text;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .#{$ns}-filter-select {
+    width: 303px;
+  }
+
+  .#{$ns}-table-wrap {
+    background-color: $white;
+    border: 1px solid $border;
+    border-radius: 16px;
+    overflow-x: auto;
+  }
+
+  .#{$ns}-count-text {
+    font-size: 12px;
+    display: block;
+    text-align: right;
+    margin-top: 12px;
+  }
+}

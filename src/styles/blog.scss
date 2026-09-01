@@ -1,8 +1,13 @@
 // =============================================
-// SHARED BLOG STYLES
+// SHARED BLOG MODULE STYLES (create / preview / list)
 //
-// Styles that are genuinely common across the Create / Preview / List blog
+// Styles genuinely common across the Blog Create / Preview / List-blog
 // pages. Page-specific one-off styles stay in the pages themselves.
+//
+// NOTE: The "All Blogs" view-all table page (pages/blogs/index.tsx) has its
+// own PAGE-SPECIFIC stylesheet: blogs.css (plural). The names differ:
+//   - blog.scss  = shared Blog module shell (this file)
+//   - blogs.css  = "All Blogs" view-all table page
 // =============================================
 
 $blog-green: #52c41a;

@@ -238,6 +238,7 @@ const BlogsPage = () => {
               dataSource={filteredBlogs}
               loading={loading}
               locale={{ emptyText: loadError ? loadError : 'No blogs uploaded yet.' }}
+              scroll={{ x: 'max-content' }}
               pagination={{
                 current: page,
                 pageSize: PAGE_SIZE,

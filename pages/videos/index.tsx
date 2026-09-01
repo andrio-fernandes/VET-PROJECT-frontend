@@ -278,6 +278,7 @@ const Videos = () => {
               dataSource={videos}
               loading={loading}
               locale={{ emptyText: 'No videos uploaded yet.' }}
+              scroll={{ x: 'max-content' }}
               pagination={{
                 current: page,
                 pageSize: PAGE_SIZE,

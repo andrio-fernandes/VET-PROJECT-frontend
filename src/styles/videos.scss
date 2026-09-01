@@ -1,0 +1,73 @@
+/* =============================================
+   VIDEOS VIEW-ALL PAGE (pages/videos/index.tsx)
+   Common table-page styles come from the shared
+   _view-all.scss generator (@include view-all('videos')).
+   Page-specific video styles below.
+   ============================================= */
+
+@use 'view-all';
+
+@include view-all.view-all('videos');
+
+.videos-content {
+  max-width: none;
+  width: 100%;
+}
+
+.videos-cell-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 380px;
+}
+
+.videos-cell-thumb {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  display: block;
+}
+
+.videos-cell-thumb-placeholder {
+  width: 96px;
+  height: 64px;
+  background-color: #f6ffed;
+  border-radius: 6px;
+  border: 1px solid #b7eb8f;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #52c41a;
+}
+
+.videos-cell-play {
+  font-size: 22px;
+}
+
+.videos-cell-name {
+  color: #262626;
+  font-size: 15px;
+}
+
+.videos-cell-muted {
+  color: #595959;
+}
+
+.videos-action-group {
+  display: flex;
+  gap: 4px;
+}
+
+.videos-action-icon {
+  font-size: 16px;
+  color: #52c41a;
+}
+
+.videos-action-delete {
+  font-size: 16px;
+  color: #ff4d4f;
+}

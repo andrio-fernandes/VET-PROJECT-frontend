@@ -130,3 +130,107 @@ export const api = async (
 
   return data;
 };
+
+// Progress-aware file upload. `fetch` has no upload progress events, so this
+// uses XMLHttpRequest (which exposes xhr.upload.onprogress) for multipart
+// uploads such as videos. Shares the same auth header, token-refresh single-
+// flight, and error normalization as `api`, and reports upload percentage via
+// `onProgress`. Also logs timing so we can tell transfer time apart from
+// server-side processing time.
+export const uploadWithProgress = (
+  endpoint: string,
+  formData: FormData,
+  onProgress?: (percent: number, loaded: number, total: number) => void,
+  onTransferComplete?: () => void
+): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+    const transferStart = performance.now();
+
+    const request = (authToken: string | null) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_URL}${endpoint}`);
+
+      if (authToken) {
+        xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+      }
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(
+            Math.round((e.loaded / e.total) * 100),
+            e.loaded,
+            e.total
+          );
+        }
+      };
+
+      // Fires when the request body has been fully sent to the server.
+      xhr.upload.onload = () => {
+        console.warn(
+          `[upload] ALL BYTES SENT (pure transfer) in ${(performance.now() - transferStart).toFixed(0)}ms`
+        );
+        if (onTransferComplete) {
+          onTransferComplete();
+        }
+      };
+
+      xhr.onload = () => {
+        const responseAt = performance.now();
+        console.warn(
+          `[upload] full response received in ${(responseAt - transferStart).toFixed(0)}ms`
+        );
+
+        let data: any = null;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {
+          data = null;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data);
+          return;
+        }
+
+        if (
+          xhr.status === 401 &&
+          typeof window !== "undefined" &&
+          !window.location.pathname.startsWith("/auth")
+        ) {
+          refreshInFlight =
+            refreshInFlight ||
+            refreshSession().finally(() => {
+              refreshInFlight = null;
+            });
+
+          refreshInFlight.then((newToken) => {
+            if (newToken) {
+              request(newToken);
+            } else {
+              handleUnauthorized();
+              reject(new Error(data?.message || "Something went wrong"));
+            }
+          });
+          return;
+        }
+
+        const error = new Error(
+          data?.message || "Something went wrong"
+        ) as Error & { remaining?: number };
+        if (typeof data?.remaining === "number") {
+          error.remaining = data.remaining;
+        }
+        reject(error);
+      };
+
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.onabort = () => reject(new Error("Upload aborted"));
+      xhr.send(formData);
+    };
+
+    request(token);
+  });
+};

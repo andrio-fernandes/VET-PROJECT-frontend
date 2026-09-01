@@ -133,6 +133,7 @@ export const API_ENDPOINTS = {
   getVideo: (id: string) => `/videos/${id}`,
   updateVideo: (id: string) => `/videos/${id}`,
   deleteVideo: (id: string) => `/videos/${id}`,
+  getVideoStatus: (id: string) => `/videos/${id}/status`,
   // Blog endpoints
   createBlog: "/blogs",
   getMyBlogs: "/blogs/mine",

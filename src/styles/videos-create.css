@@ -119,6 +119,30 @@
   align-items: center;
 }
 
+.vc-upload-failed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.vc-upload-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.vc-upload-label {
+  font-weight: 600;
+  color: #262626;
+}
+
+.vc-retry-btn {
+  flex-shrink: 0;
+}
+
+
 .vc-btn-preview {
   border-color: #52c41a;
   color: #52c41a;

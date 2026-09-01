@@ -1,0 +1,65 @@
+/* =============================================
+   BLOGS VIEW-ALL PAGE (pages/blogs/index.tsx)
+   Common table-page styles come from the shared
+   _view-all.scss generator (@include view-all('blogs')).
+   Page-specific blog styles below.
+   ============================================= */
+
+@use 'view-all';
+
+@include view-all.view-all('blogs');
+
+.blogs-content {
+  max-width: none;
+  width: 100%;
+}
+
+.blogs-cell-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 380px;
+}
+
+.blogs-cell-thumb {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  display: block;
+}
+
+.blogs-cell-thumb-placeholder {
+  width: 96px;
+  height: 64px;
+  background-color: #f6ffed;
+  border-radius: 6px;
+  border: 1px solid #b7eb8f;
+  flex-shrink: 0;
+}
+
+.blogs-cell-name {
+  color: #262626;
+  font-size: 15px;
+}
+
+.blogs-cell-muted {
+  color: #595959;
+}
+
+.blogs-action-group {
+  display: flex;
+  gap: 4px;
+}
+
+.blogs-action-icon {
+  font-size: 16px;
+  color: #52c41a;
+}
+
+.blogs-action-delete {
+  font-size: 16px;
+  color: #ff4d4f;
+}

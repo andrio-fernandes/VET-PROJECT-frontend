@@ -18,6 +18,7 @@ export interface RecentItem {
   createdByName: string;
   category?: string;
   thumbnailUrl?: string;
+  processingStatus?: string;
 }
 
 export interface DashboardFaqRecord {

@@ -49,6 +49,7 @@ const toRecentItem = (
     record.createdBy?.fullName || record.createdBy?.username || fallbackName,
   category: record.category,
   thumbnailUrl: record.thumbnailUrl ?? record.thumbnail,
+  processingStatus: record.processingStatus,
 });
 
 export const fetchDashboardStats = createAsyncThunk(

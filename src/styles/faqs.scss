@@ -1,0 +1,83 @@
+/* =============================================
+   FAQS VIEW-ALL PAGE (pages/faqs/index.tsx)
+   Common table-page styles come from the shared
+   _view-all.scss generator (@include view-all('faqs')).
+   Page-specific FAQ styles below.
+   ============================================= */
+
+@use 'view-all';
+
+@include view-all.view-all('faqs');
+
+.faqs-page-inner {
+  width: 100%;
+}
+
+.faqs-select-module {
+  width: 303px;
+}
+
+.faqs-select-category {
+  width: 303px;
+}
+
+.faqs-cell-text {
+  color: #000;
+}
+
+.faqs-cell-question {
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.faqs-action-icon {
+  color: #000;
+  font-size: 16px;
+}
+
+.faqs-action-delete {
+  color: #ff4d4f;
+  font-size: 16px;
+}
+
+.faqs-action-col {
+  display: inline-flex;
+  margin-left: -8px;
+}
+
+.faqs-view-block {
+  margin-bottom: 20px;
+}
+
+.faqs-view-label {
+  color: #52c41a;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.faqs-view-question {
+  font-size: 16px;
+  color: #262626;
+}
+
+.faqs-view-answer {
+  font-size: 15px;
+  color: #595959;
+  display: block;
+  white-space: pre-wrap;
+}
+
+.faqs-modal-input {
+  border-radius: 6px;
+}
+
+.faqs-modal-textarea {
+  border-radius: 6px;
+  resize: none;
+}

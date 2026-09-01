@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Typography, Space, Table, Button, App as AntApp, Modal, Select, Form, Input } from 'antd';
+import { Typography, Space, Table, Button, App as AntApp, Modal, Select, Form, Input, Row, Col } from 'antd';
 import dayjs from 'dayjs';
 import {
   EyeOutlined,
@@ -140,23 +140,29 @@ const ViewFaqs = () => {
       title: 'Title',
       dataIndex: 'question',
       key: 'question',
-      render: (text: string) => <Text className="faqs-cell-text">{text}</Text>,
+      width: '38%',
+      render: (text: string) => <Text className="faqs-cell-text faqs-cell-question">{text}</Text>,
     },
     {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
+      width: '15%',
+      ellipsis: true,
       render: (text: string) => <Text className="faqs-cell-text">{text}</Text>,
     },
     {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: '18%',
       render: (text: string) => <Text className="faqs-cell-text">{dayjs(text).format('DD MMM YYYY')}</Text>,
     },
     {
       title: 'Created By',
       key: 'createdBy',
+      width: '17%',
+      ellipsis: true,
       render: (_: unknown, record: FaqRecord) => (
         <Text className="faqs-cell-text">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
       ),
@@ -164,8 +170,9 @@ const ViewFaqs = () => {
     {
       title: 'Actions',
       key: 'actions',
+      width: '12%',
       render: (_: unknown, record: FaqRecord) => (
-        <Space size="middle">
+        <Space size={4} className="faqs-action-col">
           <Button
             type="text"
             title="View"
@@ -203,12 +210,24 @@ const ViewFaqs = () => {
             </Title>
           </div>
 
-          {/* Filters + Create */}
-          <div className="faqs-toolbar">
-            <Space size="large" wrap>
+          {/* Create button */}
+          <div className="faqs-create-wrap">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => router.push('/faqs/create')}
+              className="faqs-create-btn"
+            >
+              Create
+            </Button>
+          </div>
+
+          {/* Filters */}
+          <Row gutter={24} className="faqs-filters">
+            <Col span={12}>
               <div className="faqs-filter-group">
                 <Text strong className="faqs-filter-label">
-                  Select Module :
+                  Select module:
                 </Text>
                 <Select
                   value={moduleFilter}
@@ -222,9 +241,11 @@ const ViewFaqs = () => {
                   options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
                 />
               </div>
+            </Col>
+            <Col span={12}>
               <div className="faqs-filter-group">
                 <Text strong className="faqs-filter-label">
-                  Select Categories :
+                  Select Category:
                 </Text>
                 <Select
                   value={categoryFilter}
@@ -238,16 +259,8 @@ const ViewFaqs = () => {
                   options={categoryOptions}
                 />
               </div>
-            </Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push('/faqs/create')}
-              className="faqs-create-btn"
-            >
-              Create
-            </Button>
-          </div>
+            </Col>
+          </Row>
 
           {/* Table */}
           <div className="faqs-table-wrap">
@@ -255,6 +268,7 @@ const ViewFaqs = () => {
               columns={columns}
               dataSource={faqs}
               rowKey="_id"
+              tableLayout="fixed"
               loading={loading}
               locale={{ emptyText: 'No FAQs uploaded yet.' }}
               pagination={{

@@ -5,13 +5,14 @@ import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
 import { createVideo } from "@/services/videoService";
 import { ROUTE_PATHS, MAX_VIDEO_SIZE, MAX_THUMBNAIL_SIZE, RETAINED_VIDEO_STORAGE_KEY, countWords } from "@/constants";
-import { Form, Input, Upload, Button, Modal, Space, App as AntApp, Typography } from "antd";
+import { Form, Input, Upload, Button, Modal, Space, Spin, App as AntApp, Typography } from "antd";
 import {
   UploadOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
 import WordCount from "@/components/WordCount";
 import ModuleCategorySelects from "@/components/ModuleCategorySelects";
+import type { CreateVideoResult } from "@/services/videoService";
 
 const { Title, Text } = Typography;
 
@@ -23,10 +24,26 @@ const UploadVideo = () => {
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [uploadFailed, setUploadFailed] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [stayOpen, setStayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelLeaveRef = useRef<(() => void) | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
+  const jobRef = useRef<CreateVideoResult | null>(null);
+  const mountedRef = useRef(true);
+  // How long to wait before asking the admin whether to stay or continue.
+  const STAY_PROMPT_DELAY_MS = 4000;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // The background upload must NOT be cancelled here — the manager owns
+      // the job module-level and continues independently of this component.
+    };
+  }, []);
 
   const titleValue = Form.useWatch('title', form);
   const descriptionValue = Form.useWatch('description', form);
@@ -75,28 +92,89 @@ const UploadVideo = () => {
     }
 
     setLoading(true);
-    try {
-      await createVideo({
+    setUploadFailed(null);
+    setProcessing(false);
+    setStayOpen(false);
+
+    // Start the background upload. `createVideo` resolves as soon as the
+    // backend returns 202 Accepted — processing continues module-level,
+    // independent of this page. Real XHR progress is tracked internally but
+    // not displayed (per requirements).
+    const job = createVideo(
+      {
         title: values.title,
         description: values.description,
         module: values.module,
         category: values.category,
         video: file,
         thumbnail,
-      });
+      },
+      // real progress tracked internally, not rendered
+      () => {}
+    );
+    jobRef.current = job;
 
-      message.success("Video uploaded successfully!");
-      localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
-      form.resetFields();
-      setFile(null);
-      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
-      setThumbnail(null);
-      setThumbnailPreview("");
+    // Ask the admin whether to stay or continue if this takes a while.
+    const prompt = window.setTimeout(() => {
+      if (mountedRef.current) setStayOpen(true);
+    }, STAY_PROMPT_DELAY_MS);
+
+    try {
+      // Wait until background processing reaches ready/failed/timeout.
+      const reason = await job.settled;
+
+      if (!mountedRef.current) return;
+      window.clearTimeout(prompt);
+
+      if (reason.kind === "ready") {
+        setProcessing(false);
+        message.success("Video created successfully");
+        localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
+        form.resetFields();
+        setFile(null);
+        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+        setThumbnail(null);
+        setThumbnailPreview("");
+      } else {
+        // failed or timeout
+        setUploadFailed(reason.error);
+        setProcessing(false);
+        message.error(reason.error || "Failed to upload video");
+      }
     } catch (error: any) {
-      message.error(error.message || "Failed to upload video");
+      // Upload itself failed before the backend accepted it (network,
+      // validation, auth...). The manager mirrors "failed" in the slice, but
+      // the Create page surfaces the error so the admin can retry here.
+      if (mountedRef.current) {
+        window.clearTimeout(prompt);
+        setUploadFailed(error.message || "Failed to upload video");
+        message.error(error.message || "Failed to upload video");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
+  };
+
+  // "Stay & View Progress": keep the admin on this page, show an
+  // indeterminate processing state, and keep waiting for the backend.
+  const handleStay = () => {
+    if (!mountedRef.current) return;
+    setStayOpen(false);
+    setProcessing(true);
+  };
+
+  // "Continue Working": do NOT cancel the upload. Redirect to the dashboard;
+  // the background manager keeps uploading/processing and the global
+  // notification fires when it's ready/failed.
+  const handleContinue = () => {
+    if (!mountedRef.current) return;
+    setStayOpen(false);
+    router.push(ROUTE_PATHS.adminDashboard);
+  };
+
+  const handleRetry = () => {
+    setUploadFailed(null);
+    form.submit();
   };
 
   const preview = () => {
@@ -442,6 +520,27 @@ const UploadVideo = () => {
 
             <div className="vc-divider-wide" />
 
+            {uploadFailed && (
+              <div className="vc-upload-failed">
+                <Text type="danger">Upload failed: {uploadFailed}</Text>
+                <Button
+                  danger
+                  size="small"
+                  className="vc-retry-btn"
+                  onClick={handleRetry}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {processing && !uploadFailed && (
+              <div className="vc-upload-status">
+                <Spin size="small" />
+                <Text className="vc-upload-label">Processing video...</Text>
+              </div>
+            )}
+
             {/* Footer */}
             <div className="vc-footer">
 
@@ -463,6 +562,7 @@ const UploadVideo = () => {
                   type="primary"
                   htmlType="submit"
                   size="large"
+                  disabled={loading}
                   loading={loading}
                   className="vc-btn-create"
                 >
@@ -511,8 +611,30 @@ const UploadVideo = () => {
             </Button>
           </Space>
         }
-      >
+      > 
         <p>You have a previously unsaved video draft. Would you like to restore it?</p>
+      </Modal>
+
+      {/* STAY OR CONTINUE WORKING MODAL */}
+      <Modal
+        open={stayOpen}
+        title="Upload in progress"
+        closable={false}
+        maskClosable={false}
+        footer={
+          <Space>
+            <Button onClick={handleContinue}>Continue Working</Button>
+            <Button type="primary" onClick={handleStay}>
+              Stay &amp; View Progress
+            </Button>
+          </Space>
+        }
+      >
+        <p>
+          Your video is being uploaded. The upload will continue in the
+          background. You can stay here to monitor the process or continue
+          working in the dashboard.
+        </p>
       </Modal>
     </AdminLayout>
   );

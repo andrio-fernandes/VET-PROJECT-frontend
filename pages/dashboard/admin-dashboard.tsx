@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
-import { Typography, Card, Space, Table, Button, Spin, App as AntApp } from 'antd';
+import { Typography, Card, Space, Table, Button, Spin, Modal, App as AntApp } from 'antd';
 import dayjs from 'dayjs';
 import {
   PlayCircleOutlined,
@@ -12,6 +12,8 @@ import {
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { selectVideoUploads } from '@/redux/videoUpload/selectors';
+import VideoStatusTag from '@/components/video/VideoStatusTag';
 import {
   fetchDashboardStats,
   fetchRecentBlogs,
@@ -31,6 +33,8 @@ interface TableItem {
   createdByName: string;
   category?: string;
   thumbnailUrl?: string;
+  question?: string;
+  answer?: string;
 }
 
 const Dashboard = () => {
@@ -41,12 +45,14 @@ const Dashboard = () => {
   const rawAdminName = storedUser?.fullName || storedUser?.username || 'Admin';
   const adminDisplayName = rawAdminName.charAt(0).toUpperCase() + rawAdminName.slice(1);
   const [activeTab, setActiveTab] = useState('Video');
+  const [viewingFaq, setViewingFaq] = useState<TableItem | null>(null);
 
   const { stats, recentVideos, recentBlogs, recentFaqs, loading, faqsLoading } =
     useAppSelector(selectDashboard);
   const dashboardError = useAppSelector(selectDashboardError);
 
   const shownErrorRef = React.useRef<string | null>(null);
+  const uploads = useAppSelector(selectVideoUploads);
 
   useEffect(() => {
     if (dashboardError && dashboardError !== shownErrorRef.current) {
@@ -74,12 +80,19 @@ const Dashboard = () => {
 
   const quickActions = [
     { title: 'Create New Videos', path: ROUTE_PATHS.createVideo, icon: <PlayCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
-    { title: 'Upload New Blog', path: ROUTE_PATHS.uploadBlog, icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
+    { title: 'Create New Blog', path: ROUTE_PATHS.uploadBlog, icon: <FileTextOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
     { title: 'Create New FAQs', path: '/faqs/create', icon: <QuestionCircleOutlined style={{ color: '#52c41a', fontSize: '28px' }} /> },
   ];
 
   const activeRecentData: TableItem[] = React.useMemo(() => {
-    if (activeTab === 'Video') return recentVideos;
+    if (activeTab === 'Video') {
+      // Show recently uploaded videos, but drop entries that failed so they
+      // don't linger as failures in the "recently uploaded" list.
+      return recentVideos.filter((record) => {
+        const status = uploads[record.key]?.status || record.processingStatus;
+        return status !== 'failed';
+      });
+    }
     if (activeTab === 'Blog') return recentBlogs;
     return recentFaqs.map((faq) => ({
       key: faq._id,
@@ -88,63 +101,80 @@ const Dashboard = () => {
       createdByName:
         faq.createdBy?.fullName || faq.createdBy?.username || 'Unknown',
       category: faq.category,
+      question: faq.question,
+      answer: faq.answer,
     }));
-  }, [activeTab, recentVideos, recentBlogs, recentFaqs]);
+  }, [activeTab, recentVideos, recentBlogs, recentFaqs, uploads]);
 
   const tableColumns = [
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
-      render: (text: string, record: TableItem) => (
-        <Space>
-          {activeTab !== 'FAQs' &&
-            (record.thumbnailUrl ? (
-              <img
-                src={record.thumbnailUrl}
-                alt={text}
-                style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
-              />
-            ) : (
-              <div style={{ width: 60, height: 40, backgroundColor: '#e6f7ff', borderRadius: 4, border: '1px solid #d9d9d9' }} />
-            ))}
-          <Text strong style={{ color: '#000' }}>{text}</Text>
-        </Space>
-      ),
+      width: '38%',
+      render: (text: string, record: TableItem) => {
+        const status =
+          uploads[record.key]?.status ||
+          (record as TableItem & { processingStatus?: string }).processingStatus;
+        return (
+          <Space>
+            {activeTab !== 'FAQs' &&
+              (record.thumbnailUrl ? (
+                <img
+                  src={record.thumbnailUrl}
+                  alt={text}
+                  style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+                />
+              ) : (
+                <div style={{ width: 60, height: 40, backgroundColor: '#e6f7ff', borderRadius: 4, border: '1px solid #d9d9d9' }} />
+              ))}
+            <Text strong style={{ color: '#000' }}>{text}</Text>
+            {activeTab === 'Video' && status && status !== 'ready' && (
+              <VideoStatusTag status={status as any} />
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
+      width: '15%',
       render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>
     },
     {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: '18%',
       render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>
     },
     {
       title: 'Created By',
       dataIndex: 'createdByName',
       key: 'createdByName',
+      width: '17%',
       render: (text: string) => <Text style={{ color: '#000' }}>{text}</Text>
     },
     {
       title: 'Actions',
       key: 'actions',
-      render: () => (
+      width: '12%',
+      render: (_: unknown, record: TableItem) => (
         <Space size="middle">
           <Button
             type="text"
             icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
-            onClick={() =>
-              activeTab === 'Video'
-                ? router.push(ROUTE_PATHS.videos)
-                : activeTab === 'Blog'
-                  ? router.push(ROUTE_PATHS.blogs)
-                  : router.push(ROUTE_PATHS.faqs)
-            }
+            onClick={() => {
+              if (activeTab === 'FAQs') {
+                setViewingFaq(record);
+              } else if (activeTab === 'Video') {
+                router.push(ROUTE_PATHS.videos);
+              } else {
+                router.push(ROUTE_PATHS.blogs);
+              }
+            }}
           />
         </Space>
       ),
@@ -247,11 +277,51 @@ const Dashboard = () => {
           loading={activeTab === 'FAQs' ? faqsLoading : loading}
           pagination={false}
           bordered={false}
+          tableLayout="fixed"
           locale={{ emptyText: loading || faqsLoading ? 'Loading...' : `No ${activeTab === 'FAQs' ? 'FAQs' : activeTab + 's'} uploaded yet.` }}
         />
 
       </div>
       </div>
+
+      {/* VIEW FAQ MODAL */}
+      <Modal
+        title="View FAQ"
+        open={Boolean(viewingFaq)}
+        onCancel={() => setViewingFaq(null)}
+        footer={null}
+        width={736}
+        centered
+        maskStyle={{
+          backdropFilter: 'blur(6px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        }}
+        styles={{ body: { borderRadius: '12px', padding: '24px' } }}
+      >
+        {viewingFaq && (
+          <div>
+            <div className="faqs-create-block">
+              <Text className="faqs-create-preview-label faqs-create-preview-label-q">
+                Question
+              </Text>
+              <Text strong className="faqs-create-preview-question">
+                {viewingFaq.question}
+              </Text>
+            </div>
+
+            <div className="faqs-create-preview-answer-block">
+              <Text className="faqs-create-preview-label">
+                Answer
+              </Text>
+            </div>
+            <div className="faqs-create-preview-answer-box">
+              <Text className="faqs-create-preview-answer">
+                {viewingFaq.answer}
+              </Text>
+            </div>
+          </div>
+        )}
+      </Modal>
     </AdminLayout>
   );
 };

@@ -900,21 +900,6 @@ a {
   margin-bottom: 24px;
 }
 
-.videos-create-btn {
-  height: 55px;
-  min-width: 165px;
-  background: #52c41a;
-  border-color: #52c41a;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 6px;
-}
-
-.videos-create-btn:hover {
-  background: #45a015 !important;
-  border-color: #45a015 !important;
-}
-
 .videos-filters {
   align-items: center;
 }
