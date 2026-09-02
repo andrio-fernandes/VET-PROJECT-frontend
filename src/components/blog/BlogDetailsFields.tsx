@@ -43,14 +43,18 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
         <>
           <RequiredLabel label="Title" />
           <Input
+            id="blog-title"
             value={field.value ?? ''}
             onChange={(e) => trackChange(field.onChange)(e.target.value)}
             placeholder="Enter blog title"
             size="large"
             style={{ borderRadius: 6 }}
             status={fieldState.error ? 'error' : undefined}
-            showCount={{ formatter: wordCountFormatter(TITLE_MAX_WORDS) }}
           />
+          <div className="word-counter">
+            {wordCountFormatter(TITLE_MAX_WORDS)({ value: field.value ?? '' })}{' '}
+            words
+          </div>
           {fieldState.error && (
             <div className="blog-field-error">{fieldState.error.message}</div>
           )}
@@ -68,14 +72,18 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
         <>
           <RequiredLabel label="Description" />
           <Input.TextArea
+            id="blog-description"
             value={field.value ?? ''}
             onChange={(e) => trackChange(field.onChange)(e.target.value)}
             placeholder="Describe your blog..."
             rows={3}
             style={{ borderRadius: 6, resize: 'none' }}
             status={fieldState.error ? 'error' : undefined}
-            showCount={{ formatter: wordCountFormatter(DESCRIPTION_MAX_WORDS) }}
           />
+          <div className="word-counter">
+            {wordCountFormatter(DESCRIPTION_MAX_WORDS)({ value: field.value ?? '' })}{' '}
+            words
+          </div>
           {fieldState.error && (
             <div className="blog-field-error">{fieldState.error.message}</div>
           )}

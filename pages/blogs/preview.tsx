@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/blog/PageHeader';
 
 import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
-import { fileNameFromUrl, mediaUrl } from '@/utils/media';
+import { fileNameFromUrl, isInlinePreviewable, mediaUrl } from '@/utils/media';
 import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
 import { getBlogById } from '@/services/blogService';
 import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
@@ -138,6 +138,18 @@ const BlogPreview = () => {
   const contentHtml = sanitizeRichText(blog?.content);
 
   const openAttachment = (att: ParsedAttachment) => {
+    // DOCX / XLSX / XLS are rendered inline by the attachment viewer route.
+    if (isInlinePreviewable(att.url)) {
+      const viewerUrl = `${ROUTE_PATHS.blogAttachmentViewer}?url=${encodeURIComponent(
+        att.url
+      )}&name=${encodeURIComponent(att.name)}`;
+      window.open(viewerUrl, '_blank');
+      return;
+    }
+
+    // Unsupported formats (e.g. legacy .doc) keep the existing download
+    // behavior: data URLs fetched into a blob then opened, everything else
+    // opened directly.
     if (att.url.startsWith('data:')) {
       fetch(att.url)
         .then((res) => res.blob())
@@ -159,9 +171,16 @@ const BlogPreview = () => {
       <div className="bp-page">
         <div className="blog-content">
           <PageHeader
-            backHref={isPreviewMode ? ROUTE_PATHS.uploadBlog : ROUTE_PATHS.adminDashboard}
+            backHref={
+              isPreviewMode
+                ? blogId
+                  ? `${ROUTE_PATHS.uploadBlog}?id=${blogId}`
+                  : ROUTE_PATHS.uploadBlog
+                : ROUTE_PATHS.adminDashboard
+            }
             title="Blog preview"
             icon={<FileTextOutlined />}
+            showBack={false}
           />
 
           <div className="blog-card bp-card">

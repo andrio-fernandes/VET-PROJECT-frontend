@@ -13,6 +13,7 @@ import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { deleteVideo, getVideos } from '@/services/videoService';
 import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY, type ContentModule, type ContentCategory } from '@/constants';
 import { mediaUrl } from '@/utils/media';
+import defaultThumbnail from '@/assets/default.jpg';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import type { VideoRecord } from '@/types/video';
@@ -88,8 +89,8 @@ const Videos = () => {
     router.push('/videos/preview');
   };
 
-  const handleEdit = () => {
-    router.push('/videos/create');
+  const handleEdit = (record: Video) => {
+    router.push(`/videos/create?id=${record.key}`);
   };
 
   const handleDelete = (record: Video) => {
@@ -133,18 +134,12 @@ const Videos = () => {
       key: 'title',
       render: (text: string, record) => (
         <div className="videos-cell-title">
-          {record.thumbnailUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={mediaUrl(record.thumbnailUrl)}
-              alt={text}
-              className="videos-cell-thumb"
-            />
-          ) : (
-            <div className="videos-cell-thumb-placeholder">
-              <PlayCircleOutlined className="videos-cell-play" />
-            </div>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={record.thumbnailUrl ? mediaUrl(record.thumbnailUrl) : defaultThumbnail.src}
+            alt={text}
+            className="videos-cell-thumb"
+          />
           <Text strong className="videos-cell-name">{text}</Text>
         </div>
       ),
@@ -192,7 +187,7 @@ const Videos = () => {
             type="text"
             title="Edit"
             icon={<EditOutlined className="videos-action-icon" />}
-            onClick={handleEdit}
+            onClick={() => handleEdit(record)}
           />
           <Button
             type="text"

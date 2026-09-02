@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import { createVideo } from "@/services/videoService";
+import { createVideo, getVideoById, updateVideo } from "@/services/videoService";
 import { ROUTE_PATHS, MAX_VIDEO_SIZE, MAX_THUMBNAIL_SIZE, RETAINED_VIDEO_STORAGE_KEY, countWords } from "@/constants";
 import { Form, Input, Upload, Button, Modal, Space, Spin, App as AntApp, Typography } from "antd";
 import {
@@ -12,23 +12,42 @@ import {
 } from "@ant-design/icons";
 import WordCount from "@/components/WordCount";
 import ModuleCategorySelects from "@/components/ModuleCategorySelects";
+import { mediaUrl } from "@/utils/media";
 import type { CreateVideoResult } from "@/services/videoService";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const UploadVideo = () => {
   const { message } = AntApp.useApp();
   const router = useRouter();
+
+  const videoId =
+    typeof router.query.id === "string" && router.query.id ? router.query.id : "";
+  const editMode = Boolean(videoId);
+
   const [form] = Form.useForm();
   const [file, setFile] = useState<File | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
+  const [existingVideoUrl, setExistingVideoUrl] = useState<string>("");
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<string>("");
+  const [seeding, setSeeding] = useState(editMode);
   const [loading, setLoading] = useState(false);
   const [uploadFailed, setUploadFailed] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    src: string;
+    title: string;
+    description: string;
+    thumbnail?: string;
+  } | null>(null);
   const [stayOpen, setStayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelLeaveRef = useRef<(() => void) | null>(null);
+  const pendingNavRef = useRef<string | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
   const jobRef = useRef<CreateVideoResult | null>(null);
@@ -45,6 +64,47 @@ const UploadVideo = () => {
     };
   }, []);
 
+  // Load the existing video when editing and seed the form + current assets.
+  useEffect(() => {
+    if (!editMode || !router.isReady) return;
+    let ignore = false;
+
+    const loadVideo = async () => {
+      setSeeding(true);
+      try {
+        const video = await getVideoById(videoId);
+        if (ignore || !video) return;
+
+        form.setFieldsValue({
+          title: video.title ?? "",
+          description: video.description ?? "",
+          module: video.module ?? "",
+          category: video.category ?? "",
+        });
+
+        if (video.videoUrl) {
+          setExistingVideoUrl(mediaUrl(video.videoUrl));
+        }
+        if (video.thumbnailUrl) {
+          setExistingThumbnailUrl(mediaUrl(video.thumbnailUrl));
+        }
+      } catch (error: any) {
+        if (!ignore) {
+          message.error(error.message || "Failed to load the video");
+        }
+      } finally {
+        if (!ignore) setSeeding(false);
+      }
+    };
+
+    loadVideo();
+
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode, videoId, router.isReady]);
+
   const titleValue = Form.useWatch('title', form);
   const descriptionValue = Form.useWatch('description', form);
 
@@ -60,6 +120,8 @@ const UploadVideo = () => {
     }
 
     setFile(file);
+    setExistingVideoUrl("");
+    setIsDirty(true);
     return false;
   };
 
@@ -75,19 +137,37 @@ const UploadVideo = () => {
     }
 
     setThumbnail(file);
+    setExistingThumbnailUrl("");
     if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
     setThumbnailPreview(URL.createObjectURL(file));
+    setIsDirty(true);
     return false;
   };
 
   const onFinish = async (values: any) => {
-    if (!file) {
-      message.error("Please upload a video.");
+    if (editMode) {
+      setLoading(true);
+      try {
+        await updateVideo(videoId, {
+          title: values.title,
+          description: values.description,
+          module: values.module,
+          category: values.category,
+          video: file,
+          thumbnail,
+        });
+        message.success("Video updated successfully");
+        localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
+        router.push(ROUTE_PATHS.videos);
+      } catch (error: any) {
+        message.error(error.message || "Failed to update video");
+        setLoading(false);
+      }
       return;
     }
 
-    if (!thumbnail) {
-      message.error("Please upload a thumbnail image.");
+    if (!file) {
+      message.error("Please upload a video.");
       return;
     }
 
@@ -107,7 +187,7 @@ const UploadVideo = () => {
         module: values.module,
         category: values.category,
         video: file,
-        thumbnail,
+        thumbnail: thumbnail ?? undefined,
       },
       // real progress tracked internally, not rendered
       () => {}
@@ -128,7 +208,15 @@ const UploadVideo = () => {
 
       if (reason.kind === "ready") {
         setProcessing(false);
-        message.success("Video created successfully");
+        setSubmitted(false);
+        setIsDirty(false);
+        message.open({
+          content: "Video created successfully",
+          type: "success",
+          duration: 4,
+          className: "vc-center-message-open",
+          style: { fontSize: 16 },
+        });
         localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
         form.resetFields();
         setFile(null);
@@ -178,27 +266,40 @@ const UploadVideo = () => {
   };
 
   const preview = () => {
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => {
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-      };
-    } else {
-      URL.revokeObjectURL(url);
+    const src = file ? URL.createObjectURL(file) : existingVideoUrl;
+    if (!src) {
+      message.warning("Please select a video to preview.");
+      return;
     }
+
+    const values = form.getFieldsValue();
+    setPreviewData({
+      src,
+      title: values.title || "",
+      description: values.description || "",
+      thumbnail: file ? thumbnailPreview : existingThumbnailUrl,
+    });
+    setPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    if (file && previewData?.src) {
+      URL.revokeObjectURL(previewData.src);
+    }
+    setPreviewOpen(false);
+    setPreviewData(null);
   };
 
   const removeFile = () => {
     setFile(null);
+    setIsDirty(true);
   };
 
   const removeThumbnail = () => {
     if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
     setThumbnail(null);
     setThumbnailPreview("");
+    setIsDirty(true);
   };
 
   const openCancelConfirm = useCallback((onLeave: () => void) => {
@@ -219,39 +320,47 @@ const UploadVideo = () => {
       Boolean(values.module) ||
       Boolean(values.category) ||
       Boolean(file) ||
-      Boolean(thumbnail);
+      Boolean(thumbnail) ||
+      Boolean(editMode && existingVideoUrl) ||
+      Boolean(editMode && existingThumbnailUrl);
 
     if (!hasContent) {
-      router.push(ROUTE_PATHS.adminDashboard);
+      router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
       return;
     }
     openCancelConfirm(() => {
-      router.back();
+      router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
     });
   };
 
   const confirmLeave = () => {
     const onLeave = cancelLeaveRef.current;
     const values = form.getFieldsValue();
-    localStorage.setItem(
-      RETAINED_VIDEO_STORAGE_KEY,
-      JSON.stringify({
-        title: values.title,
-        description: values.description,
-        module: values.module,
-        category: values.category,
-      })
-    );
-    message.info("Progress saved.");
+    if (!editMode) {
+      localStorage.setItem(
+        RETAINED_VIDEO_STORAGE_KEY,
+        JSON.stringify({
+          title: values.title,
+          description: values.description,
+          module: values.module,
+          category: values.category,
+        })
+      );
+      message.info("Progress saved.");
+    }
     setCancelOpen(false);
     cancelLeaveRef.current = null;
+    pendingNavRef.current = null;
+    setIsDirty(false);
     if (onLeave) onLeave();
   };
 
   const confirmDiscard = () => {
     setCancelOpen(false);
     cancelLeaveRef.current = null;
-    router.push(ROUTE_PATHS.adminDashboard);
+    pendingNavRef.current = null;
+    setIsDirty(false);
+    router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
   };
 
   const confirmRestoreDraft = () => {
@@ -264,6 +373,7 @@ const UploadVideo = () => {
         category: parsed.category,
       });
       retainedDataRef.current = null;
+      setIsDirty(true);
       message.info("Restored your previous unsaved progress.");
     }
     setRestoreOpen(false);
@@ -272,16 +382,50 @@ const UploadVideo = () => {
   const confirmDiscardDraft = () => {
     localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
     retainedDataRef.current = null;
+    setIsDirty(false);
     setRestoreOpen(false);
   };
 
   useEffect(() => {
+    if (editMode) return;
     const retainedData = localStorage.getItem(RETAINED_VIDEO_STORAGE_KEY);
     if (retainedData) {
       retainedDataRef.current = retainedData;
       setRestoreOpen(true);
     }
-  }, [form, message]);
+  }, [form, message, editMode]);
+
+  useEffect(() => {
+    const handleRouteChange = (url: string) => {
+      if (!isDirty) return;
+      pendingNavRef.current = url;
+      openCancelConfirm(() => {
+        pendingNavRef.current = null;
+        router.push(url);
+      });
+      router.events.emit('routeChangeError');
+      throw 'Navigation cancelled';
+    };
+    const handleRouteChangeError = (err: any) => {
+      if (err !== 'Navigation cancelled') throw err;
+    };
+    router.events.on('routeChangeStart', handleRouteChange);
+    router.events.on('routeChangeError', handleRouteChangeError);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+      router.events.off('routeChangeError', handleRouteChangeError);
+    };
+  }, [isDirty, router, openCancelConfirm]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   return (
     <AdminLayout>
@@ -292,7 +436,7 @@ const UploadVideo = () => {
           <div className="vc-header">
             <div className="vc-header-body">
               <Title level={3} className="vc-header-title">
-                Create New Video
+                {editMode ? "Edit Video" : "Create New Video"}
               </Title>
             </div>
           </div>
@@ -301,16 +445,24 @@ const UploadVideo = () => {
           <div className="vc-card">
             <Title level={5} className="vc-card-title">Video Details</Title>
 
+            {seeding ? (
+              <div className="vc-loading">
+                <Spin size="large" />
+              </div>
+            ) : (
             <Form
               form={form}
               layout="vertical"
+              validateTrigger={submitted ? 'onChange' : 'onSubmit'}
               onFinish={onFinish}
               onValuesChange={(changedValues: any) => {
+                setIsDirty(true);
                 if ('module' in changedValues) {
                   form.setFieldsValue({ category: undefined });
                 }
               }}
               onFinishFailed={({ errorFields }) => {
+                setSubmitted(true);
                 if (errorFields && errorFields.length) {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
@@ -396,13 +548,17 @@ const UploadVideo = () => {
 
             <WordCount value={descriptionValue} max={60} />
 
-            {/* Category */}
-              <Form.Item
-                label={<span className="vc-label">Select the module and categories</span>}
-                required
-                className="vc-select-block"
-              >
+            {/* Module & Category */}
+              <div className="vc-select-block">
+                <div className="vc-section-label">
+                  Select the module and categories
+                  <span className="vc-required">*</span>
+                </div>
+                <div className="vc-hint">
+                  Select the module and category where your video should be placed
+                </div>
                 <ModuleCategorySelects
+                  showFieldLabels
                   moduleItemClassName="vc-select-item"
                   moduleSelectClassName="vc-select"
                   categoryItemClassName="vc-select-item"
@@ -410,16 +566,16 @@ const UploadVideo = () => {
                   moduleRequiredMessage="Please select module."
                   categoryRequiredMessage="Please select category."
                 />
-              </Form.Item>
+              </div>
 
             {/* Thumbnail Upload */}
             <Form.Item
               label={<span className="vc-label">Upload Thumbnail</span>}
-              required
               className="vc-thumb-block"
             >
               <div className="vc-hint">
-                Choose a visual cover for your video (16:9)
+                Choose a visual cover for your video (16:9). Optional — a default
+                thumbnail is used if you skip this.
               </div>
 
               <Upload.Dragger
@@ -450,6 +606,16 @@ const UploadVideo = () => {
                     >
                       Remove
                     </Button>
+                  </div>
+                ) : editMode && existingThumbnailUrl ? (
+                  <div className="selected-thumbnail">
+                    <img
+                      src={existingThumbnailUrl}
+                      alt="Current thumbnail"
+                      className="thumbnail-preview"
+                    />
+                    <span className="thumbnail-name">Current thumbnail</span>
+                    <span className="thumbnail-replace-hint">Click to replace</span>
                   </div>
                 ) : (
                   <Button
@@ -502,6 +668,21 @@ const UploadVideo = () => {
                         Remove
                       </Button>
                     </>
+                  ) : editMode && existingVideoUrl ? (
+                    <>
+                      <span className="vc-file-name">Current video</span>
+                      <Button
+                        type="link"
+                        className="vc-file-preview-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(existingVideoUrl, "_blank");
+                        }}
+                      >
+                        Preview
+                      </Button>
+                      <span className="vc-file-replace-hint">Click to replace</span>
+                    </>
                   ) : (
                     <Button
                       icon={<UploadOutlined />}
@@ -546,7 +727,7 @@ const UploadVideo = () => {
 
               <Button
                 size="large"
-                disabled={!file}
+                htmlType="button"
                 onClick={preview}
                 className="vc-btn-preview"
               >
@@ -566,13 +747,14 @@ const UploadVideo = () => {
                   loading={loading}
                   className="vc-btn-create"
                 >
-                  Create
+                  {editMode ? "Save Changes" : "Create"}
                 </Button>
               </Space>
 
             </div>
 
           </Form>
+        )}
         </div>
 
         </div>
@@ -635,6 +817,58 @@ const UploadVideo = () => {
           background. You can stay here to monitor the process or continue
           working in the dashboard.
         </p>
+      </Modal>
+
+      {/* VIDEO PREVIEW MODAL */}
+      <Modal
+        open={previewOpen}
+        title="Video preview"
+        onCancel={closePreview}
+        centered
+        width={860}
+        maskStyle={{
+          backdropFilter: 'blur(6px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        }}
+        footer={
+          <Button type="primary" onClick={closePreview}>
+            Close
+          </Button>
+        }
+      >
+        {previewOpen && previewData && previewData.src && (
+          <div className="vc-preview-modal">
+            <video
+              className="vc-preview-video"
+              controls
+              autoPlay
+              src={previewData.src}
+            />
+            {(previewData.title || previewData.description || previewData.thumbnail) && (
+              <div className="vc-preview-info">
+                <div className="vc-preview-info-head">
+                  {previewData.thumbnail && (
+                    <img
+                      src={previewData.thumbnail}
+                      alt={previewData.title}
+                      className="vc-preview-thumb"
+                    />
+                  )}
+                  <div className="vc-preview-info-text">
+                    {previewData.title && (
+                      <Title level={4} className="vc-preview-name">
+                        {previewData.title}
+                      </Title>
+                    )}
+                    <Paragraph className="vc-preview-desc">
+                      {previewData.description || "No description provided."}
+                    </Paragraph>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </AdminLayout>
   );

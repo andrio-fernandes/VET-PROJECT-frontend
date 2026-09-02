@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import type { FieldErrors } from 'react-hook-form';
 import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
@@ -138,6 +139,7 @@ const UploadBlog = () => {
     if (!thumbnail && !existingThumbnail) {
       setThumbnailError('Please upload a thumbnail image');
       message.error('Please upload a thumbnail image');
+      scrollToField('blog-thumbnail');
       return;
     }
 
@@ -160,6 +162,7 @@ const UploadBlog = () => {
         if (!thumbnail) {
           setThumbnailError('Please upload a thumbnail image');
           message.error('Please upload a thumbnail image');
+          scrollToField('blog-thumbnail');
           return;
         }
         await createBlog({
@@ -181,7 +184,32 @@ const UploadBlog = () => {
     }
   };
 
-  const submit = handleSubmit(onFinish);
+  // Scroll the page to a specific field so validation failures are visible.
+  const scrollToField = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (el as HTMLElement).focus?.();
+    }
+  };
+
+  // RHF passes the errors object when submit validation fails. Scroll to the
+  // first invalid field, in document order.
+  const onInvalid = (errors: FieldErrors<BlogFormValues>) => {
+    const order: (keyof BlogFormValues)[] = [
+      'title',
+      'description',
+      'module',
+      'category',
+      'content',
+    ];
+    const firstKey = order.find((key) => errors[key]);
+    if (firstKey) {
+      scrollToField(`blog-${firstKey}`);
+    }
+  };
+
+  const submit = handleSubmit(onFinish, onInvalid);
 
   return (
     <AdminLayout onNavigate={requestNavigation}>
@@ -210,20 +238,22 @@ const UploadBlog = () => {
 
                 <BlogCategoryFields control={control} trackChange={trackChange} setValue={setValue} />
 
-                <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
-                  Upload Thumbnail <span className="blog-required">*</span>
-                </Title>
-                <Text type="secondary" className="blog-section-hint">
-                  Upload a thumbnail image for your blog.
-                </Text>
+                <div id="blog-thumbnail">
+                  <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
+                    Upload Thumbnail <span className="blog-required">*</span>
+                  </Title>
+                  <Text type="secondary" className="blog-section-hint">
+                    Upload a thumbnail image for your blog.
+                  </Text>
 
-                <ThumbnailUpload
-                  thumbnail={thumbnail}
-                  existingThumbnail={existingThumbnail}
-                  error={thumbnailError}
-                  onChange={handleThumbnailChange}
-                  onRemove={handleThumbnailRemove}
-                />
+                  <ThumbnailUpload
+                    thumbnail={thumbnail}
+                    existingThumbnail={existingThumbnail}
+                    error={thumbnailError}
+                    onChange={handleThumbnailChange}
+                    onRemove={handleThumbnailRemove}
+                  />
+                </div>
 
                 <Divider className="blog-divider" />
 

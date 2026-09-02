@@ -109,9 +109,11 @@ export const ROUTE_PATHS = {
   userDashboard: "/dashboard/user-dashboard",
   videos: "/videos",
   createVideo: "/videos/create",
+  videoPreview: "/videos/preview",
   uploadBlog: "/blogs/create",
   blogs: "/blogs",
   blogPreview: "/blogs/preview",
+  blogAttachmentViewer: "/blogs/attachment-preview",
   faqs: "/faqs",
 } as const;
 

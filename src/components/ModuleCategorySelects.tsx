@@ -15,6 +15,9 @@ interface ModuleCategorySelectsProps {
   categorySelectClassName?: string;
   moduleRequiredMessage?: string;
   categoryRequiredMessage?: string;
+  // Renders a per-field label (Module / Category) on each select so the
+  // required state is visible field-by-field, like the Blog form.
+  showFieldLabels?: boolean;
 }
 
 // Shared pair of "Module" and "Category" selects used by the FAQ and Video
@@ -27,6 +30,7 @@ export default function ModuleCategorySelects({
   categorySelectClassName,
   moduleRequiredMessage = "Please select a module",
   categoryRequiredMessage = "Please select a category",
+  showFieldLabels = false,
 }: ModuleCategorySelectsProps) {
   const selectedModule = Form.useWatch("module");
 
@@ -35,6 +39,7 @@ export default function ModuleCategorySelects({
       <Col xs={24} sm={12}>
         <Form.Item
           name="module"
+          label={showFieldLabels ? "Module" : undefined}
           rules={[{ required: true, message: moduleRequiredMessage }]}
           className={moduleItemClassName}
         >
@@ -50,6 +55,7 @@ export default function ModuleCategorySelects({
       <Col xs={24} sm={12}>
         <Form.Item
           name="category"
+          label={showFieldLabels ? "Category" : undefined}
           rules={[{ required: true, message: categoryRequiredMessage }]}
           className={categoryItemClassName}
         >

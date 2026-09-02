@@ -16,4 +16,5 @@ export const ATTACHMENT_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.png';
 
 export const BLOG_DRAFT_STORAGE_KEY = 'create-blog-draft-v1';
 export const BLOG_PREVIEW_STORAGE_KEY = 'create-blog-preview-draft-v1';
+export const BLOG_EDIT_PREVIEW_STORAGE_KEY = 'edit-blog-preview-draft-v1';
 export const DRAFT_AUTOSAVE_DEBOUNCE_MS = 800;

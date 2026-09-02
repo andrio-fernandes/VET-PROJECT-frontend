@@ -51,3 +51,21 @@ export const parseBlogAttachments = (
   }
   return raw ? [{ name: fileNameFromUrl(raw), url: raw }] : [];
 };
+
+// Extracts the lowercase file extension (without the leading dot) from a
+// filename or URL, e.g. "report.docx" -> "docx", "reports/plan.XLS?x=1" -> "xls".
+export const getAttachmentExtension = (url: string): string => {
+  try {
+    const clean = url.split('?')[0].split('#')[0];
+    const ext = clean.match(/\.([a-zA-Z0-9]+)$/)?.[1];
+    return ext ? ext.toLowerCase() : '';
+  } catch {
+    return '';
+  }
+};
+
+// Attachments in these formats can be rendered inline in the blog preview
+// (DOCX / XLSX / XLS). PDFs and images are natively shown by the browser, so
+// they open in a plain tab instead of the inline viewer route.
+export const isInlinePreviewable = (url: string): boolean =>
+  ['docx', 'xlsx', 'xls'].includes(getAttachmentExtension(url));

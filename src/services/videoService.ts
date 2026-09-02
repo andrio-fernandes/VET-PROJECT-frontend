@@ -25,7 +25,7 @@ export interface CreateVideoPayload {
   module: string;
   category: string;
   video: File;
-  thumbnail: File;
+  thumbnail?: File;
 }
 
 export interface CreateVideoResult {
@@ -33,6 +33,16 @@ export interface CreateVideoResult {
   idPromise: Promise<string>;
   // Resolves when background processing reaches ready/failed/timeout.
   settled: Promise<SettleReason>;
+}
+
+export interface UpdateVideoPayload {
+  title: string;
+  description: string;
+  module: string;
+  category: string;
+  // Optional new media files. Omit/null to keep the existing ones.
+  video?: File | null;
+  thumbnail?: File | null;
 }
 
 // Fire-and-forget video creation. This returns as soon as the backend returns
@@ -65,4 +75,51 @@ export const getVideos = async (query: string): Promise<PaginatedVideos> => {
 
 export const deleteVideo = async (videoId: string): Promise<void> => {
   await api(API_ENDPOINTS.deleteVideo(videoId), { method: "DELETE" });
+};
+
+// Fetches a single video by id (used to seed the edit form).
+export const getVideoById = async (
+  videoId: string
+): Promise<VideoRecord | null> => {
+  const data = await api(API_ENDPOINTS.getVideo(videoId));
+  const v = data?.video ?? data?.data?.video ?? data;
+  if (!v?._id && !v?.key) return null;
+  return {
+    key: v._id ?? v.key,
+    title: v.title ?? "",
+    description: v.description ?? "",
+    createdAt: v.createdAt ?? "",
+    createdBy: v.createdBy?.fullName || v.createdBy?.username || "Unknown",
+    module: v.module ?? "",
+    category: v.category ?? "",
+    videoUrl: v.videoUrl ?? "",
+    thumbnailUrl: v.thumbnailUrl,
+    processingStatus: v.processingStatus,
+  };
+};
+
+// Updates an existing video (creator only). Multipart so a new video /
+// thumbnail can optionally be uploaded; fields are only included when the
+// admin provides a replacement file, otherwise the existing ones are kept.
+export const updateVideo = async (
+  videoId: string,
+  payload: UpdateVideoPayload
+): Promise<void> => {
+  const formData = new FormData();
+  formData.append("title", payload.title.trim());
+  formData.append("description", payload.description.trim());
+  formData.append("module", payload.module);
+  formData.append("category", payload.category);
+
+  if (payload.video) {
+    formData.append("video", payload.video);
+  }
+  if (payload.thumbnail) {
+    formData.append("thumbnail", payload.thumbnail);
+  }
+
+  await api(API_ENDPOINTS.updateVideo(videoId), {
+    method: "PUT",
+    body: formData,
+  });
 };

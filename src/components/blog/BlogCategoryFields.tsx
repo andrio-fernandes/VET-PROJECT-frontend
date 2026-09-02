@@ -59,6 +59,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
             <>
               <RequiredLabel label="Module" />
               <Select
+                id="blog-module"
                 {...field}
                 value={field.value || undefined}
                 onChange={trackChange(moduleChange(field.onChange))}
@@ -85,6 +86,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
             <>
               <RequiredLabel label="Category" />
               <Select
+                id="blog-category"
                 {...field}
                 value={field.value || undefined}
                 onChange={trackChange(field.onChange)}

@@ -16,6 +16,7 @@ const UploadFAQ = () => {
   const { message } = AntApp.useApp();
 
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -56,6 +57,7 @@ const UploadFAQ = () => {
       message.success('FAQ uploaded successfully!');
       localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
       setIsDirty(false);
+      setSubmitted(false);
       form.resetFields();
       setPreviewVisible(false);
     } catch (error: any) {
@@ -207,9 +209,11 @@ const UploadFAQ = () => {
             <Form
               form={form}
               layout="vertical"
+              validateTrigger={submitted ? 'onChange' : 'onSubmit'}
               onFinish={onFinish}
               onValuesChange={handleValuesChange}
               onFinishFailed={({ errorFields }) => {
+                setSubmitted(true);
                 if (errorFields && errorFields.length) {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
@@ -267,6 +271,7 @@ const UploadFAQ = () => {
                 className="faqs-create-select-block"
               >
                 <ModuleCategorySelects
+                  showFieldLabels
                   moduleItemClassName="faqs-create-select-item"
                   moduleSelectClassName="faqs-create-select"
                   categoryItemClassName="faqs-create-select-item"

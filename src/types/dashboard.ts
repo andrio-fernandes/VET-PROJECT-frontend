@@ -19,6 +19,8 @@ export interface RecentItem {
   category?: string;
   thumbnailUrl?: string;
   processingStatus?: string;
+  videoUrl?: string;
+  description?: string;
 }
 
 export interface DashboardFaqRecord {

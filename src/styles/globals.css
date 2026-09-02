@@ -1045,36 +1045,12 @@ a {
    VIDEO PREVIEW PAGE
    ========================= */
 
-.video-preview-page {
-  min-height: 100vh;
-  background: #fff;
-  padding: 32px;
-  box-sizing: border-box;
+.vp-page {
+  padding: 32px 40px 48px;
 }
 
-.video-preview-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.vp-card {
   max-width: 1100px;
-  margin: 0 auto 24px;
-}
-
-.video-preview-back {
-  color: #555;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.video-preview-title {
-  margin: 0 !important;
-  font-weight: 700;
-  color: #000;
-}
-
-.video-preview-card {
-  max-width: 1100px;
-  margin: 0 auto;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 10px;
@@ -1082,7 +1058,7 @@ a {
   overflow: hidden;
 }
 
-.video-preview-player {
+.vp-player {
   width: 100%;
   max-height: 70vh;
   display: block;
@@ -1091,27 +1067,55 @@ a {
   outline: none;
 }
 
-.video-preview-info {
+.vp-info {
   padding: 24px 28px;
 }
 
-.video-preview-name {
+.vp-info-head {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.vp-thumb {
+  width: 200px;
+  height: 112px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.vp-info-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.vp-name {
   margin: 0 0 10px !important;
   color: #000;
 }
 
-.video-preview-desc {
+.vp-desc {
   margin: 0 !important;
   color: #595959;
   font-size: 15px;
   line-height: 1.7;
 }
 
-.video-preview-empty {
+.vp-empty {
   min-height: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #fff;
+}
+/* Center the "Video created successfully" success message */
+.ant-message .vc-center-message-open.ant-message-notice {
+  position: fixed;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999;
 }

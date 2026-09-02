@@ -22,7 +22,9 @@ import {
 } from '@/redux/dashboard/dashboardSlice';
 import { selectDashboard, selectDashboardError } from '@/redux/dashboard/selectors';
 import { useCurrentUser } from '@/hooks/useAuth';
-import { ROUTE_PATHS } from '@/constants';
+import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
+import { mediaUrl } from '@/utils/media';
+import defaultThumbnail from '@/assets/default.jpg';
 
 const { Text } = Typography;
 
@@ -121,7 +123,13 @@ const Dashboard = () => {
             {activeTab !== 'FAQs' &&
               (record.thumbnailUrl ? (
                 <img
-                  src={record.thumbnailUrl}
+                  src={mediaUrl(record.thumbnailUrl)}
+                  alt={text}
+                  style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+                />
+              ) : activeTab === 'Video' ? (
+                <img
+                  src={defaultThumbnail.src}
                   alt={text}
                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                 />
@@ -170,7 +178,15 @@ const Dashboard = () => {
               if (activeTab === 'FAQs') {
                 setViewingFaq(record);
               } else if (activeTab === 'Video') {
-                router.push(ROUTE_PATHS.videos);
+                sessionStorage.setItem(
+                  VIDEO_PREVIEW_STORAGE_KEY,
+                  JSON.stringify({
+                    title: record.title,
+                    description: record.description || '',
+                    src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
+                  })
+                );
+                router.push(ROUTE_PATHS.videoPreview);
               } else {
                 router.push(ROUTE_PATHS.blogs);
               }

@@ -37,7 +37,7 @@ export const BlogContentField: React.FC<BlogContentFieldProps> = ({
       rules={rhfContentRules}
       render={({ field, fieldState }) => (
         <>
-          <RichTextEditor value={field.value} onChange={trackChange(field.onChange)} />
+          <RichTextEditor value={field.value} onChange={trackChange(field.onChange)} contentId="blog-content" />
           {fieldState.error && (
             <div className="blog-field-error">{fieldState.error.message}</div>
           )}

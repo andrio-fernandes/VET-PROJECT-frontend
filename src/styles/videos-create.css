@@ -65,6 +65,14 @@
   margin-bottom: 24px;
 }
 
+.vc-section-label {
+  display: block;
+  font-weight: 400;
+  font-size: 15px;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
 .vc-select-item {
   margin-bottom: 0;
 }
@@ -161,4 +169,74 @@
   background-color: #52c41a;
   border-radius: 6px;
   padding: 0 32px;
+}
+
+.vc-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+}
+
+.vc-file-preview-btn {
+  color: #52c41a;
+}
+
+.vc-file-replace-hint,
+.thumbnail-replace-hint {
+  color: #bfbfbf;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.vc-preview-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.vc-preview-video {
+  width: 100%;
+  max-height: 55vh;
+  display: block;
+  background: #000;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+.vc-preview-info {
+  padding: 16px 4px 4px;
+}
+
+.vc-preview-info-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.vc-preview-thumb {
+  width: 160px;
+  height: 90px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.vc-preview-info-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.vc-preview-name {
+  margin: 0 0 8px !important;
+  color: #000;
+  font-size: 18px !important;
+}
+
+.vc-preview-desc {
+  margin: 0 !important;
+  color: #595959;
+  font-size: 14px;
+  line-height: 1.6;
 }

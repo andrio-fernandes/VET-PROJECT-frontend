@@ -16,7 +16,7 @@ import {
 } from "@ant-design/icons";
 import { App as AntApp, Button, Card, Col, Divider, Flex, Input, Layout, Menu, Row, Typography } from "antd";
 
-import videoThumbnail from "@/assets/download.jpg";
+import videoThumbnail from "@/assets/default.jpg";
 import { clearSession, useCurrentUser } from "@/hooks/useAuth";
 
 const { Header, Sider, Content } = Layout;

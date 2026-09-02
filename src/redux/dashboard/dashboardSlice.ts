@@ -50,6 +50,8 @@ const toRecentItem = (
   category: record.category,
   thumbnailUrl: record.thumbnailUrl ?? record.thumbnail,
   processingStatus: record.processingStatus,
+  videoUrl: record.videoUrl,
+  description: record.description,
 });
 
 export const fetchDashboardStats = createAsyncThunk(

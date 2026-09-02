@@ -27,7 +27,7 @@ export interface StartVideoUploadPayload {
   module: string;
   category: string;
   video: File;
-  thumbnail: File;
+  thumbnail?: File;
   onProgress?: (percent: number, loaded: number, total: number) => void;
 }
 
@@ -202,7 +202,9 @@ export const startVideoUpload = (
   formData.append("module", payload.module);
   formData.append("category", payload.category);
   formData.append("video", payload.video);
-  formData.append("thumbnail", payload.thumbnail);
+  if (payload.thumbnail) {
+    formData.append("thumbnail", payload.thumbnail);
+  }
 
   // 1) Upload; wait only for the 202 (accepted) response, not for processing.
   const idPromise = uploadWithProgress(
