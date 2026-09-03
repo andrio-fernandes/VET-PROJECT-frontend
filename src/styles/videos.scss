@@ -9,16 +9,22 @@
 
 @include view-all.view-all('videos');
 
-.videos-content {
-  max-width: none;
+.videos-page-inner {
   width: 100%;
+}
+
+.videos-select-module {
+  width: 303px;
+}
+
+.videos-select-category {
+  width: 303px;
 }
 
 .videos-cell-title {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-width: 380px;
 }
 
 .videos-cell-thumb {
@@ -64,7 +70,7 @@
 
 .videos-action-icon {
   font-size: 16px;
-  color: #52c41a;
+  color: #000;
 }
 
 .videos-action-delete {

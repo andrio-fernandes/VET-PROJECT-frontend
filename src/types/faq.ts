@@ -23,6 +23,8 @@ export interface CreateFaqPayload {
 }
 
 export interface UpdateFaqPayload {
+  module?: string;
+  category?: string;
   question: string;
   answer: string;
 }

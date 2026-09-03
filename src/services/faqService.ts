@@ -45,6 +45,11 @@ export const getMyFaqs = async (params: GetFaqsParams): Promise<PaginatedFaqs> =
   };
 };
 
+export const getFaqById = async (faqId: string): Promise<FaqRecord> => {
+  const data = await api(API_ENDPOINTS.getFaq(faqId));
+  return data?.faq ?? data ?? null;
+};
+
 export const createFaq = async (payload: CreateFaqPayload): Promise<void> => {
   await api(API_ENDPOINTS.createFaq, {
     method: "POST",

@@ -169,10 +169,20 @@ const Dashboard = () => {
       title: 'Actions',
       key: 'actions',
       width: '12%',
-      render: (_: unknown, record: TableItem) => (
+      render: (_: unknown, record: TableItem) => {
+        const status =
+          activeTab === 'Video'
+            ? uploads[record.key]?.status ||
+              (record as TableItem & { processingStatus?: string })
+                .processingStatus
+            : undefined;
+        const processing = status && status !== 'ready' && status !== 'failed';
+        return (
         <Space size="middle">
           <Button
             type="text"
+            disabled={Boolean(processing)}
+            title={processing ? 'Processing video...' : 'View'}
             icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
             onClick={() => {
               if (activeTab === 'FAQs') {
@@ -193,7 +203,8 @@ const Dashboard = () => {
             }}
           />
         </Space>
-      ),
+        );
+      },
     },
   ];
 

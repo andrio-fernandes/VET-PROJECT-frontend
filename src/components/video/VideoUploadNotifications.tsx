@@ -43,7 +43,6 @@ const VideoUploadNotifications = () => {
       if (entry.status === "ready") {
         notificationRef.current.success({
           message: "Video created successfully",
-          description: `"${entry.title}" is now ready.`,
           placement: "topRight",
         });
       } else if (entry.status === "failed") {

@@ -1,18 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { App as AntApp, Button, Col, Modal, Row, Select, Table, Typography } from 'antd';
-import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlined } from '@ant-design/icons';
+import { App as AntApp, Button, Modal, Typography } from 'antd';
+import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { ViewAllTable } from '@/components/common/ViewAllTable';
 
 import {
-  CONTENT_MODULES,
-  MODULE_CATEGORIES,
   ROUTE_PATHS,
-  type ContentCategory,
-  type ContentModule,
 } from '@/constants';
 import { mediaUrl } from '@/utils/media';
 import { deleteBlog } from '@/services/blogService';
@@ -22,7 +19,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import type { BlogListItem } from '@/types/blog';
 import type { ColumnsType } from 'antd/es/table';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const PAGE_SIZE = 10;
 
@@ -84,13 +81,6 @@ const BlogsPage = () => {
     const matchesCategory = categoryFilter === 'All' || blog.category === categoryFilter;
     return matchesModule && matchesCategory;
   });
-
-  const categoryOptions = moduleFilter === 'All'
-    ? []
-    : [
-        { value: 'All', label: 'All' },
-        ...(MODULE_CATEGORIES[moduleFilter as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
-      ];
 
   const columns: ColumnsType<BlogListItem> = [
     {
@@ -172,91 +162,30 @@ const BlogsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="blogs-page-pad">
-        <div className="blog-content blogs-content">
-          {/* Header */}
-          <div className="blogs-header">
-            <div className="blogs-header-icon">
-              <FileTextOutlined />
-            </div>
-            <Title level={3} className="blogs-header-title">
-              Blog
-            </Title>
-          </div>
-
-          {/* Create button */}
-          <div className="blogs-create-wrap">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push(ROUTE_PATHS.uploadBlog)}
-              className="blogs-create-btn"
-            >
-              Create
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <Row gutter={24} className="blogs-filters">
-            <Col span={12}>
-              <div className="blogs-filter-group">
-                <Text strong className="blogs-filter-label">
-                  Select module:
-                </Text>
-                <Select
-                  value={moduleFilter}
-                  onChange={(value) => {
-                    setModuleFilter(value);
-                    setCategoryFilter('All');
-                  }}
-                  options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                  className="blogs-filter-select"
-                />
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="blogs-filter-group">
-                <Text strong className="blogs-filter-label">
-                  Select Category:
-                </Text>
-                <Select
-                  value={categoryFilter}
-                  onChange={setCategoryFilter}
-                  disabled={moduleFilter === 'All'}
-                  options={categoryOptions}
-                  className="blogs-filter-select"
-                />
-              </div>
-            </Col>
-          </Row>
-
-          {/* Blog table */}
-          <div className="blogs-table-wrap">
-            <Table<BlogListItem>
-              rowKey="_id"
-              columns={columns}
-              dataSource={filteredBlogs}
-              loading={loading}
-              locale={{ emptyText: loadError ? loadError : 'No blogs uploaded yet.' }}
-              scroll={{ x: 'max-content' }}
-              pagination={{
-                current: page,
-                pageSize: PAGE_SIZE,
-                total,
-                onChange: (nextPage) => setPage(nextPage),
-                showSizeChanger: false,
-              }}
-              rowClassName="blogs-table-row"
-            />
-          </div>
-
-          {!loading && !loadError && total > 0 && (
-            <Text type="secondary" className="blogs-count-text">
-              Showing {filteredBlogs.length} of {total} blogs
-            </Text>
-          )}
-        </div>
-      </div>
+      <ViewAllTable<BlogListItem>
+        ns="blogs"
+        title="Blog"
+        icon={<FileTextOutlined />}
+        createHref={ROUTE_PATHS.uploadBlog}
+        columns={columns}
+        dataSource={filteredBlogs}
+        rowKey="_id"
+        loading={loading}
+        total={total}
+        page={page}
+        onPageChange={(nextPage) => setPage(nextPage)}
+        pageSize={PAGE_SIZE}
+        emptyText={loadError ? loadError : 'No blogs uploaded yet.'}
+        countNoun="blogs"
+        moduleFilter={moduleFilter}
+        categoryFilter={categoryFilter}
+        onModuleChange={(value) => {
+          setModuleFilter(value);
+          setCategoryFilter('All');
+        }}
+        onCategoryChange={setCategoryFilter}
+        showCount={!loadError}
+      />
     </AdminLayout>
   );
 };

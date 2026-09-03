@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Typography, Space, Table, Button, App as AntApp, Modal, Select, Form, Input, Row, Col } from 'antd';
-import dayjs from 'dayjs';
+import { Space, Button, App as AntApp, Modal, Typography } from 'antd';
 import {
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
-  QuestionCircleOutlined,
-  PlusOutlined
+  QuestionCircleOutlined
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, countWords, type ContentModule, type ContentCategory } from '@/constants';
-import { deleteFaq, getMyFaqs, updateFaq } from '@/services/faqService';
+import { PAGE_SIZE } from '@/constants';
+import { deleteFaq, getMyFaqs } from '@/services/faqService';
 import type { FaqRecord } from '@/types/faq';
-import WordCount from '@/components/WordCount';
+import { ViewAllTable } from '@/components/common/ViewAllTable';
+import dayjs from 'dayjs';
+import type { ColumnsType } from 'antd/es/table';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const ViewFaqs = () => {
   const router = useRouter();
@@ -32,11 +32,6 @@ const ViewFaqs = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
 
   const [viewingFaq, setViewingFaq] = useState<FaqRecord | null>(null);
-  const [editingFaq, setEditingFaq] = useState<FaqRecord | null>(null);
-  const [savingFaq, setSavingFaq] = useState(false);
-  const [editForm] = Form.useForm<{ question: string; answer: string }>();
-  const editQuestionValue = Form.useWatch('question', editForm);
-  const editAnswerValue = Form.useWatch('answer', editForm);
 
   useEffect(() => {
     let ignore = false;
@@ -97,45 +92,7 @@ const ViewFaqs = () => {
     });
   };
 
-  const openEditFaq = (faq: FaqRecord) => {
-    setEditingFaq(faq);
-    editForm.resetFields();
-    editForm.setFieldsValue({ question: faq.question, answer: faq.answer });
-  };
-
-  const handleEditFaqSave = async () => {
-    if (!editingFaq) return;
-
-    let values: { question: string; answer: string };
-    try {
-      values = await editForm.validateFields();
-    } catch {
-      return;
-    }
-
-    setSavingFaq(true);
-    try {
-      await updateFaq(editingFaq._id, values);
-
-      message.success('FAQ updated successfully!');
-      setEditingFaq(null);
-      setLoading(true);
-      setReloadKey((key) => key + 1);
-    } catch (error: any) {
-      message.error(error.message || 'Failed to update FAQ.');
-    } finally {
-      setSavingFaq(false);
-    }
-  };
-
-  const categoryOptions = moduleFilter === 'All'
-    ? []
-    : [
-        { value: 'All', label: 'All' },
-        ...(MODULE_CATEGORIES[moduleFilter as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
-      ];
-
-  const columns = [
+  const columns: ColumnsType<FaqRecord> = [
     {
       title: 'Title',
       dataIndex: 'question',
@@ -183,7 +140,7 @@ const ViewFaqs = () => {
             type="text"
             title="Edit"
             icon={<EditOutlined className="faqs-action-icon" />}
-            onClick={() => openEditFaq(record)}
+            onClick={() => router.push(`/faqs/edit?id=${record._id}`)}
           />
           <Button
             type="text"
@@ -198,197 +155,81 @@ const ViewFaqs = () => {
 
   return (
     <AdminLayout>
-      <div className="faqs-page-pad">
-        <div className="faqs-page-inner">
-          {/* Header */}
-          <div className="faqs-header">
-            <div className="faqs-header-icon">
-              <QuestionCircleOutlined />
-            </div>
-            <Title level={3} className="faqs-header-title">
-              FAQs
-            </Title>
-          </div>
-
-          {/* Create button */}
-          <div className="faqs-create-wrap">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push('/faqs/create')}
-              className="faqs-create-btn"
-            >
-              Create
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <Row gutter={24} className="faqs-filters">
-            <Col span={12}>
-              <div className="faqs-filter-group">
-                <Text strong className="faqs-filter-label">
-                  Select module:
-                </Text>
-                <Select
-                  value={moduleFilter}
-                  onChange={(value) => {
-                    setModuleFilter(value);
-                    setCategoryFilter('All');
-                    setPage(1);
-                    setLoading(true);
-                  }}
-                  className="faqs-select-module"
-                  options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                />
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="faqs-filter-group">
-                <Text strong className="faqs-filter-label">
-                  Select Category:
-                </Text>
-                <Select
-                  value={categoryFilter}
-                  onChange={(value) => {
-                    setCategoryFilter(value);
-                    setPage(1);
-                    setLoading(true);
-                  }}
-                  className="faqs-select-category"
-                  disabled={moduleFilter === 'All'}
-                  options={categoryOptions}
-                />
-              </div>
-            </Col>
-          </Row>
-
-          {/* Table */}
-          <div className="faqs-table-wrap">
-            <Table
-              columns={columns}
-              dataSource={faqs}
-              rowKey="_id"
-              tableLayout="fixed"
-              loading={loading}
-              locale={{ emptyText: 'No FAQs uploaded yet.' }}
-              pagination={{
-                current: page,
-                pageSize: PAGE_SIZE,
-                total,
-                showSizeChanger: false,
-                onChange: (nextPage) => {
-                  setLoading(true);
-                  setPage(nextPage);
-                },
-              }}
-            />
-          </div>
-
-          {!loading && total > 0 && (
-            <Text type="secondary" className="faqs-count-text">
-              Showing {faqs.length} of {total} FAQs
-            </Text>
-          )}
-        </div>
-      </div>
-
-      {/* VIEW FAQ MODAL */}
-      <Modal
-        title="View FAQ"
-        open={Boolean(viewingFaq)}
-        onCancel={() => setViewingFaq(null)}
-        footer={null}
-        width={736}
-        centered
-        maskStyle={{
-          backdropFilter: 'blur(6px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+      <ViewAllTable<FaqRecord>
+        ns="faqs"
+        title="FAQs"
+        icon={<QuestionCircleOutlined />}
+        createHref="/faqs/create"
+        columns={columns}
+        dataSource={faqs}
+        rowKey="_id"
+        loading={loading}
+        total={total}
+        page={page}
+        onPageChange={(nextPage) => {
+          setLoading(true);
+          setPage(nextPage);
         }}
-        styles={{ body: { borderRadius: '12px', padding: '24px' } }}
-      >
-        {viewingFaq && (
-          <div>
-            <div className="faqs-create-block">
-              <Text className="faqs-create-preview-label faqs-create-preview-label-q">
-                Question
-              </Text>
-              <Text strong className="faqs-create-preview-question">
-                {viewingFaq.question}
-              </Text>
-            </div>
+        pageSize={PAGE_SIZE}
+        emptyText="No FAQs uploaded yet."
+        countNoun="FAQs"
+        moduleFilter={moduleFilter}
+        categoryFilter={categoryFilter}
+        onModuleChange={(value) => {
+          setModuleFilter(value);
+          setCategoryFilter('All');
+          setPage(1);
+          setLoading(true);
+        }}
+        onCategoryChange={(value) => {
+          setCategoryFilter(value);
+          setPage(1);
+          setLoading(true);
+        }}
+        tableLayout="fixed"
+        extra={
+          <>
+            {/* VIEW FAQ MODAL */}
+            <Modal
+              title="View FAQ"
+              open={Boolean(viewingFaq)}
+              onCancel={() => setViewingFaq(null)}
+              footer={null}
+              width={736}
+              centered
+              maskStyle={{
+                backdropFilter: 'blur(6px)',
+                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              }}
+              styles={{ body: { borderRadius: '12px', padding: '24px' } }}
+            >
+              {viewingFaq && (
+                <div>
+                  <div className="faqs-create-block">
+                    <Text className="faqs-create-preview-label faqs-create-preview-label-q">
+                      Question
+                    </Text>
+                    <Text strong className="faqs-create-preview-question">
+                      {viewingFaq.question}
+                    </Text>
+                  </div>
 
-            <div className="faqs-create-preview-answer-block">
-              <Text className="faqs-create-preview-label">
-                Answer
-              </Text>
-            </div>
-            <div className="faqs-create-preview-answer-box">
-              <Text className="faqs-create-preview-answer">
-                {viewingFaq.answer}
-              </Text>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* EDIT FAQ MODAL */}
-      <Modal
-        title="Edit FAQ"
-        open={Boolean(editingFaq)}
-        onCancel={() => setEditingFaq(null)}
-        onOk={handleEditFaqSave}
-        confirmLoading={savingFaq}
-        okText="Save"
-      >
-        <Form form={editForm} layout="vertical" requiredMark={false}>
-          <Form.Item
-            label={<Text strong>Question</Text>}
-            name="question"
-            rules={[
-              { required: true, message: 'Please Enter The Question' },
-              {
-                validator: (_rule, value) => {
-                  if (!value) return Promise.resolve();
-                  const wordCount = countWords(value);
-                  if (wordCount < 5) return Promise.reject('Question must contain at least 5 words.');
-                  if (wordCount > 30) return Promise.reject('Question must not exceed 30 words.');
-                  return Promise.resolve();
-                },
-              },
-            ]}
-          >
-            <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-modal-input" />
-          </Form.Item>
-
-          <WordCount value={editQuestionValue} max={30} />
-
-          <Form.Item
-            label={<Text strong>Answer</Text>}
-            name="answer"
-            rules={[
-              { required: true, message: 'Please provide an answer' },
-              {
-                validator: (_rule, value) => {
-                  if (!value) return Promise.resolve();
-                  const wordCount = countWords(value);
-                  if (wordCount < 10) return Promise.reject('Answer must contain at least 10 words.');
-                  if (wordCount > 60) return Promise.reject('Answer must not exceed 60 words.');
-                  return Promise.resolve();
-                },
-              },
-            ]}
-          >
-            <Input.TextArea
-              placeholder="Describe your Answer"
-              maxLength={2000}
-              rows={4}
-              className="faqs-modal-textarea"
-            />
-          </Form.Item>
-
-          <WordCount value={editAnswerValue} max={60} />
-        </Form>
-      </Modal>
+                  <div className="faqs-create-preview-answer-block">
+                    <Text className="faqs-create-preview-label">
+                      Answer
+                    </Text>
+                  </div>
+                  <div className="faqs-create-preview-answer-box">
+                    <Text className="faqs-create-preview-answer">
+                      {viewingFaq.answer}
+                    </Text>
+                  </div>
+                </div>
+              )}
+            </Modal>
+          </>
+        }
+      />
     </AdminLayout>
   );
 };

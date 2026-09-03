@@ -48,12 +48,11 @@ const UploadVideo = () => {
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelLeaveRef = useRef<(() => void) | null>(null);
   const pendingNavRef = useRef<string | null>(null);
+  const skipNavConfirmRef = useRef(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
   const jobRef = useRef<CreateVideoResult | null>(null);
   const mountedRef = useRef(true);
-  // How long to wait before asking the admin whether to stay or continue.
-  const STAY_PROMPT_DELAY_MS = 4000;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -174,7 +173,7 @@ const UploadVideo = () => {
     setLoading(true);
     setUploadFailed(null);
     setProcessing(false);
-    setStayOpen(false);
+    setStayOpen(true);
 
     // Start the background upload. `createVideo` resolves as soon as the
     // backend returns 202 Accepted — processing continues module-level,
@@ -194,17 +193,11 @@ const UploadVideo = () => {
     );
     jobRef.current = job;
 
-    // Ask the admin whether to stay or continue if this takes a while.
-    const prompt = window.setTimeout(() => {
-      if (mountedRef.current) setStayOpen(true);
-    }, STAY_PROMPT_DELAY_MS);
-
     try {
       // Wait until background processing reaches ready/failed/timeout.
       const reason = await job.settled;
 
       if (!mountedRef.current) return;
-      window.clearTimeout(prompt);
 
       if (reason.kind === "ready") {
         setProcessing(false);
@@ -234,7 +227,6 @@ const UploadVideo = () => {
       // validation, auth...). The manager mirrors "failed" in the slice, but
       // the Create page surfaces the error so the admin can retry here.
       if (mountedRef.current) {
-        window.clearTimeout(prompt);
         setUploadFailed(error.message || "Failed to upload video");
         message.error(error.message || "Failed to upload video");
       }
@@ -257,6 +249,7 @@ const UploadVideo = () => {
   const handleContinue = () => {
     if (!mountedRef.current) return;
     setStayOpen(false);
+    skipNavConfirmRef.current = true;
     router.push(ROUTE_PATHS.adminDashboard);
   };
 
@@ -313,6 +306,13 @@ const UploadVideo = () => {
   };
 
   const handleCancel = () => {
+    if (editMode) {
+      skipNavConfirmRef.current = true;
+      setIsDirty(false);
+      router.push(ROUTE_PATHS.videos);
+      return;
+    }
+
     const values = form.getFieldsValue();
     const hasContent =
       Boolean(values.title?.trim()) ||
@@ -397,6 +397,8 @@ const UploadVideo = () => {
 
   useEffect(() => {
     const handleRouteChange = (url: string) => {
+      if (editMode) return;
+      if (skipNavConfirmRef.current) return;
       if (!isDirty) return;
       pendingNavRef.current = url;
       openCancelConfirm(() => {
@@ -415,17 +417,18 @@ const UploadVideo = () => {
       router.events.off('routeChangeStart', handleRouteChange);
       router.events.off('routeChangeError', handleRouteChangeError);
     };
-  }, [isDirty, router, openCancelConfirm]);
+  }, [isDirty, router, openCancelConfirm, editMode]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
+      if (editMode) return;
       if (!isDirty) return;
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
+  }, [isDirty, editMode]);
 
   return (
     <AdminLayout>
@@ -826,15 +829,11 @@ const UploadVideo = () => {
         onCancel={closePreview}
         centered
         width={860}
+        footer={null}
         maskStyle={{
           backdropFilter: 'blur(6px)',
           backgroundColor: 'rgba(0, 0, 0, 0.2)',
         }}
-        footer={
-          <Button type="primary" onClick={closePreview}>
-            Close
-          </Button>
-        }
       >
         {previewOpen && previewData && previewData.src && (
           <div className="vc-preview-modal">

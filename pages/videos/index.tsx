@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { App as AntApp, Button, Col, Modal, Row, Select, Table, Typography } from 'antd';
+import { App as AntApp, Button, Modal, Typography } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   PlayCircleOutlined,
-  PlusOutlined,
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
@@ -17,8 +16,9 @@ import defaultThumbnail from '@/assets/default.jpg';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import type { VideoRecord } from '@/types/video';
+import { ViewAllTable } from '@/components/common/ViewAllTable';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 type Video = VideoRecord;
 
@@ -120,18 +120,12 @@ const Videos = () => {
     });
   };
 
-  const categoryOptions = moduleFilter === 'All'
-    ? []
-    : [
-        { value: 'All', label: 'All' },
-        ...(MODULE_CATEGORIES[moduleFilter as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
-      ];
-
   const columns: ColumnsType<Video> = [
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
+      width: '38%',
       render: (text: string, record) => (
         <div className="videos-cell-title">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -148,7 +142,7 @@ const Videos = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-      width: 160,
+      width: '15%',
       render: (text: string) => (
         <Text className="videos-cell-muted">{text}</Text>
       ),
@@ -157,7 +151,7 @@ const Videos = () => {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 180,
+      width: '18%',
       render: (text: string) => (
         <Text className="videos-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
       ),
@@ -166,7 +160,7 @@ const Videos = () => {
       title: 'Created By',
       dataIndex: 'createdBy',
       key: 'createdBy',
-      width: 160,
+      width: '17%',
       render: (text: string) => (
         <Text className="videos-cell-muted">{text}</Text>
       ),
@@ -174,7 +168,7 @@ const Videos = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 160,
+      width: '12%',
       render: (_, record) => (
         <div className="videos-action-group">
           <Button
@@ -203,95 +197,34 @@ const Videos = () => {
 
   return (
     <AdminLayout>
-      <div className="videos-page-pad">
-        <div className="blog-content videos-content">
-          {/* Header */}
-          <div className="videos-header">
-            <div className="videos-header-icon">
-              <PlayCircleOutlined />
-            </div>
-            <Title level={3} className="videos-header-title">
-              Videos
-            </Title>
-          </div>
-
-          {/* Create button */}
-          <div className="videos-create-wrap">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push('/videos/create')}
-              className="videos-create-btn"
-            >
-              Create
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <Row gutter={24} className="videos-filters">
-            <Col span={12}>
-              <div className="videos-filter-group">
-                <Text strong className="videos-filter-label">
-                  Select module:
-                </Text>
-                <Select
-                  value={moduleFilter}
-                  onChange={(value) => {
-                    setModuleFilter(value);
-                    setCategoryFilter('All');
-                    setPage(1);
-                  }}
-                  options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                  className="videos-filter-select"
-                />
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className="videos-filter-group">
-                <Text strong className="videos-filter-label">
-                  Select Category:
-                </Text>
-                <Select
-                  value={categoryFilter}
-                  onChange={(value) => {
-                    setCategoryFilter(value);
-                    setPage(1);
-                  }}
-                  disabled={moduleFilter === 'All'}
-                  options={categoryOptions}
-                  className="videos-filter-select"
-                />
-              </div>
-            </Col>
-          </Row>
-
-          {/* Video table */}
-          <div className="videos-table-wrap">
-            <Table<Video>
-              rowKey="key"
-              columns={columns}
-              dataSource={videos}
-              loading={loading}
-              locale={{ emptyText: 'No videos uploaded yet.' }}
-              scroll={{ x: 'max-content' }}
-              pagination={{
-                current: page,
-                pageSize: PAGE_SIZE,
-                total,
-                onChange: (nextPage) => setPage(nextPage),
-                showSizeChanger: false,
-              }}
-              rowClassName="blogs-table-row"
-            />
-          </div>
-
-          {!loading && total > 0 && (
-            <Text type="secondary" className="videos-count-text">
-              Showing {videos.length} of {total} videos
-            </Text>
-          )}
-        </div>
-      </div>
+      <ViewAllTable<Video>
+        ns="videos"
+        title="Videos"
+        icon={<PlayCircleOutlined />}
+        createHref="/videos/create"
+        columns={columns}
+        dataSource={videos}
+        rowKey="key"
+        loading={loading}
+        total={total}
+        page={page}
+        onPageChange={(nextPage) => setPage(nextPage)}
+        pageSize={PAGE_SIZE}
+        emptyText="No videos uploaded yet."
+        countNoun="videos"
+        moduleFilter={moduleFilter}
+        categoryFilter={categoryFilter}
+        onModuleChange={(value) => {
+          setModuleFilter(value);
+          setCategoryFilter('All');
+          setPage(1);
+        }}
+        onCategoryChange={(value) => {
+          setCategoryFilter(value);
+          setPage(1);
+        }}
+        tableLayout="fixed"
+      />
     </AdminLayout>
   );
 };

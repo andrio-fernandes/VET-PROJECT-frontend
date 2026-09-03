@@ -127,6 +127,7 @@ export const API_ENDPOINTS = {
   resetPassword: "/auth/reset-password",
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
+  getFaq: (id: string) => `/faqs/${id}`,
   deleteFaq: (id: string) => `/faqs/${id}`,
   dashboardStats: "/dashboard/stats",
   // Video endpoints

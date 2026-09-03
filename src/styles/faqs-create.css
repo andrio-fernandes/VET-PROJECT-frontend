@@ -43,6 +43,13 @@
   margin: 0 0 24px 0;
 }
 
+.faqs-create-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+}
+
 .faqs-create-label {
   font-weight: 600;
 }

@@ -60,6 +60,7 @@ const UploadFAQ = () => {
       setSubmitted(false);
       form.resetFields();
       setPreviewVisible(false);
+      router.push(ROUTE_PATHS.adminDashboard);
     } catch (error: any) {
       message.error(error.message || 'Failed to upload FAQ');
     } finally {
