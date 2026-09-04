@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const { message } = AntApp.useApp();
 
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const formValues = Form.useWatch([], form);
 
@@ -113,15 +114,16 @@ export default function RegisterPage() {
             form={form}
             name="register_form"
             onFinish={onFinish}
+            onFinishFailed={() => setSubmitted(true)}
             layout="vertical"
             size="middle"
-            requiredMark={false}
-            validateTrigger="onChange"
+            validateTrigger={submitted ? 'onChange' : 'onSubmit'}
           >
             <Form.Item
               name="fullName"
               label={<span className="register-label">Full Name</span>}
               className="register-form-item"
+              required
               validateFirst
               rules={[
                 { required: true, message: 'Full name cannot be empty!' },
@@ -140,6 +142,7 @@ export default function RegisterPage() {
               name="username"
               label={<span className="register-label">Username</span>}
               className="register-form-item"
+              required
               validateFirst
               rules={[
                 { required: true, message: 'Username cannot be empty!' },
@@ -178,6 +181,7 @@ export default function RegisterPage() {
               name="email"
               label={<span className="register-label">Email</span>}
               className="register-form-item"
+              required
               validateFirst
               rules={[
                 { required: true, message: 'Email cannot be empty!' },
@@ -192,6 +196,7 @@ export default function RegisterPage() {
               name="password"
               label={<span className="register-label">Password</span>}
               className="register-form-item"
+              required
               validateFirst
               dependencies={['username']}
               extra={<PasswordStrength password={formValues?.password || ''} />}
@@ -227,6 +232,7 @@ export default function RegisterPage() {
               name="confirm"
               label={<span className="register-label">Confirm Password</span>}
               className="register-form-item"
+              required
               dependencies={['password']}
               validateFirst
               rules={[

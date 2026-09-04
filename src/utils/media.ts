@@ -20,6 +20,41 @@ export const fileNameFromUrl = (url: string): string => {
   }
 };
 
+// Extensions that can be previewed via Google Docs Viewer / Microsoft Office
+// Viewer in a new browser tab.
+const PDF_EXTENSION = 'pdf';
+const OFFICE_VIEWER_EXTENSIONS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
+export const getAttachmentExtension = (fileName: string): string => {
+  const clean = fileName.split('?')[0].split('#')[0];
+  const idx = clean.lastIndexOf('.');
+  return idx === -1 ? '' : clean.slice(idx + 1).toLowerCase();
+};
+
+// Builds the third-party viewer URL for a document attachment, following the
+// senior's logic:
+//   PDF            -> Google Docs Viewer
+//   Office files   -> Microsoft Office Viewer
+// Returns an empty string when the format is not viewer-supported.
+export const buildDocumentViewerUrl = (fileName: string, actualUrl: string): string => {
+  const ext = getAttachmentExtension(fileName);
+  if (ext === PDF_EXTENSION) {
+    return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
+      actualUrl
+    )}`;
+  }
+  if (OFFICE_VIEWER_EXTENSIONS.includes(ext)) {
+    return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
+      actualUrl
+    )}`;
+  }
+  return '';
+};
+
+// True when the given file can be shown in a third-party document viewer.
+export const isDocumentViewable = (fileName: string): boolean =>
+  buildDocumentViewerUrl(fileName, '') !== '';
+
 // Parses a BlogRecord.attachment JSON string into attachment references that
 // carry a stable display name and a URL. Supports the persisted backend shape
 // [{ name, url }] as well as legacy arrays of plain URL strings.
@@ -52,20 +87,4 @@ export const parseBlogAttachments = (
   return raw ? [{ name: fileNameFromUrl(raw), url: raw }] : [];
 };
 
-// Extracts the lowercase file extension (without the leading dot) from a
-// filename or URL, e.g. "report.docx" -> "docx", "reports/plan.XLS?x=1" -> "xls".
-export const getAttachmentExtension = (url: string): string => {
-  try {
-    const clean = url.split('?')[0].split('#')[0];
-    const ext = clean.match(/\.([a-zA-Z0-9]+)$/)?.[1];
-    return ext ? ext.toLowerCase() : '';
-  } catch {
-    return '';
-  }
-};
 
-// Attachments in these formats can be rendered inline in the blog preview
-// (DOCX / XLSX / XLS). PDFs and images are natively shown by the browser, so
-// they open in a plain tab instead of the inline viewer route.
-export const isInlinePreviewable = (url: string): boolean =>
-  ['docx', 'xlsx', 'xls'].includes(getAttachmentExtension(url));

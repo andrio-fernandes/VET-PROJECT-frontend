@@ -37,6 +37,8 @@ interface TableItem {
   thumbnailUrl?: string;
   question?: string;
   answer?: string;
+  description?: string;
+  videoUrl?: string;
 }
 
 const Dashboard = () => {
@@ -127,14 +129,12 @@ const Dashboard = () => {
                   alt={text}
                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                 />
-              ) : activeTab === 'Video' ? (
+              ) : (
                 <img
                   src={defaultThumbnail.src}
                   alt={text}
                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                 />
-              ) : (
-                <div style={{ width: 60, height: 40, backgroundColor: '#e6f7ff', borderRadius: 4, border: '1px solid #d9d9d9' }} />
               ))}
             <Text strong style={{ color: '#000' }}>{text}</Text>
             {activeTab === 'Video' && status && status !== 'ready' && (

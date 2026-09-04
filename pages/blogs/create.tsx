@@ -38,7 +38,24 @@ const UploadBlog = () => {
     thumbnail: { name: string; url: string } | null;
     attachments: { name: string; url: string }[];
   }>({ thumbnail: null, attachments: [] });
-  const [seeding, setSeeding] = useState(editMode);
+  // Original server text values (edit mode only) used as the baseline so the
+  // unsaved-change check compares against what was actually loaded.
+  const [baselineValues, setBaselineValues] = useState<BlogFormValues>(DEFAULT_FORM_VALUES);
+  const [seeding, setSeeding] = useState((): boolean => {
+    // Show the spinner until the route is resolved so the empty form (or a
+    // stale draft) is never flashed before the real data is seeded.
+    return editMode || !router.isReady;
+  });
+
+  // Once the route is resolved and this is a fresh create (not an edit), hide
+  // the spinner; the draft restore effect will populate the form if needed.
+  useEffect(() => {
+    if (router.isReady && !editMode) {
+      // Defer so the setState is not called synchronously within the effect
+      // body (avoids the React Compiler rule).
+      queueMicrotask(() => setSeeding(false));
+    }
+  }, [router.isReady, editMode]);
 
   const { control, handleSubmit, getValues, reset, setValue } = useForm<BlogFormValues>({
     mode: 'onSubmit',
@@ -51,8 +68,11 @@ const UploadBlog = () => {
     reset,
     router,
     message,
+    isReady: router.isReady,
+    blogId,
     editMode,
     initialData,
+    baseline: baselineValues,
   });
   const {
     loading,
@@ -76,6 +96,7 @@ const UploadBlog = () => {
     performNavigation,
     handlePreview,
     requestNavigation,
+    restoreEditRoundTrip,
     draftPromptVisible,
     handleSaveDraftNavigate,
     handleDiscardNavigate,
@@ -101,6 +122,13 @@ const UploadBlog = () => {
           category: (blog as any).category ?? (blog as any).feature ?? '',
           content: blog.content ?? '',
         });
+        setBaselineValues({
+          title: blog.title ?? '',
+          description: blog.description ?? '',
+          module: blog.module ?? '',
+          category: (blog as any).category ?? (blog as any).feature ?? '',
+          content: blog.content ?? '',
+        });
 
         const next = {
           thumbnail: blog.thumbnail
@@ -112,6 +140,7 @@ const UploadBlog = () => {
         };
         setInitialData(next);
         resetEditState(next);
+        await restoreEditRoundTrip(blogId);
       } catch (error: any) {
         message.error(error.message || 'Failed to load the blog');
       } finally {
@@ -135,14 +164,6 @@ const UploadBlog = () => {
   };
 
   const onFinish = async (values: BlogFormValues) => {
-    // In edit mode the existing thumbnail is kept unless a new one is picked.
-    if (!thumbnail && !existingThumbnail) {
-      setThumbnailError('Please upload a thumbnail image');
-      message.error('Please upload a thumbnail image');
-      scrollToField('blog-thumbnail');
-      return;
-    }
-
     setLoading(true);
     try {
       if (editMode) {
@@ -159,19 +180,13 @@ const UploadBlog = () => {
         message.success('Blog updated successfully!');
         performNavigation(ROUTE_PATHS.blogs);
       } else {
-        if (!thumbnail) {
-          setThumbnailError('Please upload a thumbnail image');
-          message.error('Please upload a thumbnail image');
-          scrollToField('blog-thumbnail');
-          return;
-        }
         await createBlog({
           title: values.title,
           description: values.description,
           module: values.module,
           category: values.category,
           content: values.content || '',
-          thumbnail: thumbnail.file,
+          thumbnail: thumbnail?.file ?? null,
           attachments: attachments.map((att) => att.file),
         });
         message.success('Blog created successfully!');
@@ -210,7 +225,6 @@ const UploadBlog = () => {
   };
 
   const submit = handleSubmit(onFinish, onInvalid);
-
   return (
     <AdminLayout onNavigate={requestNavigation}>
       <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
@@ -223,7 +237,6 @@ const UploadBlog = () => {
               requestNavigation(ROUTE_PATHS.blogs);
             }}
             title={editMode ? 'Edit Blog' : 'Create New Blog'}
-            subtitle={editMode ? 'Update Your Blog' : 'Add New Blog To Your List'}
             showBack={false}
           />
 
@@ -240,10 +253,11 @@ const UploadBlog = () => {
 
                 <div id="blog-thumbnail">
                   <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
-                    Upload Thumbnail <span className="blog-required">*</span>
+                    Upload Thumbnail
                   </Title>
                   <Text type="secondary" className="blog-section-hint">
-                    Upload a thumbnail image for your blog.
+                    Upload a thumbnail image for your blog. A default image is
+                    shown if you skip this.
                   </Text>
 
                   <ThumbnailUpload
@@ -281,7 +295,7 @@ const UploadBlog = () => {
                   handlePreview={handlePreview}
                   onCancel={() => requestNavigation(editMode ? ROUTE_PATHS.blogs : ROUTE_PATHS.adminDashboard)}
                   loading={loading}
-                  submitLabel={editMode ? 'Save Changes' : 'Create Blog'}
+                  submitLabel={editMode ? 'Save Changes' : 'Create'}
                 />
               </form>
             )}

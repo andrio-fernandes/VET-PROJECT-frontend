@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
@@ -25,6 +25,7 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const { message } = AntApp.useApp();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const otpAttempts = useSyncExternalStore(
     emptySubscribe,
@@ -32,10 +33,24 @@ export default function ForgotPasswordPage() {
     () => 0,
   );
 
+  // Each fresh visit to Forgot Password belongs to a new user flow, so clear
+  // any OTP attempt/reset state left behind by a previous user on this device.
+  // The current user's own clicks re-populate it via onFinish below.
+  useEffect(() => {
+    sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
+    sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
+    sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
+    sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
+    sessionStorage.removeItem(STORAGE_KEYS.resetToken);
+    sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
+    setSubmitted(false);
+  }, []);
+
   const onFinish = async (values: { email: string }) => {
     setLoading(true);
     try {
       const email = values.email.toLowerCase().trim();
+      setSubmitted(true);
 
       const data = await forgotPassword(email);
 
@@ -95,11 +110,11 @@ export default function ForgotPasswordPage() {
         </Text>
 
         <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item label="Email" name="email" rules={emailRules}>
+          <Form.Item label="Email" name="email" required rules={emailRules}>
             <Input placeholder="Enter your email" allowClear size="large" />
           </Form.Item>
 
-          {otpAttempts > 0 && (
+          {submitted && otpAttempts > 0 && (
             <Text type="danger" className="forgot-otp-attempts">
               {attemptsRemaining > 0
                 ? `${attemptsRemaining} attempt${attemptsRemaining === 1 ? "" : "s"} remaining`

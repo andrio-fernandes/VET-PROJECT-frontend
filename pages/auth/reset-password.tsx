@@ -19,6 +19,7 @@ export default function ResetPasswordPage() {
   const password = Form.useWatch("password", form);
   const { message } = AntApp.useApp();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const canAccess = useSyncExternalStore(
     emptySubscribe,
@@ -82,10 +83,11 @@ export default function ResetPasswordPage() {
           Reset Password
         </Title>
 
-        <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish} onFinishFailed={() => setSubmitted(true)} validateTrigger={submitted ? 'onChange' : 'onSubmit'}>
           <Form.Item
             label={<Text strong>New Password</Text>}
             name="password"
+            required
             rules={passwordRules}
             extra={<PasswordStrength password={password || ""} />}
           >
@@ -95,6 +97,7 @@ export default function ResetPasswordPage() {
           <Form.Item
             label={<Text strong>Confirm Password</Text>}
             name="confirmPassword"
+            required
             dependencies={["password"]}
             rules={[
               {

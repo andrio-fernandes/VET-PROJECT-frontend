@@ -72,8 +72,9 @@ export default function OtpVerificationPage() {
 
   // The countdown targets an absolute deadline timestamp so a single
   // interval computes the remaining seconds instead of being torn down and
-  // recreated every second.
-  const deadlineRef = useRef<number>(Date.now() + OTP_EXPIRY_SECONDS * 1000);
+  // recreated every second. Initialized to 0 and set inside an effect (NOT
+  // during render) so no impure Date.now() call happens while rendering.
+  const deadlineRef = useRef<number>(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -86,14 +87,11 @@ export default function OtpVerificationPage() {
   }, []);
 
   // Align the countdown with the actual send time so refreshing the page does
-  // not restart the timer while the server-side OTP is already older.
+  // not restart the timer while the server-side OTP is already older. When no
+  // stored send time exists, fall back to now so the timer still starts fresh.
   useEffect(() => {
     const sentAt = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpSentAt));
-    if (!sentAt) {
-      return;
-    }
-
-    deadlineRef.current = sentAt + OTP_EXPIRY_SECONDS * 1000;
+    deadlineRef.current = (sentAt || Date.now()) + OTP_EXPIRY_SECONDS * 1000;
     setTimeLeft(
       Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
     );

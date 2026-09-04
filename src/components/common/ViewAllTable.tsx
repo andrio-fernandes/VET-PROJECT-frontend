@@ -86,52 +86,56 @@ export function ViewAllTable<T>({
     <div className={pageClassName ?? `${ns}-page-pad`}>
       <div className={innerClassName ?? `${ns}-page-inner`}>
         <div className={`${ns}-header`}>
-          <div className={`${ns}-header-icon`}>{icon}</div>
-          <Title level={3} className={`${ns}-header-title`}>
-            {title}
-          </Title>
+          <div className={`${ns}-header-title-wrap`}>
+            <div className={`${ns}-header-icon`}>{icon}</div>
+            <Title level={3} className={`${ns}-header-title`}>
+              {title}
+            </Title>
+          </div>
         </div>
 
-        <div className={`${ns}-create-wrap`}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => router.push(createHref)}
-            className={`${ns}-create-btn`}
-          >
-            {createLabel}
-          </Button>
-        </div>
+        <div className={`${ns}-filters-row`}>
+          <Row gutter={24} className={`${ns}-filters`}>
+            <Col span={12}>
+              <div className={`${ns}-filter-group`}>
+                <Text strong className={`${ns}-filter-label`}>
+                  Module:
+                </Text>
+                <Select
+                  value={moduleFilter}
+                  onChange={onModuleChange}
+                  className={`${ns}-select-module`}
+                  options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
+                />
+              </div>
+            </Col>
+            <Col span={12}>
+              <div className={`${ns}-filter-group`}>
+                <Text strong className={`${ns}-filter-label`}>
+                  Category:
+                </Text>
+                <Select
+                  value={categoryFilter}
+                  onChange={onCategoryChange}
+                  disabled={moduleFilter === 'All'}
+                  options={categoryOptions}
+                  className={`${ns}-select-category`}
+                />
+              </div>
+            </Col>
+          </Row>
 
-        <Row gutter={24} className={`${ns}-filters`}>
-          <Col span={12}>
-            <div className={`${ns}-filter-group`}>
-              <Text strong className={`${ns}-filter-label`}>
-                Select module:
-              </Text>
-              <Select
-                value={moduleFilter}
-                onChange={onModuleChange}
-                className={`${ns}-select-module`}
-                options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-              />
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className={`${ns}-filter-group`}>
-              <Text strong className={`${ns}-filter-label`}>
-                Select Category:
-              </Text>
-              <Select
-                value={categoryFilter}
-                onChange={onCategoryChange}
-                disabled={moduleFilter === 'All'}
-                options={categoryOptions}
-                className={`${ns}-select-category`}
-              />
-            </div>
-          </Col>
-        </Row>
+          <div className={`${ns}-create-wrap`}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => router.push(createHref)}
+              className={`${ns}-create-btn`}
+            >
+              {createLabel}
+            </Button>
+          </div>
+        </div>
 
         <div className={`${ns}-table-wrap`}>
           <Table<T>

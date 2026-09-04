@@ -9,7 +9,11 @@ import { PageHeader } from '@/components/blog/PageHeader';
 
 import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
-import { fileNameFromUrl, isInlinePreviewable, mediaUrl } from '@/utils/media';
+import {
+  buildDocumentViewerUrl,
+  fileNameFromUrl,
+  mediaUrl,
+} from '@/utils/media';
 import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
 import { getBlogById } from '@/services/blogService';
 import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
@@ -129,27 +133,31 @@ const BlogPreview = () => {
     return raw ? [{ name: fileNameFromUrl(raw), url: raw }] : [];
   };
 
-  const attachmentUrls = isPreviewMode
-    ? parseAttachments(blog?.attachment)
-    : parseAttachments(blog?.attachment).map((a) => ({
-        ...a,
-        url: mediaUrl(a.url),
-      }));
+  // mediaUrl resolves server-relative /uploads paths and passes data: / https:
+  // URLs through unchanged, so it is safe to apply in both preview modes.
+  const attachmentUrls = parseAttachments(blog?.attachment).map((a) => ({
+    ...a,
+    url: mediaUrl(a.url),
+  }));
   const contentHtml = sanitizeRichText(blog?.content);
 
   const openAttachment = (att: ParsedAttachment) => {
-    // DOCX / XLSX / XLS are rendered inline by the attachment viewer route.
-    if (isInlinePreviewable(att.url)) {
-      const viewerUrl = `${ROUTE_PATHS.blogAttachmentViewer}?url=${encodeURIComponent(
-        att.url
-      )}&name=${encodeURIComponent(att.name)}`;
+    // att.url is already resolved via mediaUrl() in attachmentUrls above, so
+    // both HTTPS and data: URLs are ready to use.
+
+    // PDF / Office documents open in their third-party viewer in a NEW tab.
+    // Google Docs Viewer handles PDFs; Microsoft Office Viewer handles the
+    // Office formats. A downloadable (non-viewer) URL falls back to the
+    // existing download behavior below.
+    const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
+    if (viewerUrl) {
       window.open(viewerUrl, '_blank');
       return;
     }
 
-    // Unsupported formats (e.g. legacy .doc) keep the existing download
-    // behavior: data URLs fetched into a blob then opened, everything else
-    // opened directly.
+    // Unsupported formats (and data: URLs that viewers cannot reach) keep the
+    // existing download behavior: data URLs fetched into a blob then opened,
+    // everything else opened directly.
     if (att.url.startsWith('data:')) {
       fetch(att.url)
         .then((res) => res.blob())
@@ -168,8 +176,9 @@ const BlogPreview = () => {
 
   return (
     <AdminLayout>
-      <div className="bp-page">
-        <div className="blog-content">
+      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+        <div style={{ width: '100%' }}>
+        <div className="blog-content" style={{ maxWidth: '100%' }}>
           <PageHeader
             backHref={
               isPreviewMode
@@ -265,6 +274,7 @@ const BlogPreview = () => {
             )}
           </div>
         </div>
+      </div>
       </div>
     </AdminLayout>
   );

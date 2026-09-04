@@ -51,6 +51,16 @@ const UploadVideo = () => {
   const skipNavConfirmRef = useRef(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
+  // Original server values (edit mode only) used as the baseline so Cancel only
+  // prompts when the user actually changed something.
+  const [baseline, setBaseline] = useState<{
+    title: string;
+    description: string;
+    module?: string;
+    category?: string;
+    hasVideo: boolean;
+    hasThumbnail: boolean;
+  }>({ title: '', description: '', hasVideo: false, hasThumbnail: false });
   const jobRef = useRef<CreateVideoResult | null>(null);
   const mountedRef = useRef(true);
 
@@ -79,6 +89,15 @@ const UploadVideo = () => {
           description: video.description ?? "",
           module: video.module ?? "",
           category: video.category ?? "",
+        });
+
+        setBaseline({
+          title: video.title ?? "",
+          description: video.description ?? "",
+          module: video.module ?? "",
+          category: video.category ?? "",
+          hasVideo: Boolean(video.videoUrl),
+          hasThumbnail: Boolean(video.thumbnailUrl),
         });
 
         if (video.videoUrl) {
@@ -309,7 +328,23 @@ const UploadVideo = () => {
     if (editMode) {
       skipNavConfirmRef.current = true;
       setIsDirty(false);
-      router.push(ROUTE_PATHS.videos);
+
+      const values = form.getFieldsValue();
+      const hasChanges =
+        (values.title ?? "") !== baseline.title ||
+        (values.description ?? "") !== baseline.description ||
+        (values.module ?? "") !== baseline.module ||
+        (values.category ?? "") !== baseline.category ||
+        Boolean(file) !== baseline.hasVideo ||
+        Boolean(thumbnail) !== baseline.hasThumbnail;
+
+      if (!hasChanges) {
+        router.push(ROUTE_PATHS.videos);
+        return;
+      }
+      openCancelConfirm(() => {
+        router.push(ROUTE_PATHS.videos);
+      });
       return;
     }
 
@@ -389,10 +424,13 @@ const UploadVideo = () => {
   useEffect(() => {
     if (editMode) return;
     const retainedData = localStorage.getItem(RETAINED_VIDEO_STORAGE_KEY);
-    if (retainedData) {
+    if (!retainedData) return;
+    // Defer into a microtask so the setState is not called synchronously
+    // within the effect body (avoids the React Compiler rule).
+    queueMicrotask(() => {
       retainedDataRef.current = retainedData;
       setRestoreOpen(true);
-    }
+    });
   }, [form, message, editMode]);
 
   useEffect(() => {
@@ -470,22 +508,13 @@ const UploadVideo = () => {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
               }}
-              requiredMark={(label, { required }) =>
-                required ? (
-                  <span>
-                    {label}
-                    <span className="vc-required">*</span>
-                  </span>
-                ) : (
-                  label
-                )
-              }
             >
 
             {/* Title */}
             <Form.Item
               label={<span className="vc-label">Title</span>}
               name="title"
+              required
               rules={[
                 {
                   required: true,
@@ -520,6 +549,7 @@ const UploadVideo = () => {
             <Form.Item
               label={<span className="vc-label">Description</span>}
               name="description"
+              required
               rules={[
                 {
                   required: true,
@@ -543,7 +573,7 @@ const UploadVideo = () => {
             >
               <Input.TextArea
                 placeholder="Describe your video"
-                rows={5}
+                rows={4}
                 size="large"
                 className="vc-textarea"
               />

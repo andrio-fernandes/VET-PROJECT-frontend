@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Input, Button, Typography, Space, Spin, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -20,9 +20,36 @@ const EditFAQ = () => {
   const [seeding, setSeeding] = useState(Boolean(faqId));
   const [submitted, setSubmitted] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
+  // Original server values used as the baseline so Cancel only prompts when the
+  // user actually changed something.
+  const [baseline, setBaseline] = useState<{
+    question: string;
+    answer: string;
+    module?: string;
+    category?: string;
+  }>({ question: '', answer: '' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const pendingNavRef = useRef<(() => void) | null>(null);
 
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
+
+  const openLeaveConfirm = useCallback((onLeave: () => void) => {
+    pendingNavRef.current = onLeave;
+    setConfirmOpen(true);
+  }, []);
+
+  const closeLeaveConfirm = () => {
+    pendingNavRef.current = null;
+    setConfirmOpen(false);
+  };
+
+  const confirmDiscardAndLeave = () => {
+    const onLeave = pendingNavRef.current;
+    pendingNavRef.current = null;
+    setConfirmOpen(false);
+    if (onLeave) onLeave();
+  };
 
   const previewContent = (
     <div>
@@ -63,6 +90,12 @@ const EditFAQ = () => {
           module: faq.module ?? undefined,
           category: faq.category ?? undefined,
         });
+        setBaseline({
+          question: faq.question ?? '',
+          answer: faq.answer ?? '',
+          module: faq.module ?? '',
+          category: faq.category ?? '',
+        });
       } catch (error: any) {
         if (!ignore) message.error(error.message || 'Failed to load the FAQ.');
       } finally {
@@ -97,7 +130,20 @@ const EditFAQ = () => {
   };
 
   const handleCancel = () => {
-    router.push(ROUTE_PATHS.faqs);
+    const values = form.getFieldsValue();
+    const hasChanges =
+      (values.question ?? '') !== baseline.question ||
+      (values.answer ?? '') !== baseline.answer ||
+      (values.module ?? '') !== baseline.module ||
+      (values.category ?? '') !== baseline.category;
+
+    if (!hasChanges) {
+      router.push(ROUTE_PATHS.faqs);
+      return;
+    }
+    openLeaveConfirm(() => {
+      router.push(ROUTE_PATHS.faqs);
+    });
   };
 
   return (
@@ -139,20 +185,11 @@ const EditFAQ = () => {
                   form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
                 }
               }}
-              requiredMark={(label, { required }) =>
-                required ? (
-                  <span>
-                    {label}
-                    <span className="faqs-create-required">*</span>
-                  </span>
-                ) : (
-                  label
-                )
-              }
             >
               <Form.Item
                 label={<span className="faqs-create-label">Question</span>}
                 name="question"
+                required
                 rules={[
                   { required: true, message: 'Please Enter The Question' },
                   {
@@ -166,7 +203,7 @@ const EditFAQ = () => {
                   },
                 ]}
               >
-                <Input placeholder="Enter Question" maxLength={200} size="large" className="faqs-create-input" />
+                <Input placeholder="Enter question" maxLength={200} size="large" className="faqs-create-input" />
               </Form.Item>
 
               <WordCount value={questionValue} max={30} />
@@ -174,6 +211,7 @@ const EditFAQ = () => {
               <Form.Item
                 label={<span className="faqs-create-label">Answer</span>}
                 name="answer"
+                required
                 rules={[
                   { required: true, message: 'Please provide an answer' },
                   {
@@ -188,7 +226,7 @@ const EditFAQ = () => {
                 ]}
               >
                 <Input.TextArea
-                  placeholder="Describe your Answer"
+                  placeholder="Describe your answer"
                   maxLength={2000}
                   size="large"
                   rows={4}
@@ -226,7 +264,7 @@ const EditFAQ = () => {
                 </Button>
 
                 <Space size="middle">
-                  <Button size="large" onClick={handleCancel} className="faqs-create-btn-cancel">Cancel</Button>
+                  <Button size="large" onClick={handleCancel} disabled={loading} className="faqs-create-btn-cancel">Cancel</Button>
                   <Button type="primary" htmlType="submit" size="large" loading={loading} className="faqs-create-btn-create">Save</Button>
                 </Space>
               </div>
@@ -252,6 +290,24 @@ const EditFAQ = () => {
 
         </div>
       </div>
+
+      <Modal
+        open={confirmOpen}
+        title="You have unsaved changes"
+        onCancel={closeLeaveConfirm}
+        closable
+        maskClosable
+        footer={
+          <Space>
+            <Button onClick={confirmDiscardAndLeave}>No, Don&apos;t Save</Button>
+            <Button type="primary" onClick={closeLeaveConfirm}>
+              Yes, Save
+            </Button>
+          </Space>
+        }
+      >
+        <p>Do you want to save your changes before leaving?</p>
+      </Modal>
     </AdminLayout>
   );
 };

@@ -11,18 +11,25 @@ import { useRef, useState } from 'react';
 import { useEffect } from 'react';
 import type { NextRouter } from 'next/router';
 
-import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
+import { BLOG_PREVIEW_STORAGE_KEY, BLOG_EDIT_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
 import { fileToDataUrl } from '@/utils/file';
-import type { PickedAttachment } from '@/types/blog';
+import type { PickedAttachment, PickedImage } from '@/types/blog';
 import type { BlogFormValues } from './useBlogDraft';
 
 interface UseBlogDraftNavigationOptions {
   router: NextRouter;
   editMode?: boolean;
+  /** The editing blog id, used to keep the edit URL across the preview hop. */
+  blogId?: string;
   getValues: () => BlogFormValues;
   getThumbnailDataUrl: () => string;
+  getThumbnail: () => PickedImage | null;
   getAttachments: () => PickedAttachment[];
+  getExistingThumbnail: () => { name: string; url: string } | null;
+  getExistingAttachments: () => { name: string; url: string }[];
+  /** URLs of existing server attachments the user has removed (unsaved). */
+  getRemovedAttachmentUrls: () => string[];
   getHasUnsavedContent: () => boolean;
   writeDraftToStorage: () => Promise<void>;
   cancelPendingDraftSave: () => void;
@@ -33,9 +40,14 @@ interface UseBlogDraftNavigationOptions {
 export const useBlogDraftNavigation = ({
   router,
   editMode = false,
+  blogId = '',
   getValues,
   getThumbnailDataUrl,
+  getThumbnail,
   getAttachments,
+  getExistingThumbnail,
+  getExistingAttachments,
+  getRemovedAttachmentUrls,
   getHasUnsavedContent,
   writeDraftToStorage,
   cancelPendingDraftSave,
@@ -52,37 +64,98 @@ export const useBlogDraftNavigation = ({
 
   const handlePreview = async () => {
     cancelPendingDraftSave();
-    await writeDraftToStorage();
+    // Drafts are only meaningful in create mode; editing blogs are loaded from
+    // the server, so don't write a (partial, asset-only) draft there.
+    if (!editMode) {
+      await writeDraftToStorage();
+    }
     const values = getValues();
-    const thumbnailDataUrl = getThumbnailDataUrl();
+
+    // Thumbnail: picked file's data URL, falling back to the existing server
+    // thumbnail (edit mode).
+    let thumbnailDataUrl = getThumbnailDataUrl();
+    const thumbnail = getThumbnail();
+    if (!thumbnailDataUrl && thumbnail) {
+      try {
+        thumbnailDataUrl = await fileToDataUrl(thumbnail.file);
+      } catch {
+        thumbnailDataUrl = '';
+      }
+    }
+    const existingThumbnail = getExistingThumbnail();
+    const previewThumbnail = thumbnailDataUrl || existingThumbnail?.url || null;
+
+    // Attachments: keep existing server attachments as their (small) URLs and
+    // convert newly picked ones to data URLs.
+    const existingAttachments = getExistingAttachments();
     const attachments = getAttachments();
-    let attachmentDataUrls: { name: string; dataUrl: string }[] = [];
+    let pickedDataUrls: { name: string; url: string }[] = [];
     try {
-      attachmentDataUrls = await Promise.all(
+      pickedDataUrls = await Promise.all(
         attachments.map(async (a) => ({
           name: a.name,
-          dataUrl: await fileToDataUrl(a.file),
+          url: await fileToDataUrl(a.file),
         })),
       );
     } catch {
       /* fall back to names */
     }
+    const previewAttachments = [
+      ...existingAttachments.map((a) => ({ name: a.name, url: a.url })),
+      ...pickedDataUrls,
+    ];
+
     const previewDraft = {
       title: values.title ?? '',
       description: values.description ?? '',
       module: values.module ?? '',
       category: values.category ?? '',
       content: values.content ?? '',
-      thumbnail: thumbnailDataUrl || null,
-      attachments: attachmentDataUrls.length ? attachmentDataUrls : attachments.map((a) => a.name),
+      thumbnail: previewThumbnail,
+      attachments: previewAttachments.length
+        ? previewAttachments
+        : attachments.map((a) => a.name),
     };
     try {
       localStorage.setItem(BLOG_PREVIEW_STORAGE_KEY, JSON.stringify(previewDraft));
     } catch {
       /* storage unavailable */
     }
+
+    // In edit mode, snapshot the current (possibly unsaved) form state so the
+    // round-trip back to the edit URL can restore it instead of reverting to
+    // the last-saved server values. Existing server assets are re-seeded from
+    // the server on return, so only picked (unsaved) assets and text are kept.
+    if (editMode && blogId) {
+      try {
+        const editSnapshot = {
+          blogId,
+          title: values.title ?? '',
+          description: values.description ?? '',
+          module: values.module ?? '',
+          category: values.category ?? '',
+          content: values.content ?? '',
+          thumbnail: thumbnail
+            ? { source: 'picked', name: thumbnail.name, dataUrl: thumbnailDataUrl }
+            : null,
+          attachments: pickedDataUrls,
+          // Preserve the removal intent so the round-trip back to the edit page
+          // keeps attaching-sensitive edits (removing an existing attachment)
+          // instead of resurrecting them from the freshly-fetched server list.
+          removedAttachmentUrls: getRemovedAttachmentUrls(),
+        };
+        localStorage.setItem(BLOG_EDIT_PREVIEW_STORAGE_KEY, JSON.stringify(editSnapshot));
+      } catch {
+        /* storage unavailable */
+      }
+    }
+
     skipNextRouteGuardRef.current = true;
-    router.push(`${ROUTE_PATHS.blogPreview}?preview=1`);
+    // Preserve the edit context so preview's back button returns to the edit URL.
+    const blogQuery = editMode && blogId ? `&id=${blogId}` : '';
+    // Open the preview in a new browser tab: the preview page has no in-app
+    // back navigation, so a fresh tab keeps the user on the form.
+    window.open(`${ROUTE_PATHS.blogPreview}?preview=1${blogQuery}`, '_blank');
   };
 
   const requestNavigation = (path: string) => {

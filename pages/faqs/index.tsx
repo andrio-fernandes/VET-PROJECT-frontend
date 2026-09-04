@@ -191,12 +191,13 @@ const ViewFaqs = () => {
           <>
             {/* VIEW FAQ MODAL */}
             <Modal
-              title="View FAQ"
+              title={null}
               open={Boolean(viewingFaq)}
               onCancel={() => setViewingFaq(null)}
               footer={null}
               width={736}
               centered
+              className="faq-view-modal"
               maskStyle={{
                 backdropFilter: 'blur(6px)',
                 backgroundColor: 'rgba(0, 0, 0, 0.2)',

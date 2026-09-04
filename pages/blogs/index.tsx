@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import defaultThumbnail from '@/assets/default.jpg';
 import { App as AntApp, Button, Modal, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -87,6 +88,7 @@ const BlogsPage = () => {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
+      width: '38%',
       render: (text: string, record) => (
         <div className="blogs-cell-title">
           {record.thumbnail ? (
@@ -97,7 +99,12 @@ const BlogsPage = () => {
               className="blogs-cell-thumb"
             />
           ) : (
-            <div className="blogs-cell-thumb-placeholder" />
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={defaultThumbnail.src}
+              alt={text}
+              className="blogs-cell-thumb"
+            />
           )}
           <Text strong className="blogs-cell-name">{text}</Text>
         </div>
@@ -107,7 +114,8 @@ const BlogsPage = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-      width: 180,
+      width: '15%',
+      ellipsis: true,
       render: (text: string) => (
         <Text className="blogs-cell-muted">{text}</Text>
       ),
@@ -116,7 +124,7 @@ const BlogsPage = () => {
       title: 'Created On',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 180,
+      width: '18%',
       render: (text: string) => (
         <Text className="blogs-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
       ),
@@ -125,7 +133,8 @@ const BlogsPage = () => {
       title: 'Created By',
       dataIndex: 'createdBy',
       key: 'createdBy',
-      width: 160,
+      width: '17%',
+      ellipsis: true,
       render: (_: unknown, record: BlogListItem) => (
         <Text className="blogs-cell-muted">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
       ),
@@ -133,7 +142,7 @@ const BlogsPage = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 160,
+      width: '12%',
       render: (_, record) => (
         <div className="blogs-action-group">
           <Button
@@ -185,6 +194,7 @@ const BlogsPage = () => {
         }}
         onCategoryChange={setCategoryFilter}
         showCount={!loadError}
+        tableLayout="fixed"
       />
     </AdminLayout>
   );

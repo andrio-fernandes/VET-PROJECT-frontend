@@ -13,7 +13,7 @@ export default function PasswordStrength({ password }: PasswordStrengthProps) {
   // Show all password requirements before the user starts typing
   if (!value) {
     return (
-      <Text style={{ display: "block", marginTop: 6, color: "#54b226" }}>
+      <Text style={{ display: "block", marginTop: 6 }}>
         {PASSWORD_RULES.map((rule) => rule.label).join(" · ")}
       </Text>
     );

@@ -6,11 +6,25 @@
    ============================================= */
 
 .admin-shell {
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .admin-sider {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
   background-color: #52c41a !important;
+}
+
+/* The inner Layout that wraps the scrollable content sits to the right of the
+   fixed sidebar, offset by its width. Only this panel scrolls. */
+.admin-shell > .ant-layout {
+  height: 100vh;
+  margin-left: 250px;
+  overflow-y: auto;
 }
 
 .admin-sider-column {

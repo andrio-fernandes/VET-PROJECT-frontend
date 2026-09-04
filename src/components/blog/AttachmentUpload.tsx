@@ -46,7 +46,7 @@ export const AttachmentUpload: React.FC<AttachmentUploadProps> = ({
             <Button
               size="small"
               shape="circle"
-              icon={<DeleteOutlined />}
+              icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
               onClick={() => onRemoveExisting(index)}
             />
           </div>
@@ -60,7 +60,7 @@ export const AttachmentUpload: React.FC<AttachmentUploadProps> = ({
             <Button
               size="small"
               shape="circle"
-              icon={<DeleteOutlined />}
+              icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
               onClick={() => onRemove(index)}
             />
           </div>

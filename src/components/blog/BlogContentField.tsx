@@ -45,6 +45,6 @@ export const BlogContentField: React.FC<BlogContentFieldProps> = ({
       )}
     />
 
-    <Divider style={{ margin: '12px 0 24px 0' }} />
+    <Divider className="blog-divider" style={{ margin: '32px 0 24px 0' }} />
   </>
 );

@@ -33,7 +33,13 @@ $border-light: #b7eb8f;
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 40px;
+  }
+
+  .#{$ns}-header-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .#{$ns}-header-icon {
@@ -57,21 +63,32 @@ $border-light: #b7eb8f;
 
   .#{$ns}-create-wrap {
     text-align: right;
-    margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   .#{$ns}-create-btn {
     background-color: $brand-green;
     border-color: $brand-green;
     border-radius: 6px;
-    padding: 0 24px;
-    height: 38px;
-    font-size: 19px;
+    padding: 0 20px;
+    height: 34px;
+    font-size: 14px;
     font-weight: 600;
   }
 
-  .#{$ns}-filters {
+  .#{$ns}-filters-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
     margin-bottom: 16px;
+  }
+
+  .#{$ns}-filters {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
   }
 
   .#{$ns}-filter-group {

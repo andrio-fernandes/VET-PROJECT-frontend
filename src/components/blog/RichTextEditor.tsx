@@ -5,7 +5,7 @@
 // form. Images are inserted as data URLs with size/type validation.
 // =============================================
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { App as AntApp } from 'antd';
 import {
   AlignCenterOutlined,
@@ -21,8 +21,11 @@ import {
 
 import { EDITOR_IMAGE_MAX_BYTES, THUMBNAIL_EXTENSIONS } from '@/constants/blog';
 import { getFileExtension } from '@/utils/file';
+import { BlogImageEditorModal } from '@/components/blog/BlogImageEditorModal';
 
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,image/png,image/jpeg';
+// Blog content max width (px) - matches the rendered blog layout.
+const BLOG_CONTENT_MAX_WIDTH = 980;
 
 interface RichTextEditorProps {
   value?: string;
@@ -34,7 +37,70 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
   const editorRef = useRef<HTMLDivElement>(null);
   const lastEmittedRef = useRef<string>('');
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
   const { message } = AntApp.useApp();
+
+  // Modal-driven inline image editing.
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState<string>('');
+
+  const saveSelection = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) {
+      savedRangeRef.current = null;
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    if (range.commonAncestorContainer === editor || editor.contains(range.commonAncestorContainer)) {
+      savedRangeRef.current = range.cloneRange();
+    } else {
+      savedRangeRef.current = null;
+    }
+  };
+
+  const openImageEditor = (dataUrl: string) => {
+    saveSelection();
+    setEditingImage(dataUrl);
+    setImageEditorOpen(true);
+  };
+
+  const insertImageAtSelection = (dataUrl: string, width: number) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    const selection = window.getSelection();
+    let range: Range;
+    if (savedRangeRef.current) {
+      range = savedRangeRef.current;
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    } else if (selection && selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer)) {
+      range = selection.getRangeAt(0);
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.maxWidth = '100%';
+    img.style.width = `${width}px`;
+    img.alt = '';
+    img.dataset.width = String(width);
+
+    range.deleteContents();
+    range.insertNode(img);
+    range.setStartAfter(img);
+    range.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    savedRangeRef.current = null;
+    emitChange();
+  };
 
   useEffect(() => {
     // Reflect the controlled `value` into the contentEditable DOM. We compare
@@ -155,10 +221,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
 
     const reader = new FileReader();
     reader.onload = () => {
-      runCommand(
-        'insertImage',
-        typeof reader.result === 'string' ? reader.result : ''
-      );
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (dataUrl) {
+        openImageEditor(dataUrl);
+      }
     };
     reader.readAsDataURL(selected);
   };
@@ -181,7 +247,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
 
           const reader = new FileReader();
           reader.onload = () => {
-            runCommand('insertImage', typeof reader.result === 'string' ? reader.result : '');
+            const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+            if (dataUrl) {
+              openImageEditor(dataUrl);
+            }
           };
           reader.readAsDataURL(blob);
           return;
@@ -255,6 +324,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
         accept={IMAGE_ACCEPT}
         style={{ display: 'none' }}
         onChange={handleInsertImageFile}
+      />
+
+      <BlogImageEditorModal
+        open={imageEditorOpen}
+        imageSrc={editingImage}
+        contentWidth={BLOG_CONTENT_MAX_WIDTH}
+        onCancel={() => {
+          setEditingImage('');
+          setImageEditorOpen(false);
+        }}
+        onConfirm={(src, width) => {
+          setImageEditorOpen(false);
+          setEditingImage('');
+          insertImageAtSelection(src, width);
+        }}
       />
     </div>
   );

@@ -18,6 +18,7 @@ export default function LoginPage() {
   const isMobile = (screens.xs || screens.sm) && !screens.md;
 
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -55,14 +56,15 @@ export default function LoginPage() {
         <Form
           name="login_form"
           onFinish={onFinish}
+          onFinishFailed={() => setSubmitted(true)}
           layout="vertical"
           size="middle"
-          requiredMark={false}
-          validateTrigger="onChange"
+          validateTrigger={submitted ? 'onChange' : 'onSubmit'}
         >
           <Form.Item
             name="username"
             label={<span className="login-label">Username/Email</span>}
+            required
             validateFirst
             rules={[
               { required: true, message: 'Username or email cannot be empty!' },
@@ -94,6 +96,7 @@ export default function LoginPage() {
             name="password"
             label={<span className="login-label">Password</span>}
             className="login-password-item"
+            required
             validateFirst
             rules={[{ required: true, message: 'Please enter your password!' }]}
           >

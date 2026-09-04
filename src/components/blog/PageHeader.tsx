@@ -39,8 +39,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         </Link>
       )}
         <div className="blog-page-header-body">
-          <div style={{ flex: 1 }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#262626' }}>
+          <div>
+            <Title level={3} style={{ margin: 0, fontWeight: 600, color: '#262626' }}>
               {title}
             </Title>
             {subtitle && (

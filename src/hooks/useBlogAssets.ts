@@ -74,6 +74,18 @@ export const useBlogAssets = ({
     attachmentsRef.current = attachments;
   }, [attachments]);
 
+  // Keep existing-asset removal state in refs too, so the getters read by
+  // handlePreview/restoreEditRoundTrip always see the latest values regardless
+  // of when the callback was created.
+  const existingAttachmentsRef = useRef<ExistingAsset[]>(existingAttachments);
+  useEffect(() => {
+    existingAttachmentsRef.current = existingAttachments;
+  }, [existingAttachments]);
+  const removedAttachmentUrlsRef = useRef<string[]>(removedAttachmentUrls);
+  useEffect(() => {
+    removedAttachmentUrlsRef.current = removedAttachmentUrls;
+  }, [removedAttachmentUrls]);
+
   // Kept so removing a freshly-picked thumbnail restores the original existing
   // server thumbnail in edit mode.
   const originalExistingThumbnailRef = useRef<ExistingAsset | null>(
@@ -138,7 +150,7 @@ export const useBlogAssets = ({
     if (!file) return;
 
     if (!ATTACHMENT_EXTENSIONS.includes(getFileExtension(file.name))) {
-      message.error('Attachment must be an Excel, PDF, DOC or PNG file');
+      message.error('Attachment must be an Excel, PDF, DOC, PPT or PNG file');
       return;
     }
 
@@ -165,16 +177,23 @@ export const useBlogAssets = ({
     scheduleDraftSaveRef.current();
   };
 
-  // Removes an existing (server) attachment and records its URL so the server
-  // can delete it from Cloudinary on save.
+  // Removes an existing (server) attachment and records its identity so the
+  // server can delete it from Cloudinary on save. Names are used as the stable
+  // identity (URLs also work but names are more readable for the server-side
+  // matching logic).
   const handleExistingAttachmentRemove = (index: number) => {
-    setExistingAttachments((prev) => {
-      const target = prev[index];
-      if (target) {
-        setRemovedAttachmentUrls((prevUrls) => [...prevUrls, target.url]);
-      }
-      return prev.filter((_, i) => i !== index);
-    });
+    const current = existingAttachmentsRef.current;
+    const target = current[index];
+    if (target) {
+      // Compute the filtered list manually instead of nesting one setState
+      // inside another's updater, and record the removal in one go.
+      setRemovedAttachmentUrls((prevUrls) =>
+        prevUrls.includes(target.name)
+          ? prevUrls
+          : [...prevUrls, target.name]
+      );
+      setExistingAttachments(current.filter((_, i) => i !== index));
+    }
   };
 
   // Seeds the form's existing assets once the server blog is loaded (edit mode).
@@ -186,6 +205,20 @@ export const useBlogAssets = ({
     setExistingAttachments(data.attachments ?? []);
     setRemovedAttachmentUrls([]);
     originalExistingThumbnailRef.current = data.thumbnail ?? null;
+  };
+
+  // Re-applies the removal intent captured by the preview round-trip snapshot.
+  // Called after the server blog is re-seeded on return to the edit page, so
+  // attachments the user removed before previewing stay removed (instead of
+  // reappearing because the removal list was cleared during re-seed). Matches on
+  // NAME as the stable identity across the round-trip.
+  const applyAttachmentRemovals = (removedNames: string[]) => {
+    if (!Array.isArray(removedNames) || removedNames.length === 0) return;
+    const removeSet = new Set(removedNames);
+    setExistingAttachments((prev) =>
+      prev.filter((att) => !removeSet.has(att.name))
+    );
+    setRemovedAttachmentUrls(removedNames);
   };
 
   // Restores a thumbnail that was persisted as a data URL (draft restore).
@@ -230,11 +263,15 @@ export const useBlogAssets = ({
     removeAttachmentUrls: removedAttachmentUrls,
     handleExistingAttachmentRemove,
     resetEditState: setEditInitialData,
+    applyAttachmentRemovals,
     restoreThumbnail,
     restoreAttachments,
     resetPickedAssets,
     getThumbnail: () => thumbnailRef.current,
     getAttachments: () => attachmentsRef.current,
     getThumbnailDataUrl: () => thumbnailDataUrlRef.current,
+    getExistingThumbnail: () => existingThumbnail,
+    getExistingAttachments: () => existingAttachmentsRef.current,
+    getRemovedAttachmentUrls: () => removedAttachmentUrlsRef.current,
   };
 };

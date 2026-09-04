@@ -39,12 +39,12 @@ export default function ModuleCategorySelects({
       <Col xs={24} sm={12}>
         <Form.Item
           name="module"
-          label={showFieldLabels ? "Module" : undefined}
+          label={showFieldLabels ? <span className="mc-field-label">Module</span> : undefined}
           rules={[{ required: true, message: moduleRequiredMessage }]}
           className={moduleItemClassName}
         >
           <Select
-            placeholder="Select Module"
+            placeholder="Select module"
             size="large"
             allowClear
             className={moduleSelectClassName}
@@ -55,12 +55,12 @@ export default function ModuleCategorySelects({
       <Col xs={24} sm={12}>
         <Form.Item
           name="category"
-          label={showFieldLabels ? "Category" : undefined}
+          label={showFieldLabels ? <span className="mc-field-label">Category</span> : undefined}
           rules={[{ required: true, message: categoryRequiredMessage }]}
           className={categoryItemClassName}
         >
           <Select
-            placeholder={selectedModule ? "Select Category" : "Select a module first"}
+            placeholder={selectedModule ? "Select category" : "Select a module first"}
             size="large"
             disabled={!selectedModule}
             className={categorySelectClassName}

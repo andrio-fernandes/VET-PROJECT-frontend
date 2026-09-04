@@ -52,8 +52,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
             status={fieldState.error ? 'error' : undefined}
           />
           <div className="word-counter">
-            {wordCountFormatter(TITLE_MAX_WORDS)({ value: field.value ?? '' })}{' '}
-            words
+            {wordCountFormatter(TITLE_MAX_WORDS)({ value: field.value ?? '' })} word
           </div>
           {fieldState.error && (
             <div className="blog-field-error">{fieldState.error.message}</div>
@@ -76,13 +75,13 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
             value={field.value ?? ''}
             onChange={(e) => trackChange(field.onChange)(e.target.value)}
             placeholder="Describe your blog..."
-            rows={3}
+            rows={4}
+            size="large"
             style={{ borderRadius: 6, resize: 'none' }}
             status={fieldState.error ? 'error' : undefined}
           />
           <div className="word-counter">
-            {wordCountFormatter(DESCRIPTION_MAX_WORDS)({ value: field.value ?? '' })}{' '}
-            words
+            {wordCountFormatter(DESCRIPTION_MAX_WORDS)({ value: field.value ?? '' })} word
           </div>
           {fieldState.error && (
             <div className="blog-field-error">{fieldState.error.message}</div>

@@ -18,6 +18,8 @@ import type { MessageInstance } from 'antd/es/message/interface';
 import { useBlogAssets } from './useBlogAssets';
 import { useBlogDraftPersistence } from './useBlogDraftPersistence';
 import { useBlogDraftNavigation } from './useBlogDraftNavigation';
+import { BLOG_EDIT_PREVIEW_STORAGE_KEY } from '@/constants/blog';
+import { dataUrlToFile } from '@/utils/file';
 
 export interface BlogFormValues {
   title: string;
@@ -40,6 +42,12 @@ interface UseBlogDraftOptions {
   reset: (values: BlogFormValues) => void;
   router: NextRouter;
   message: MessageInstance;
+  /** Whether the router has hydrated its query. Draft restoration is only safe
+   * once we know whether the route is a create or an edit URL. */
+  isReady?: boolean;
+  /** The id of the blog being edited (edit mode only), used to preserve the
+   * edit URL across the preview round-trip. */
+  blogId?: string;
   /** When true the hook drives an edit form: draft autosave/restore is skipped
    * and existing server assets are seeded. */
   editMode?: boolean;
@@ -48,6 +56,9 @@ interface UseBlogDraftOptions {
     thumbnail?: { name: string; url: string } | null;
     attachments?: { name: string; url: string }[];
   };
+  /** Originally-loaded server text values (edit mode only). Baseline used so
+   * "unsaved content" means the user actually changed something. */
+  baseline?: Partial<BlogFormValues>;
 }
 
 export const useBlogDraft = ({
@@ -55,8 +66,11 @@ export const useBlogDraft = ({
   reset,
   router,
   message,
+  isReady = false,
+  blogId = '',
   editMode = false,
   initialData,
+  baseline = {},
 }: UseBlogDraftOptions) => {
   const [loading, setLoading] = useState(false);
 
@@ -76,12 +90,15 @@ export const useBlogDraft = ({
     getValues,
     reset,
     editMode,
+    isReady,
     message,
     getThumbnail: assets.getThumbnail,
     getAttachments: assets.getAttachments,
     getThumbnailDataUrl: assets.getThumbnailDataUrl,
     restoreThumbnail: assets.restoreThumbnail,
     restoreAttachments: assets.restoreAttachments,
+    getRemovedAttachmentUrls: assets.getRemovedAttachmentUrls,
+    baseline,
   });
 
   // Wire up the draft autosave trigger now that persistence is available. Filled
@@ -99,12 +116,79 @@ export const useBlogDraft = ({
     assets.resetPickedAssets();
   };
 
+  // Restores the current (possibly unsaved) form state captured when previewing
+  // in edit mode. Called by the page right after the server data is seeded so
+  // unsaved text + freshly picked assets survive the preview round-trip.
+  const restoreEditRoundTrip = async (targetBlogId: string) => {
+    if (!targetBlogId) return;
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(BLOG_EDIT_PREVIEW_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      localStorage.removeItem(BLOG_EDIT_PREVIEW_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    let snapshot: any;
+    try {
+      snapshot = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!snapshot || snapshot.blogId !== targetBlogId) return;
+
+    reset({
+      title: snapshot.title ?? '',
+      description: snapshot.description ?? '',
+      module: snapshot.module ?? '',
+      category: snapshot.category ?? '',
+      content: snapshot.content ?? '',
+    });
+
+    if (snapshot.thumbnail && snapshot.thumbnail.source === 'picked' && snapshot.thumbnail.dataUrl) {
+      const file = await dataUrlToFile(
+        snapshot.thumbnail.dataUrl,
+        snapshot.thumbnail.name || 'thumbnail.png'
+      );
+      if (file) assets.restoreThumbnail(file, snapshot.thumbnail.dataUrl);
+    }
+
+    if (Array.isArray(snapshot.attachments) && snapshot.attachments.length) {
+      const picked: { file: File; name: string }[] = [];
+      for (const att of snapshot.attachments) {
+        if (att && att.url) {
+          const file = await dataUrlToFile(att.url, att.name || 'attachment');
+          if (file) picked.push({ file, name: att.name || file.name });
+        }
+      }
+      if (picked.length) assets.restoreAttachments(picked);
+    }
+
+    // Re-apply the removal intent captured when previewing, so attachments the
+    // user removed before previewing don't reappear after the round-trip.
+    if (
+      Array.isArray(snapshot.removedAttachmentUrls) &&
+      snapshot.removedAttachmentUrls.length
+    ) {
+      assets.applyAttachmentRemovals(snapshot.removedAttachmentUrls);
+    }
+  };
+
   const navigation = useBlogDraftNavigation({
     router,
     editMode,
+    blogId,
     getValues,
     getThumbnailDataUrl: assets.getThumbnailDataUrl,
+    getThumbnail: assets.getThumbnail,
     getAttachments: assets.getAttachments,
+    getExistingThumbnail: assets.getExistingThumbnail,
+    getExistingAttachments: assets.getExistingAttachments,
+    getRemovedAttachmentUrls: assets.getRemovedAttachmentUrls,
     getHasUnsavedContent: persistence.getHasUnsavedContent,
     writeDraftToStorage: persistence.writeDraftToStorage,
     cancelPendingDraftSave: persistence.cancelPendingDraftSave,
@@ -130,6 +214,7 @@ export const useBlogDraft = ({
     resetEditState: assets.resetEditState,
     scheduleDraftSave: persistence.scheduleDraftSave,
     resetBlogForm,
+    restoreEditRoundTrip,
     performNavigation: navigation.performNavigation,
     handlePreview: navigation.handlePreview,
     requestNavigation: navigation.requestNavigation,

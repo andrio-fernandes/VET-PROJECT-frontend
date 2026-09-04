@@ -44,36 +44,65 @@ interface UseBlogDraftPersistenceOptions {
   getValues: () => BlogFormValues;
   reset: (values: BlogFormValues) => void;
   editMode?: boolean;
+  isReady?: boolean;
   message: MessageInstance;
   getThumbnail: () => PickedImage | null;
   getAttachments: () => PickedAttachment[];
   getThumbnailDataUrl: () => string;
   restoreThumbnail: (file: File, dataUrl: string) => void;
   restoreAttachments: (files: { file: File; name: string }[]) => void;
+  /** URLs/names of existing server attachments the user has removed (edit mode). */
+  getRemovedAttachmentUrls: () => string[];
+  /** The originally-loaded server values (edit mode only). Used as the baseline
+   * so "unsaved content" means the user actually changed something, instead of
+   * the form simply being populated. */
+  baseline?: Partial<BlogFormValues>;
 }
 
 export const useBlogDraftPersistence = ({
   getValues,
   reset,
   editMode = false,
+  isReady = false,
   message,
   getThumbnail,
   getAttachments,
   getThumbnailDataUrl,
   restoreThumbnail,
   restoreAttachments,
+  getRemovedAttachmentUrls,
+  baseline,
 }: UseBlogDraftPersistenceOptions) => {
   const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasUnsavedContent = useCallback(() => {
     const values: BlogDraftValues = getValues();
+
+    // Edit mode: only report unsaved content when the form actually differs
+    // from the originally-loaded blog (text fields and/or asset changes), so
+    // leaving an untouched edit form does not prompt to save/discard.
+    if (editMode) {
+      const base = baseline ?? {};
+      const textChanged = [
+        'title',
+        'description',
+        'module',
+        'category',
+        'content',
+      ].some((key) => (values[key as keyof BlogDraftValues] ?? '') !== (base[key as keyof BlogFormValues] ?? ''));
+      const thumbnailChanged = Boolean(getThumbnail());
+      const attachmentsChanged =
+        getAttachments().length > 0 || getRemovedAttachmentUrls().length > 0;
+      return textChanged || thumbnailChanged || attachmentsChanged;
+    }
+
     const hasText = [values.title, values.description].some(
       (entry) => Boolean(entry && entry.trim())
     );
     const hasSelection = Boolean(values.module || values.category);
     const hasBody = stripHtmlTags(values.content).length > 0;
     return hasText || hasSelection || hasBody || Boolean(getThumbnail()) || getAttachments().length > 0;
-  }, [getValues, getThumbnail, getAttachments]);
+  }, [getValues, getThumbnail, getAttachments, getRemovedAttachmentUrls, editMode, baseline]);
 
   const hasUnsavedContentRef = useRef(hasUnsavedContent);
   useEffect(() => {
@@ -89,7 +118,13 @@ export const useBlogDraftPersistence = ({
     const values: BlogDraftValues = getValues();
     const thumbnail = getThumbnail();
     const attachments = getAttachments();
-    const thumbnailDataUrl = getThumbnailDataUrl();
+    let thumbnailDataUrl = getThumbnailDataUrl();
+    // The thumbnail data URL is otherwise cached asynchronously on pick and may
+    // not be ready when a draft/preview is written. Derive it from the file so
+    // the persisted draft reliably restores the thumbnail.
+    if (!thumbnailDataUrl && thumbnail) {
+      thumbnailDataUrl = await fileToDataUrl(thumbnail.file);
+    }
     const draft: BlogDraft = {
       version: 1,
       savedAt: new Date().toISOString(),
@@ -146,9 +181,12 @@ export const useBlogDraftPersistence = ({
   };
 
   // Restore a previously saved draft (if any) once when the page opens.
-  // Skipped entirely in edit mode - the form is seeded from the server blog.
+  // Runs only in genuine create mode once the route is resolved. Skipped in
+  // edit mode (the form is seeded from the server blog), and skipped until the
+  // router has hydrated so a stale create draft is never written over a blog
+  // that is actually being edited.
   useEffect(() => {
-    if (editMode) return;
+    if (editMode || !isReady) return;
     let cancelled = false;
 
     const restoreDraft = async () => {
@@ -198,7 +236,7 @@ export const useBlogDraftPersistence = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editMode]);
+  }, [editMode, isReady]);
 
   // Refresh / tab close: flush the latest state synchronously and let the
   // browser show its native leave confirmation. Draft persistence is skipped in

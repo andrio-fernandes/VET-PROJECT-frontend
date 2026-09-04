@@ -54,11 +54,6 @@
   font-weight: 600;
 }
 
-.faqs-create-required {
-  color: #ff4d4f;
-  margin-left: 2px;
-}
-
 .faqs-create-input {
   border-radius: 6px;
 }
@@ -141,14 +136,19 @@
 }
 
 .faqs-create-preview-answer-box {
-  background-color: #f6ffed;
-  padding: 22px 24px;
-  border-radius: 12px;
+  padding: 0;
+}
+
+.faq-view-modal .ant-modal-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #262626;
 }
 
 .faqs-create-preview-answer {
   font-size: 16px;
-  color: #595959;
-  line-height: 1.8;
+  color: #262626;
+  font-weight: 600;
+  line-height: 1.7;
   display: block;
 }

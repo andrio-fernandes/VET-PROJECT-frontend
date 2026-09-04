@@ -22,7 +22,7 @@ interface CreateBlogPayload {
   module: string;
   category: string;
   content: string;
-  thumbnail: File;
+  thumbnail?: File | null;
   attachments: File[];
 }
 
@@ -47,7 +47,10 @@ export const createBlog = async (payload: CreateBlogPayload): Promise<void> => {
   formData.append("module", payload.module);
   formData.append("category", payload.category);
   formData.append("content", payload.content || "");
-  formData.append("thumbnail", payload.thumbnail);
+
+  if (payload.thumbnail) {
+    formData.append("thumbnail", payload.thumbnail);
+  }
 
   if (payload.attachments.length > 0) {
     for (const att of payload.attachments) {

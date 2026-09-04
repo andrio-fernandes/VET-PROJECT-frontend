@@ -28,7 +28,6 @@ export const BlogFormActions: React.FC<BlogFormActionsProps> = ({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      gap: 12,
       flexWrap: 'wrap',
     }}
   >
@@ -52,7 +51,7 @@ export const BlogFormActions: React.FC<BlogFormActionsProps> = ({
         loading={loading}
         disabled={loading}
         className="blog-green-button"
-        style={{ padding: '0 36px' }}
+        style={{ padding: '0 32px' }}
       >
         {submitLabel}
       </Button>
