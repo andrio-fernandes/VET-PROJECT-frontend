@@ -61,11 +61,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }
               theme={{
                 components: {
                   Menu: {
-                    itemSelectedBg: 'rgba(255, 255, 255, 0.25)',
+                    itemSelectedBg: '#54b325',
                     itemSelectedColor: '#fff',
-                    itemColor: '#fff',
-                    itemHoverColor: '#fff',
-                    itemHoverBg: 'transparent',
+                    itemColor: '#333',
+                    itemHoverColor: '#333',
+                    itemHoverBg: '#54b325',
                   },
                 },
               }}

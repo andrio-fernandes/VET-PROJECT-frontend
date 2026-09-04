@@ -16,7 +16,14 @@
   top: 0;
   bottom: 0;
   z-index: 20;
-  background-color: #52c41a !important;
+  background-color: #fefefe !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+.admin-sider.ant-layout-sider {
+  border-right: none !important;
+  box-shadow: none !important;
 }
 
 /* The inner Layout that wraps the scrollable content sits to the right of the
@@ -35,25 +42,31 @@
 
 .admin-logo-block {
   padding: 10px;
-  background-color: #fff;
   margin: 15px;
-  border-radius: 4px;
-  border: 1px solid #e8e8e8;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+.admin-logo-block img {
+  mix-blend-mode: multiply;
+}
+
 .admin-nav {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   margin-top: 10px;
   padding: 0 10px;
+  scrollbar-width: none;
+}
+
+.admin-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .admin-nav .ant-menu {
   background-color: transparent;
-  border-right: none;
+  border-right: none !important;
 }
 
 .admin-profile-card {
@@ -82,9 +95,9 @@
 
 .lively-sidebar .ant-menu-item:hover {
   transform: translateX(6px);
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: #54b325 !important;
 }
 
 .admin-content {
-  background-color: #fff;
+  background-color: #f6f6f6;
 }
