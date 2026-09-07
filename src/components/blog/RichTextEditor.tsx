@@ -65,7 +65,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
     setImageEditorOpen(true);
   };
 
-  const insertImageAtSelection = (dataUrl: string, width: number) => {
+  const insertImageAtSelection = (dataUrl: string) => {
     const editor = editorRef.current;
     if (!editor) return;
     editor.focus();
@@ -87,9 +87,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
     const img = document.createElement('img');
     img.src = dataUrl;
     img.style.maxWidth = '100%';
-    img.style.width = `${width}px`;
     img.alt = '';
-    img.dataset.width = String(width);
 
     range.deleteContents();
     range.insertNode(img);
@@ -215,7 +213,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
     }
 
     if (selected.size > EDITOR_IMAGE_MAX_BYTES) {
-      message.error('Inline image must be smaller than 1MB');
+      message.error('Inline image must be smaller than 2MB');
       return;
     }
 
@@ -241,7 +239,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
           if (!blob) return;
 
           if (blob.size > EDITOR_IMAGE_MAX_BYTES) {
-            message.error('Pasted image must be smaller than 1MB');
+            message.error('Pasted image must be smaller than 2MB');
             return;
           }
 
@@ -334,10 +332,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
           setEditingImage('');
           setImageEditorOpen(false);
         }}
-        onConfirm={(src, width) => {
+        onConfirm={(src) => {
           setImageEditorOpen(false);
           setEditingImage('');
-          insertImageAtSelection(src, width);
+          insertImageAtSelection(src);
         }}
       />
     </div>

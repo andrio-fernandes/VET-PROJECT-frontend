@@ -18,6 +18,9 @@ import { App as AntApp, Button, Card, Col, Divider, Flex, Input, Layout, Menu, R
 
 import videoThumbnail from "@/assets/default.jpg";
 import { clearSession, useCurrentUser } from "@/hooks/useAuth";
+import { clearBlogs } from "@/redux/blog/blogSlice";
+import { clearDashboard } from "@/redux/dashboard/dashboardSlice";
+import { useAppDispatch } from "@/redux/hooks";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -38,14 +41,17 @@ const categoryItems = [
 
 export default function UserDashboardPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { message } = AntApp.useApp();
   const [selectedMenu, setSelectedMenu] = useState("dashboard");
 
   const user = useCurrentUser();
 
   const handleLogout = () => {
+    dispatch(clearBlogs());
+    dispatch(clearDashboard());
     clearSession();
-    router.push("/auth/login");
+    router.replace("/auth/login");
   };
 
   const handleSendMessage = () => {

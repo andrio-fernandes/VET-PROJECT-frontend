@@ -191,7 +191,7 @@ const UploadBlog = () => {
         });
         message.success('Blog created successfully!');
         resetBlogForm();
-        performNavigation(ROUTE_PATHS.blogs);
+        performNavigation(ROUTE_PATHS.adminDashboard);
       }
     } catch (error: any) {
       message.error(error.message || (editMode ? 'Failed to update blog' : 'Failed to create blog'));
@@ -229,7 +229,7 @@ const UploadBlog = () => {
     <AdminLayout onNavigate={requestNavigation}>
       <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
         <div style={{ width: '100%' }}>
-          <div className="blog-content" style={{ maxWidth: '100%' }}>
+          <div className="blog-content">
           <PageHeader
             backHref={ROUTE_PATHS.blogs}
             backOnClick={(event) => {

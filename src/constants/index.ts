@@ -4,6 +4,8 @@
 // Central home for constants reused across pages, hooks, services and
 // components.
 
+import type { Rule } from "antd/es/form";
+
 // Content module and category values (must mirror server-side enums)
 export const CONTENT_MODULES = ["Sales"] as const;
 export type ContentModule = (typeof CONTENT_MODULES)[number];
@@ -57,6 +59,20 @@ export const PASSWORD_RULES: PasswordRule[] = [
     test: (value) => /[^A-Za-z0-9\s]/.test(value),
   },
 ];
+
+// antd Form rules derived from PASSWORD_RULES so the form validators reject a
+// password as soon as it fails any strength requirement, with error messages
+// that match the PasswordStrength labels exactly. Only the character-class
+// rules belong here; length is already enforced by passwordRules and the
+// register form's own min rule.
+export const PASSWORD_VALIDATOR_RULES: Rule[] = PASSWORD_RULES.filter(
+  (rule) => rule.label !== "At least 8 characters"
+).map((rule) => ({
+  validator: (_: unknown, value: string) =>
+    !value || rule.test(value)
+      ? Promise.resolve()
+      : Promise.reject(new Error(rule.label)),
+}));
 
 // Storage / cookie keys
 export const TOKEN_KEY = "token";
@@ -137,6 +153,7 @@ export const API_ENDPOINTS = {
   updateVideo: (id: string) => `/videos/${id}`,
   deleteVideo: (id: string) => `/videos/${id}`,
   getVideoStatus: (id: string) => `/videos/${id}/status`,
+  signVideoUpload: "/videos/sign",
   // Blog endpoints
   createBlog: "/blogs",
   getMyBlogs: "/blogs/mine",
@@ -151,6 +168,9 @@ export const STORAGE_KEYS = {
   resetOtpVerifyAttempts: "reset_otp_verify_attempts",
   resetOtpWindowStart: "reset_otp_window_start",
   resetOtpSentAt: "reset_otp_sent_at",
+  // Marks an in-progress reset flow so a page mount does not wipe state when
+  // the user navigated back into the flow (vs. genuinely starting a new one).
+  resetFlowActive: "reset_flow_active",
 } as const;
 
 // ---------------------------------------------------------------

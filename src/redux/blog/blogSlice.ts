@@ -32,8 +32,18 @@ const initialState: BlogListState = {
 
 export const fetchBlogsPage = createAsyncThunk(
   "blog/fetchBlogsPage",
-  async ({ page, limit = 10 }: { page: number; limit?: number }) => {
-    const data = await getMyBlogs(page, limit);
+  async ({
+    page,
+    limit = 10,
+    module,
+    category,
+  }: {
+    page: number;
+    limit?: number;
+    module?: string;
+    category?: string;
+  }) => {
+    const data = await getMyBlogs(page, limit, module, category);
     // Use the requested page as the cache key so determinism is preserved
     // even if the server echoes a different page.
     return { page, blogs: data.blogs, totalBlogs: data.totalBlogs };

@@ -1,11 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 // =============================================
-// BLOG IMAGE CROP + SCALE MODAL
+// BLOG IMAGE CROP MODAL
 //
 // Shown automatically when an image is inserted or pasted into the rich text
-// blog editor. Lets the author crop the image to the region they want and set
-// its final render width (free-form) in the blog, capped to the blog content
-// width so it never overflows. The composed result is a JPEG data URL inserted
-// into the editor at the cursor position.
+// blog editor. Lets the author crop the image to the region they want. The
+// composed result is a JPEG data URL inserted into the editor at the cursor
+// position, kept at its natural size (capped to the blog content width).
 //
 // Implementation notes:
 //  - Crop is stored in NORMALIZED coordinates (0..1 relative to the image),
@@ -16,15 +16,17 @@
 // =============================================
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, InputNumber, Modal, Slider, Typography } from 'antd';
+import { Button, Modal, Typography } from 'antd';
 import { App as AntApp } from 'antd';
+
+import { EDITOR_IMAGE_MAX_BYTES } from '@/constants/blog';
 
 const { Title, Text } = Typography;
 
 // Output image type - JPEG (smaller than PNG for photos) keeps the resulting
 // data URL within the editor's 1MB inline-image ceiling for typical crops.
 const OUTPUT_TYPE = 'image/jpeg';
-const OUTPUT_QUALITY = 0.9;
+const OUTPUT_QUALITY_STEPS = [1, 0.8, 0.65, 0.5, 0.35, 0.2];
 
 interface NormRect {
   x: number; // 0..1
@@ -38,7 +40,7 @@ interface BlogImageEditorModalProps {
   imageSrc: string; // original data URL (full image)
   contentWidth: number; // blog content max width (px) used to cap fit
   onCancel: () => void;
-  onConfirm: (src: string, width: number) => void;
+  onConfirm: (src: string) => void;
 }
 
 const HANDLES: ('nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w')[] = [
@@ -67,8 +69,6 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
   const [display, setDisplay] = useState<{ w: number; h: number } | null>(null);
   // Normalized crop rect (defaults to the full image).
   const [crop, setCrop] = useState<NormRect>({ x: 0, y: 0, w: 1, h: 1 });
-  // Final output width in px.
-  const [outWidth, setOutWidth] = useState<number | null>(null);
 
   const previewRef = useRef<HTMLDivElement>(null);
   // Loaded source <img> element (intrinsic resolution) used as the canvas source.
@@ -92,21 +92,18 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
       imgRef.current = image;
       setImg({ w, h });
       setCrop({ x: 0, y: 0, w: 1, h: 1 });
-      setOutWidth(mathClamp(w, 1, contentWidth));
       setDisplay(fitInto(w, h, 560, 360));
     };
     image.src = imageSrc;
     return () => {
       image.onload = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, imageSrc]);
 
   const reset = () => {
     setImg(null);
     setDisplay(null);
     setCrop({ x: 0, y: 0, w: 1, h: 1 });
-    setOutWidth(null);
   };
 
   const handleCancel = () => {
@@ -116,42 +113,62 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
 
   // --- Canvas composition -------------------------------------------------
 
-  const handleConfirm = () => {
-    if (!img || !outWidth) return;
+  const canvasCompose = (
+    srcX: number,
+    srcY: number,
+    srcW: number,
+    srcH: number,
+    destW: number,
+    quality: number
+  ): { src: string; w: number; h: number } | null => {
+    if (!imgRef.current) return null;
+    const destH = Math.max(1, Math.round(destW * (srcH / srcW)));
+    const canvas = document.createElement('canvas');
+    canvas.width = destW;
+    canvas.height = destH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(imgRef.current, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
+    return { src: canvas.toDataURL(OUTPUT_TYPE, quality), w: destW, h: destH };
+  };
 
-    // Source pixel rect from the normalized crop.
+  const handleConfirm = () => {
+    if (!img) return;
+
     const srcX = crop.x * img.w;
     const srcY = crop.y * img.h;
     const srcW = crop.w * img.w;
     const srcH = crop.h * img.h;
 
-    // Output aspect keeps the crop's ratio; width is free-form.
-    const destW = mathClamp(Math.round(outWidth), 10, contentWidth);
-    const destH = Math.max(1, Math.round(destW * (srcH / srcW)));
-
-    const canvas = document.createElement('canvas');
-    canvas.width = destW;
-    canvas.height = destH;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !imgRef.current) {
+    if (srcW < 1 || srcH < 1) {
       message.error('Failed to process the image');
       return;
     }
-    ctx.drawImage(
-      imgRef.current,
-      srcX,
-      srcY,
-      srcW,
-      srcH,
-      0,
-      0,
-      destW,
-      destH
-    );
 
-    const outSrc = canvas.toDataURL(OUTPUT_TYPE, OUTPUT_QUALITY);
+    const baseW = Math.min(Math.round(srcW), contentWidth);
+    let composed: { src: string; w: number; h: number } | null = null;
+    let usedQuality = 1;
+
+    for (const quality of OUTPUT_QUALITY_STEPS) {
+      const attempt = canvasCompose(srcX, srcY, srcW, srcH, baseW, quality);
+      if (!attempt) break;
+      if (dataUrlBytes(attempt.src) <= EDITOR_IMAGE_MAX_BYTES) {
+        composed = attempt;
+        usedQuality = quality;
+        break;
+      }
+    }
+
+    if (!composed) {
+      message.error(`Image is too large even at the lowest quality (${baseW}px wide).`);
+      return;
+    }
+
+    if (usedQuality < OUTPUT_QUALITY_STEPS[0]) {
+      message.warning(`Image re-compressed to fit at ${composed.w}px wide.`);
+    }
     reset();
-    onConfirm(outSrc, destW);
+    onConfirm(composed.src);
   };
 
   // --- Crop box interaction ------------------------------------------------
@@ -239,25 +256,6 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
     dragRef.current = null;
   };
 
-  // --- Scale controls -------------------------------------------------------
-
-  const handleFit = () => {
-    setOutWidth(contentWidth);
-  };
-
-  const handleWidthChange = (value: number | null) => {
-    if (value == null) return;
-    setOutWidth(mathClamp(Math.round(value), 10, contentWidth));
-  };
-
-  // Derive the aspect-locked height preview for the chosen width.
-  const outputHeight = (): number => {
-    if (!img || !outWidth) return 0;
-    const srcH = crop.h * img.h;
-    const srcW = crop.w * img.w || 1;
-    return Math.max(1, Math.round(outWidth * (srcH / srcW)));
-  };
-
   return (
     <Modal
       open={open}
@@ -266,7 +264,7 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
       centered
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <Text type="secondary">Crop the image, then set its width in the blog.</Text>
+          <Text type="secondary">Crop the image, then insert it.</Text>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button onClick={handleCancel}>Cancel</Button>
             <Button type="primary" onClick={handleConfirm} style={{ backgroundColor: '#52c41a' }}>
@@ -277,7 +275,7 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
       }
     >
       <Title level={5} style={{ marginTop: 0 }}>
-        Crop &amp; scale image
+        Crop image
       </Title>
 
       <div className="bie-box-wrap">
@@ -319,35 +317,6 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
         </div>
       </div>
 
-      <div className="bie-controls">
-        <div className="bie-control-row">
-          <Text className="bie-control-label">Width (px)</Text>
-          <InputNumber
-            min={10}
-            max={contentWidth}
-            value={outWidth}
-            onChange={handleWidthChange}
-            style={{ width: 140 }}
-          />
-          <Button onClick={handleFit} className="bie-fit-btn">
-            Fit to blog width ({contentWidth}px)
-          </Button>
-        </div>
-        <div className="bie-control-row">
-          <Text className="bie-control-label">Output size</Text>
-          <Text type="secondary">
-            {outWidth} × {outputHeight()} px
-          </Text>
-        </div>
-        <div className="bie-control-row">
-          <Slider
-            min={10}
-            max={contentWidth}
-            value={outWidth ?? 10}
-            onChange={(v) => setOutWidth(mathClamp(Math.round(v as number), 10, contentWidth))}
-          />
-        </div>
-      </div>
     </Modal>
   );
 };
@@ -356,8 +325,8 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
 
 type ResizeHandleMode = (typeof HANDLES)[number];
 
-const mathClamp = (v: number, min: number, max: number): number =>
-  Math.max(min, Math.min(max, v));
+const dataUrlBytes = (dataUrl: string): number =>
+  Math.ceil((dataUrl.length * 3) / 4);
 
 // Clamp a number between min and max (used for normalized crop geometry).
 const clampNum = (v: number, min: number, max: number): number =>

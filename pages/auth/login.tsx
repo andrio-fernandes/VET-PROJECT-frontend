@@ -36,7 +36,7 @@ export default function LoginPage() {
       message.success('Logged in successfully!');
       setTimeout(
         () =>
-          router.push(
+          router.replace(
             data.data?.user?.role === 'admin'
               ? ROUTE_PATHS.adminDashboard
               : ROUTE_PATHS.userDashboard

@@ -17,12 +17,16 @@ import type {
   RecentItem,
   DashboardFaqRecord as FaqRecord,
 } from "@/types/dashboard";
+import type { PurgedVideo } from "@/types/video";
 
 export interface DashboardState {
   stats: DashboardStats;
   recentVideos: RecentItem[];
   recentBlogs: RecentItem[];
   recentFaqs: FaqRecord[];
+  // Failed videos the backend purged on the last recent-videos fetch; the
+  // dashboard pops once per entry instead of every showing the deleted row.
+  purgedVideos: PurgedVideo[];
   loading: boolean;
   faqsLoading: boolean;
   error: string;
@@ -33,6 +37,7 @@ const initialState: DashboardState = {
   recentVideos: [],
   recentBlogs: [],
   recentFaqs: [],
+  purgedVideos: [],
   loading: false,
   faqsLoading: false,
   error: "",
@@ -52,6 +57,7 @@ const toRecentItem = (
   processingStatus: record.processingStatus,
   videoUrl: record.videoUrl,
   description: record.description,
+  createdById: record.createdById ?? record.createdBy?._id ?? null,
 });
 
 export const fetchDashboardStats = createAsyncThunk(
@@ -68,11 +74,17 @@ export const fetchDashboardStats = createAsyncThunk(
 
 export const fetchRecentVideos = createAsyncThunk(
   "dashboard/fetchRecentVideos",
-  async (fallbackName: string): Promise<RecentItem[]> => {
+  async (fallbackName: string): Promise<{ list: RecentItem[]; purged: PurgedVideo[] }> => {
     const data = await api(`${API_ENDPOINTS.getVideos}?page=1&limit=4`);
-    return (data?.videos ?? []).map((video: any) =>
-      toRecentItem(video, "Unknown")
-    );
+    return {
+      list: (data?.videos ?? []).map((video: any) =>
+        toRecentItem(video, "Unknown")
+      ),
+      purged: (data?.purged ?? []).map((video: any) => ({
+        key: video?._id ?? video?.id,
+        title: video?.title ?? "",
+      })),
+    };
   }
 );
 
@@ -103,6 +115,7 @@ const dashboardSlice = createSlice({
       state.recentVideos = [];
       state.recentBlogs = [];
       state.recentFaqs = [];
+      state.purgedVideos = [];
       state.error = "";
     },
   },
@@ -122,13 +135,16 @@ const dashboardSlice = createSlice({
       })
       .addCase(fetchRecentVideos.pending, (state) => {
         state.loading = true;
+        state.purgedVideos = [];
       })
       .addCase(fetchRecentVideos.fulfilled, (state, action) => {
-        state.recentVideos = action.payload;
+        state.recentVideos = action.payload.list;
+        state.purgedVideos = action.payload.purged;
         state.loading = false;
       })
       .addCase(fetchRecentVideos.rejected, (state) => {
         state.loading = false;
+        state.purgedVideos = [];
       })
       .addCase(fetchRecentBlogs.pending, (state) => {
         state.loading = true;

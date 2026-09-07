@@ -21,6 +21,8 @@ export interface RecentItem {
   processingStatus?: string;
   videoUrl?: string;
   description?: string;
+  // Owner's user id (videos) so the dashboard can reflect edit/delete rights.
+  createdById?: string;
 }
 
 export interface DashboardFaqRecord {

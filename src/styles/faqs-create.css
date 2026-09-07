@@ -71,6 +71,26 @@
   margin-bottom: 24px;
 }
 
+.faqs-create-section-label {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.faqs-create-required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.faqs-create-hint {
+  display: block;
+  margin: 4px 0 10px;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
 .faqs-create-select-item {
   margin-bottom: 0;
 }

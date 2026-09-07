@@ -41,11 +41,15 @@ interface StoreSessionPayload {
 
 let storedUserCache: StoredUser | null = undefined as unknown as StoredUser;
 
+const normalizeUser = (user: StoredUser): StoredUser =>
+  user.id && !user._id ? { ...user, _id: user.id as string } : user;
+
 const readStoredUser = (): StoredUser | null => {
   if (storedUserCache === undefined) {
     try {
       const raw = localStorage.getItem(USER_KEY);
-      storedUserCache = raw ? JSON.parse(raw) : null;
+      const parsed: StoredUser | null = raw ? JSON.parse(raw) : null;
+      storedUserCache = parsed ? normalizeUser(parsed) : null;
     } catch {
       storedUserCache = null;
     }
@@ -66,11 +70,19 @@ const storeSession = ({
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    const normalized = normalizeUser(user);
+    localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+    // Keep the module-level cache in sync so a new session (e.g. after
+    // another account logged in) never reads the previous user from it.
+    storedUserCache = normalized;
   }
 };
 
 const clearSession = (): void => {
+  // The cache must die with the session: readStoredUser memoizes it once and
+  // useSyncExternalStore would keep feeding the old identity to every
+  // component (ownership checks, admin names) after a logout.
+  storedUserCache = undefined as unknown as StoredUser;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);

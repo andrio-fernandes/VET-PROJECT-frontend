@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { App as AntApp, Button, Modal, Typography } from 'antd';
+import { App as AntApp, Button, Typography } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -9,22 +9,29 @@ import {
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { useCurrentUser } from '@/hooks/useAuth';
 import { deleteVideo, getVideos } from '@/services/videoService';
 import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY, type ContentModule, type ContentCategory } from '@/constants';
-import { mediaUrl } from '@/utils/media';
-import defaultThumbnail from '@/assets/default.jpg';
+import { mediaUrl, contentThumbnail } from '@/utils/media';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
-import type { VideoRecord } from '@/types/video';
+import type { VideoRecord, VideoProcessingStatus } from '@/types/video';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
+import { notifyFailedVideos } from '@/utils/videoFailure';
 
 const { Text } = Typography;
 
 type Video = VideoRecord;
 
+const isReady = (record: Video) =>
+  !record.processingStatus || record.processingStatus === 'ready';
+
 const Videos = () => {
   const router = useRouter();
-  const { message } = AntApp.useApp();
+  const { message, modal, notification } = AntApp.useApp();
+  const currentUser = useCurrentUser();
+  const currentUserId = currentUser?._id ? String(currentUser._id) : "";
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
 
   const [page, setPage] = useState(1);
   const [moduleFilter, setModuleFilter] = useState('All');
@@ -35,18 +42,29 @@ const Videos = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Ownership check (mirrors the server rule enabled by the createdById field
+  // the backend attaches). The server still enforces it on PUT/DELETE.
+  const canManage = (record: Video) =>
+    isSuperAdmin ||
+    (Boolean(record.createdById) && record.createdById === currentUserId);
+
   const applyVideosFromData = useCallback((data: any) => {
     setVideos(
       (data?.videos ?? []).map((v: any) => ({
-        key: v._id,
+        key: v.key ?? v._id,
         title: v.title,
         description: v.description,
         createdAt: v.createdAt,
-        createdBy: v.createdBy?.fullName || v.createdBy?.username || 'Unknown',
+        createdBy:
+          typeof v.createdBy === 'string'
+            ? v.createdBy
+            : v.createdBy?.fullName || v.createdBy?.username || 'Unknown',
         module: v.module,
         category: v.category,
         videoUrl: v.videoUrl,
         thumbnailUrl: v.thumbnailUrl,
+        processingStatus: v.processingStatus as VideoProcessingStatus | undefined,
+        createdById: v.createdById ?? v.createdBy?._id ?? null,
       }))
     );
     setTotal(data?.totalVideos ?? 0);
@@ -62,7 +80,12 @@ const Videos = () => {
 
       try {
         const data = await getVideos(params.toString());
-        if (!ignore) applyVideosFromData(data);
+        if (!ignore) {
+          applyVideosFromData(data);
+          // The backend purges failed records on this call; pop once per
+          // purged video instead of showing the deleted row.
+          notifyFailedVideos(notification, data.purged ?? []);
+        }
       } catch (error: any) {
         if (!ignore) message.error(error.message || 'Failed to load videos.');
       } finally {
@@ -75,12 +98,17 @@ const Videos = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, applyVideosFromData, reloadKey]);
+  }, [page, moduleFilter, categoryFilter, message, notification, applyVideosFromData, reloadKey]);
 
   const handleView = (record: Video) => {
+    if (!isReady(record)) {
+      message.warning('This video is not ready to view yet.');
+      return;
+    }
     sessionStorage.setItem(
       VIDEO_PREVIEW_STORAGE_KEY,
       JSON.stringify({
+        id: record.key,
         title: record.title,
         description: record.description,
         src: mediaUrl(record.videoUrl),
@@ -90,11 +118,13 @@ const Videos = () => {
   };
 
   const handleEdit = (record: Video) => {
+    if (!canManage(record)) return;
     router.push(`/videos/create?id=${record.key}`);
   };
 
   const handleDelete = (record: Video) => {
-    Modal.confirm({
+    if (!canManage(record)) return;
+    modal.confirm({
       title: 'Delete video',
       content: 'Are you sure you want to delete this video? This action cannot be undone.',
       okText: 'Delete',
@@ -130,7 +160,7 @@ const Videos = () => {
         <div className="videos-cell-title">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={record.thumbnailUrl ? mediaUrl(record.thumbnailUrl) : defaultThumbnail.src}
+            src={contentThumbnail(record.thumbnailUrl)}
             alt={text}
             className="videos-cell-thumb"
           />
@@ -153,7 +183,7 @@ const Videos = () => {
       key: 'createdAt',
       width: '18%',
       render: (text: string) => (
-        <Text className="videos-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
+        <Text className="videos-cell-muted">{dayjs(text).format('DD/MM/YY')}</Text>
       ),
     },
     {
@@ -173,23 +203,28 @@ const Videos = () => {
         <div className="videos-action-group">
           <Button
             type="text"
-            title="View"
+            title={isReady(record) ? 'View' : 'Not ready yet'}
+            disabled={!isReady(record)}
             icon={<EyeOutlined className="videos-action-icon" />}
             onClick={() => handleView(record)}
           />
-          <Button
-            type="text"
-            title="Edit"
-            icon={<EditOutlined className="videos-action-icon" />}
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            type="text"
-            title="Delete"
-            loading={deletingId === record.key}
-            icon={<DeleteOutlined className="videos-action-delete" />}
-            onClick={() => handleDelete(record)}
-          />
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Edit"
+              icon={<EditOutlined className="videos-action-icon" />}
+              onClick={() => handleEdit(record)}
+            />
+          )}
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Delete"
+              loading={deletingId === record.key}
+              icon={<DeleteOutlined className="videos-action-delete" />}
+              onClick={() => handleDelete(record)}
+            />
+          )}
         </div>
       ),
     },

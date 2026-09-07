@@ -10,15 +10,18 @@
 import { useRef, useState } from 'react';
 import { useEffect } from 'react';
 import type { NextRouter } from 'next/router';
+import type { MessageInstance } from 'antd/es/message/interface';
 
 import { BLOG_PREVIEW_STORAGE_KEY, BLOG_EDIT_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
 import { fileToDataUrl } from '@/utils/file';
+import { writePreviewValue } from '@/utils/blogPreviewStorage';
 import type { PickedAttachment, PickedImage } from '@/types/blog';
 import type { BlogFormValues } from './useBlogDraft';
 
 interface UseBlogDraftNavigationOptions {
   router: NextRouter;
+  message: MessageInstance;
   editMode?: boolean;
   /** The editing blog id, used to keep the edit URL across the preview hop. */
   blogId?: string;
@@ -39,6 +42,7 @@ interface UseBlogDraftNavigationOptions {
 
 export const useBlogDraftNavigation = ({
   router,
+  message,
   editMode = false,
   blogId = '',
   getValues,
@@ -112,14 +116,13 @@ export const useBlogDraftNavigation = ({
       category: values.category ?? '',
       content: values.content ?? '',
       thumbnail: previewThumbnail,
-      attachments: previewAttachments.length
-        ? previewAttachments
-        : attachments.map((a) => a.name),
+      attachments: previewAttachments,
     };
     try {
-      localStorage.setItem(BLOG_PREVIEW_STORAGE_KEY, JSON.stringify(previewDraft));
+      await writePreviewValue(BLOG_PREVIEW_STORAGE_KEY, previewDraft);
     } catch {
-      /* storage unavailable */
+      message.error('Blog is too large to preview. Save the blog first, then preview again.');
+      return;
     }
 
     // In edit mode, snapshot the current (possibly unsaved) form state so the
@@ -127,26 +130,26 @@ export const useBlogDraftNavigation = ({
     // the last-saved server values. Existing server assets are re-seeded from
     // the server on return, so only picked (unsaved) assets and text are kept.
     if (editMode && blogId) {
+      const editSnapshot = {
+        blogId,
+        title: values.title ?? '',
+        description: values.description ?? '',
+        module: values.module ?? '',
+        category: values.category ?? '',
+        content: values.content ?? '',
+        thumbnail: thumbnail
+          ? { source: 'picked', name: thumbnail.name, dataUrl: thumbnailDataUrl }
+          : null,
+        attachments: pickedDataUrls,
+        // Preserve the removal intent so the round-trip back to the edit page
+        // keeps attaching-sensitive edits (removing an existing attachment)
+        // instead of resurrecting them from the freshly-fetched server list.
+        removedAttachmentUrls: getRemovedAttachmentUrls(),
+      };
       try {
-        const editSnapshot = {
-          blogId,
-          title: values.title ?? '',
-          description: values.description ?? '',
-          module: values.module ?? '',
-          category: values.category ?? '',
-          content: values.content ?? '',
-          thumbnail: thumbnail
-            ? { source: 'picked', name: thumbnail.name, dataUrl: thumbnailDataUrl }
-            : null,
-          attachments: pickedDataUrls,
-          // Preserve the removal intent so the round-trip back to the edit page
-          // keeps attaching-sensitive edits (removing an existing attachment)
-          // instead of resurrecting them from the freshly-fetched server list.
-          removedAttachmentUrls: getRemovedAttachmentUrls(),
-        };
-        localStorage.setItem(BLOG_EDIT_PREVIEW_STORAGE_KEY, JSON.stringify(editSnapshot));
+        await writePreviewValue(BLOG_EDIT_PREVIEW_STORAGE_KEY, editSnapshot);
       } catch {
-        /* storage unavailable */
+        message.warning('Preview opened, but your unsaved changes could not be restored when you return.');
       }
     }
 

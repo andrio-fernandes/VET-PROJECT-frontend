@@ -7,6 +7,7 @@ import { emailRules } from "@/utils/validation";
 import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import AuthCard from "@/components/AuthCard";
 import { emptySubscribe } from "@/utils/input";
+import { isResetFlowActive, markResetFlowActive, clearResetFlow } from "@/utils/resetFlow";
 
 const { Title, Text } = Typography;
 
@@ -33,18 +34,17 @@ export default function ForgotPasswordPage() {
     () => 0,
   );
 
-  // Each fresh visit to Forgot Password belongs to a new user flow, so clear
-  // any OTP attempt/reset state left behind by a previous user on this device.
-  // The current user's own clicks re-populate it via onFinish below.
-  useEffect(() => {
-    sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
-    sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
-    sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
-    sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
-    sessionStorage.removeItem(STORAGE_KEYS.resetToken);
-    sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
-    setSubmitted(false);
-  }, []);
+// A brand-new visit to Forgot Password (e.g. typed URL, fresh tab, or after a
+// flow completed) starts a clean slate, so state from a previous capture on
+// this device never leaks into the new flow. But if the user pressed browser
+// Back from the OTP page, an active flow is still in progress and its state
+// must NOT be wiped - only clear on a genuinely new visit.
+useEffect(() => {
+  if (isResetFlowActive()) {
+    return;
+  }
+  clearResetFlow();
+}, []);
 
   const onFinish = async (values: { email: string }) => {
     setLoading(true);
@@ -58,6 +58,9 @@ export default function ForgotPasswordPage() {
       // navigation between the forgot-password and OTP pages. A different
       // email, or a lapsed request window, starts a fresh count.
       const now = Date.now();
+      // An in-progress reset flow now exists; the OTP and reset-password pages
+      // rely on it, and a browser Back here must not wipe it.
+      markResetFlowActive();
       const previousWindowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart));
       const withinRequestWindow =
         previousWindowStart > 0 && now - previousWindowStart < OTP_REQUEST_WINDOW_SECONDS * 1000;
@@ -73,11 +76,16 @@ export default function ForgotPasswordPage() {
             : previousAttempts + 1;
 
       sessionStorage.setItem(STORAGE_KEYS.resetEmail, email);
-      // A fresh OTP link (with a new single-use token) is sent by email, so
-      // any token cached from a previous flow is now stale. The token is only
-      // restored when the user opens the emailed link.
-      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
+      // The single-use reset token is returned by the server (not emailed) and
+      // lets the user go straight to the OTP page. A re-send mints a new token,
+      // so any token cached from a previous flow is stale and is replaced below.
+      if (typeof data?.token === "string" && data.token) {
+        sessionStorage.setItem(STORAGE_KEYS.resetToken, data.token);
+      }
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
+      // A re-send starts a fresh verification budget on the OTP page even if a
+      // previous flow for another email left burn-down behind.
+      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       sessionStorage.setItem(STORAGE_KEYS.resetOtpAttempts, String(nextAttempt));
       if (isNewResetFlow || !withinRequestWindow) {
         sessionStorage.setItem(STORAGE_KEYS.resetOtpWindowStart, String(now));
@@ -89,9 +97,15 @@ export default function ForgotPasswordPage() {
       message.success(
         "If an account exists for this email, an OTP has been sent to your inbox.",
       );
-      setTimeout(() => router.push(ROUTE_PATHS.login), 600);
+      setTimeout(() => router.push(ROUTE_PATHS.otp), 600);
     } catch (error: any) {
-      message.error(error.message || "Failed to send OTP. Please try again.");
+      if (error?.code === "RATE_LIMITED") {
+        message.error(error.message || "Too many requests. Please try again later.");
+        clearResetFlow();
+        setTimeout(() => router.replace(ROUTE_PATHS.login), 1000);
+      } else {
+        message.error(error.message || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

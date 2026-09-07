@@ -24,6 +24,7 @@ const UploadFAQ = () => {
   const pendingNavRef = useRef<string | null>(null);
   const confirmLeaveRef = useRef<(() => void) | null>(null);
   const retainedDataRef = useRef<string | null>(null);
+  const skipNavConfirmRef = useRef(false);
 
   // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
@@ -64,6 +65,7 @@ const UploadFAQ = () => {
       setSubmitted(false);
       form.resetFields();
       setPreviewVisible(false);
+      skipNavConfirmRef.current = true;
       router.push(ROUTE_PATHS.adminDashboard);
     } catch (error: any) {
       message.error(error.message || 'Failed to upload FAQ');
@@ -135,7 +137,7 @@ const UploadFAQ = () => {
 
   useEffect(() => {
     const handleRouteChange = (url: string) => {
-      if (!isDirty) return;
+      if (skipNavConfirmRef.current || !isDirty) return;
       pendingNavRef.current = url;
       openLeaveConfirm(() => {
         pendingNavRef.current = null;
@@ -147,11 +149,16 @@ const UploadFAQ = () => {
     const handleRouteChangeError = (err: any) => {
       if (err !== 'Navigation cancelled') throw err;
     };
+    const handleRouteChangeComplete = () => {
+      skipNavConfirmRef.current = false;
+    };
     router.events.on('routeChangeStart', handleRouteChange);
     router.events.on('routeChangeError', handleRouteChangeError);
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
       router.events.off('routeChangeError', handleRouteChangeError);
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
     };
   }, [isDirty, router, openLeaveConfirm]);
 
@@ -260,11 +267,14 @@ const UploadFAQ = () => {
 
               <WordCount value={answerValue} max={60} />
 
-              <Form.Item
-                label={<span className="faqs-create-label">Select the module and categories</span>}
-                required
-                className="faqs-create-select-block"
-              >
+              <div className="faqs-create-select-block">
+                <div className="faqs-create-section-label">
+                  Select the module and categories
+                  <span className="faqs-create-required">*</span>
+                </div>
+                <div className="faqs-create-hint">
+                  Select the module and category where your FAQ should be placed
+                </div>
                 <ModuleCategorySelects
                   showFieldLabels
                   moduleItemClassName="faqs-create-select-item"
@@ -274,7 +284,7 @@ const UploadFAQ = () => {
                   moduleRequiredMessage="Please select a module"
                   categoryRequiredMessage="Please select a category"
                 />
-              </Form.Item>
+              </div>
 
               <div className="faqs-create-divider" />
 
@@ -289,7 +299,7 @@ const UploadFAQ = () => {
 
                 <Space size="middle">
                   <Button size="large" onClick={handleCancel} disabled={loading} className="faqs-create-btn-cancel">Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} className="faqs-create-btn-create">Create</Button>
+                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="faqs-create-btn-create">Create</Button>
                 </Space>
               </div>
 

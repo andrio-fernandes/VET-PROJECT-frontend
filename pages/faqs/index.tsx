@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Space, Button, App as AntApp, Modal, Typography } from 'antd';
+import { Space, Button, App as AntApp, Typography } from 'antd';
 import {
   EyeOutlined,
   EditOutlined,
@@ -10,9 +10,11 @@ import {
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { PAGE_SIZE } from '@/constants';
+import { useCurrentUser } from '@/hooks/useAuth';
 import { deleteFaq, getMyFaqs } from '@/services/faqService';
 import type { FaqRecord } from '@/types/faq';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
+import { ViewFAQModal } from '@/components/common/ViewFAQModal';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -21,6 +23,16 @@ const { Text } = Typography;
 const ViewFaqs = () => {
   const router = useRouter();
   const { message, modal } = AntApp.useApp();
+  const currentUser = useCurrentUser();
+
+  const currentUserId = currentUser?._id ? String(currentUser._id) : "";
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
+
+  // Ownership check (mirrors the server rule enabled by the createdById field
+  // on each FAQ row): only the creator or a super admin can edit/delete.
+  const canManage = (record: FaqRecord) =>
+    isSuperAdmin ||
+    (Boolean(record.createdById) && record.createdById === currentUserId);
 
   const [faqs, setFaqs] = useState<FaqRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +125,7 @@ const ViewFaqs = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: '18%',
-      render: (text: string) => <Text className="faqs-cell-text">{dayjs(text).format('DD MMM YYYY')}</Text>,
+      render: (text: string) => <Text className="faqs-cell-text">{dayjs(text).format('DD/MM/YY')}</Text>,
     },
     {
       title: 'Created By',
@@ -136,18 +148,22 @@ const ViewFaqs = () => {
             icon={<EyeOutlined className="faqs-action-icon" />}
             onClick={() => setViewingFaq(record)}
           />
-          <Button
-            type="text"
-            title="Edit"
-            icon={<EditOutlined className="faqs-action-icon" />}
-            onClick={() => router.push(`/faqs/edit?id=${record._id}`)}
-          />
-          <Button
-            type="text"
-            title="Delete"
-            icon={<DeleteOutlined className="faqs-action-delete" />}
-            onClick={() => showDeleteConfirm(record._id)}
-          />
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Edit"
+              icon={<EditOutlined className="faqs-action-icon" />}
+              onClick={() => router.push(`/faqs/edit?id=${record._id}`)}
+            />
+          )}
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Delete"
+              icon={<DeleteOutlined className="faqs-action-delete" />}
+              onClick={() => showDeleteConfirm(record._id)}
+            />
+          )}
         </Space>
       ),
     },
@@ -188,47 +204,12 @@ const ViewFaqs = () => {
         }}
         tableLayout="fixed"
         extra={
-          <>
-            {/* VIEW FAQ MODAL */}
-            <Modal
-              title={null}
-              open={Boolean(viewingFaq)}
-              onCancel={() => setViewingFaq(null)}
-              footer={null}
-              width={736}
-              centered
-              className="faq-view-modal"
-              maskStyle={{
-                backdropFilter: 'blur(6px)',
-                backgroundColor: 'rgba(0, 0, 0, 0.2)',
-              }}
-              styles={{ body: { borderRadius: '12px', padding: '24px' } }}
-            >
-              {viewingFaq && (
-                <div>
-                  <div className="faqs-create-block">
-                    <Text className="faqs-create-preview-label faqs-create-preview-label-q">
-                      Question
-                    </Text>
-                    <Text strong className="faqs-create-preview-question">
-                      {viewingFaq.question}
-                    </Text>
-                  </div>
-
-                  <div className="faqs-create-preview-answer-block">
-                    <Text className="faqs-create-preview-label">
-                      Answer
-                    </Text>
-                  </div>
-                  <div className="faqs-create-preview-answer-box">
-                    <Text className="faqs-create-preview-answer">
-                      {viewingFaq.answer}
-                    </Text>
-                  </div>
-                </div>
-              )}
-            </Modal>
-          </>
+          <ViewFAQModal
+            open={Boolean(viewingFaq)}
+            question={viewingFaq?.question}
+            answer={viewingFaq?.answer}
+            onClose={() => setViewingFaq(null)}
+          />
         }
       />
     </AdminLayout>

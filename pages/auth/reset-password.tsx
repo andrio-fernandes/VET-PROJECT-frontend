@@ -5,7 +5,8 @@ import { useRouter } from "next/router";
 import { resetPassword } from "@/services/authService";
 import { passwordRules } from "@/utils/validation";
 import { clearSession } from "@/hooks/useAuth";
-import { ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
+import { ROUTE_PATHS, STORAGE_KEYS, PASSWORD_VALIDATOR_RULES } from "@/constants";
+import { clearResetFlow } from "@/utils/resetFlow";
 import PasswordStrength from "@/components/password-strength";
 import AuthCard from "@/components/AuthCard";
 import { preventSpaces, emptySubscribe } from "@/utils/input";
@@ -56,18 +57,21 @@ export default function ResetPasswordPage() {
     try {
       await resetPassword(email, token, values.password);
 
-      sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
-      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
+      // Wipe the flow (email, token, OTP flags) and any active login. After
+      // this the reset token is single-use and consumed, and the fresh
+      // password takes over.
+      clearResetFlow();
       clearSession();
       message.success("Password reset successful!");
       setTimeout(() => router.push(ROUTE_PATHS.login), 600);
     } catch (error: any) {
-      message.error(error.message || "Failed to reset password. Please try again.");
+      if (error?.code === "RATE_LIMITED") {
+        message.error(error.message || "Too many requests. Please try again later.");
+        clearResetFlow();
+        setTimeout(() => router.replace(ROUTE_PATHS.login), 1000);
+      } else {
+        message.error(error.message || "Failed to reset password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -88,7 +92,7 @@ export default function ResetPasswordPage() {
             label={<Text strong>New Password</Text>}
             name="password"
             required
-            rules={passwordRules}
+            rules={[...passwordRules, ...PASSWORD_VALIDATOR_RULES]}
             extra={<PasswordStrength password={password || ""} />}
           >
             <Input.Password size="large" placeholder="Enter new password" onKeyDown={preventSpaces} />

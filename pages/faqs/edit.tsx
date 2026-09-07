@@ -265,7 +265,7 @@ const EditFAQ = () => {
 
                 <Space size="middle">
                   <Button size="large" onClick={handleCancel} disabled={loading} className="faqs-create-btn-cancel">Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} className="faqs-create-btn-create">Save</Button>
+                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="faqs-create-btn-create">Save</Button>
                 </Space>
               </div>
 

@@ -19,6 +19,10 @@ import { useBlogAssets } from './useBlogAssets';
 import { useBlogDraftPersistence } from './useBlogDraftPersistence';
 import { useBlogDraftNavigation } from './useBlogDraftNavigation';
 import { BLOG_EDIT_PREVIEW_STORAGE_KEY } from '@/constants/blog';
+import {
+  readPreviewValue,
+  removePreviewValue,
+} from '@/utils/blogPreviewStorage';
 import { dataUrlToFile } from '@/utils/file';
 
 export interface BlogFormValues {
@@ -121,25 +125,19 @@ export const useBlogDraft = ({
   // unsaved text + freshly picked assets survive the preview round-trip.
   const restoreEditRoundTrip = async (targetBlogId: string) => {
     if (!targetBlogId) return;
-    let raw: string | null = null;
+    let snapshot: any;
     try {
-      raw = localStorage.getItem(BLOG_EDIT_PREVIEW_STORAGE_KEY);
+      snapshot = await readPreviewValue(BLOG_EDIT_PREVIEW_STORAGE_KEY);
     } catch {
       return;
     }
-    if (!raw) return;
+    if (!snapshot) return;
     try {
-      localStorage.removeItem(BLOG_EDIT_PREVIEW_STORAGE_KEY);
+      await removePreviewValue(BLOG_EDIT_PREVIEW_STORAGE_KEY);
     } catch {
       /* ignore */
     }
-    let snapshot: any;
-    try {
-      snapshot = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    if (!snapshot || snapshot.blogId !== targetBlogId) return;
+    if (snapshot.blogId !== targetBlogId) return;
 
     reset({
       title: snapshot.title ?? '',
@@ -180,6 +178,7 @@ export const useBlogDraft = ({
 
   const navigation = useBlogDraftNavigation({
     router,
+    message,
     editMode,
     blogId,
     getValues,

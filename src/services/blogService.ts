@@ -103,8 +103,16 @@ export const deleteBlog = async (blogId: string): Promise<void> => {
   });
 };
 
-export const getMyBlogs = async (page = 1, limit = 10): Promise<PaginatedBlogs> => {
-  const data = await api(`${API_ENDPOINTS.getMyBlogs}?page=${page}&limit=${limit}`);
+export const getMyBlogs = async (
+  page = 1,
+  limit = 10,
+  module?: string,
+  category?: string
+): Promise<PaginatedBlogs> => {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (module) query.set("module", module);
+  if (category) query.set("category", category);
+  const data = await api(`${API_ENDPOINTS.getMyBlogs}?${query.toString()}`);
   return {
     blogs: data?.blogs ?? [],
     page: data?.page ?? page,

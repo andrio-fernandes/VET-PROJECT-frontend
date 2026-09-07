@@ -2,6 +2,15 @@
 // MEDIA / URL HELPERS
 // =============================================
 
+import defaultThumbnail from '@/assets/default.jpg';
+
+// Resolves a content record's thumbnail: the record's own image when present
+// (uploaded media, passed through mediaUrl), otherwise the bundled
+// default.jpg. Use this instead of manual `url ? mediaUrl(url) : default`
+// ternaries.
+export const contentThumbnail = (url?: string): string =>
+  url ? mediaUrl(url) : defaultThumbnail.src;
+
 // Uploaded binaries live on the API server (served from /uploads at the
 // server root, NOT under /api), so strip any /api suffix before prefixing.
 export const mediaUrl = (path?: string): string => {

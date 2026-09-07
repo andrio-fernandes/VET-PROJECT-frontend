@@ -12,6 +12,9 @@ import {
 
 import { clearSession, useCurrentUser } from '@/hooks/useAuth';
 import { ROUTE_PATHS } from '@/constants';
+import { clearBlogs } from '@/redux/blog/blogSlice';
+import { clearDashboard } from '@/redux/dashboard/dashboardSlice';
+import { useAppDispatch } from '@/redux/hooks';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -25,9 +28,12 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }) => {
   const router = useRouter();
   const user = useCurrentUser();
+  const dispatch = useAppDispatch();
   const userEmail = user?.email || '';
 
   const handleLogout = () => {
+    dispatch(clearBlogs());
+    dispatch(clearDashboard());
     clearSession();
     router.replace(ROUTE_PATHS.login);
   };

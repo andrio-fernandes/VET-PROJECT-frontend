@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
-import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/constants';
+import { COMMON_PASSWORDS, PASSWORD_VALIDATOR_RULES, ROUTE_PATHS } from '@/constants';
 import { preventSpaces } from '@/utils/input';
 const { Title, Paragraph } = Typography;
 
@@ -58,11 +58,6 @@ export default function RegisterPage() {
     if (formValues?.fullName?.trim()) {
       form.setFieldValue('username', generateUsername(formValues.fullName));
     }
-  };
-
-  const preventCopyPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    message.warning('Copying and pasting passwords is not allowed for security reasons.');
   };
 
   const onFinish = async (values: any) => {
@@ -217,14 +212,13 @@ export default function RegisterPage() {
                     return Promise.resolve();
                   },
                 }),
+                ...PASSWORD_VALIDATOR_RULES,
               ]}
             >
               <Input.Password
                 placeholder="Enter your password"
                 className="pill-input"
                 onKeyDown={preventSpaces}
-                onPaste={preventCopyPaste}
-                onCopy={preventCopyPaste}
               />
             </Form.Item>
 
@@ -251,8 +245,6 @@ export default function RegisterPage() {
                 placeholder="Confirm your password"
                 className="pill-input"
                 onKeyDown={preventSpaces}
-                onPaste={preventCopyPaste}
-                onCopy={preventCopyPaste}
               />
             </Form.Item>
 

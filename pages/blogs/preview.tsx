@@ -12,9 +12,11 @@ import { ROUTE_PATHS } from '@/constants';
 import {
   buildDocumentViewerUrl,
   fileNameFromUrl,
+  getAttachmentExtension,
   mediaUrl,
 } from '@/utils/media';
 import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
+import { readPreviewValue, removePreviewValue } from '@/utils/blogPreviewStorage';
 import { getBlogById } from '@/services/blogService';
 import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
 
@@ -37,17 +39,22 @@ const BlogPreview = () => {
   useEffect(() => {
     if (!router.isReady) return;
 
-    // Preview mode: load from localStorage instead of API
+    // Preview mode: load from storage instead of API
     if (isPreviewMode) {
-      try {
-        const raw = localStorage.getItem(BLOG_PREVIEW_STORAGE_KEY);
-        if (raw) {
-          const draft: PreviewDraft = JSON.parse(raw);
+      (async () => {
+        let draft: PreviewDraft | null = null;
+        try {
+          draft = await readPreviewValue<PreviewDraft>(BLOG_PREVIEW_STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        // Only clean up the preview draft once it has been read (or confirmed
+        // absent), so it is never removed before the read above completes.
+        if (draft) {
           // Tolerate drafts saved before the rename of `feature` -> `category`.
           const category =
             (draft as any).category ?? (draft as any).feature;
-          // Draft restore intentionally seeds state from localStorage on mount.
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+          // Draft restore intentionally seeds state from storage on mount.
           setBlog({
             title: draft.title,
             description: draft.description,
@@ -58,16 +65,12 @@ const BlogPreview = () => {
             attachment: draft.attachments?.length ? JSON.stringify(draft.attachments) : undefined,
           });
         }
-        // Only clean up the preview draft once it has been read (or confirmed
-        // absent), so it is never removed before the read above completes.
         try {
-          localStorage.removeItem(BLOG_PREVIEW_STORAGE_KEY);
+          await removePreviewValue(BLOG_PREVIEW_STORAGE_KEY);
         } catch {
           /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
+      })();
       return;
     }
 
@@ -143,16 +146,33 @@ const BlogPreview = () => {
 
   const openAttachment = (att: ParsedAttachment) => {
     // att.url is already resolved via mediaUrl() in attachmentUrls above, so
-    // both HTTPS and data: URLs are ready to use.
+    // any relative /uploads path, Cloudinary HTTPS URL and data: URL are ready.
 
-    // PDF / Office documents open in their third-party viewer in a NEW tab.
-    // Google Docs Viewer handles PDFs; Microsoft Office Viewer handles the
-    // Office formats. A downloadable (non-viewer) URL falls back to the
-    // existing download behavior below.
-    const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
-    if (viewerUrl) {
-      window.open(viewerUrl, '_blank');
+    // PDFs open directly in the browser's native viewer: third-party viewers
+    // (Google Docs Viewer) cannot fetch localhost, Cloudinary raw files or
+    // data: URLs, which produced a Google error page.
+    if (getAttachmentExtension(att.name) === 'pdf') {
+      fetch(att.url)
+        .then((res) => res.arrayBuffer())
+        .then((buf) => {
+          const blobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        })
+        .catch(() => {
+          window.open(att.url, '_blank');
+        });
       return;
+    }
+
+    // Office formats try the Microsoft Office Viewer in a new tab, but only
+    // for public URLs — third-party viewers can never reach data: URLs.
+    if (!att.url.startsWith('data:')) {
+      const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
+      if (viewerUrl) {
+        window.open(viewerUrl, '_blank');
+        return;
+      }
     }
 
     // Unsupported formats (and data: URLs that viewers cannot reach) keep the
@@ -178,7 +198,7 @@ const BlogPreview = () => {
     <AdminLayout>
       <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
         <div style={{ width: '100%' }}>
-        <div className="blog-content" style={{ maxWidth: '100%' }}>
+        <div className="blog-content">
           <PageHeader
             backHref={
               isPreviewMode

@@ -30,7 +30,9 @@ const handleUnauthorized = () => {
 
 // Exchange the refresh token for a new access + refresh pair.
 // Returns the new access token, or null when a re-login is required.
-const refreshSession = async (): Promise<string | null> => {
+// Exported so route guards (with-admin-auth) can silently refresh an expired
+// access token before deciding whether the user is still logged in.
+export const refreshSession = async (): Promise<string | null> => {
   if (typeof window === "undefined") return null;
 
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -119,10 +121,14 @@ export const api = async (
 
     const error = new Error(
       data?.message || "Something went wrong"
-    ) as Error & { remaining?: number };
+    ) as Error & { remaining?: number; code?: string };
 
     if (typeof data?.remaining === "number") {
       error.remaining = data.remaining;
+    }
+
+    if (typeof data?.code === "string") {
+      error.code = data.code;
     }
 
     throw error;
@@ -149,7 +155,7 @@ export const uploadWithProgress = (
 
     const transferStart = performance.now();
 
-    const request = (authToken: string | null) => {
+    const request = (authToken: string | null, alreadyRetried = false) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${API_URL}${endpoint}`);
 
@@ -197,6 +203,7 @@ export const uploadWithProgress = (
 
         if (
           xhr.status === 401 &&
+          !alreadyRetried &&
           typeof window !== "undefined" &&
           !window.location.pathname.startsWith("/auth")
         ) {
@@ -208,7 +215,7 @@ export const uploadWithProgress = (
 
           refreshInFlight.then((newToken) => {
             if (newToken) {
-              request(newToken);
+              request(newToken, true);
             } else {
               handleUnauthorized();
               reject(new Error(data?.message || "Something went wrong"));
@@ -219,9 +226,12 @@ export const uploadWithProgress = (
 
         const error = new Error(
           data?.message || "Something went wrong"
-        ) as Error & { remaining?: number };
+        ) as Error & { remaining?: number; code?: string };
         if (typeof data?.remaining === "number") {
           error.remaining = data.remaining;
+        }
+        if (typeof data?.code === "string") {
+          error.code = data.code;
         }
         reject(error);
       };

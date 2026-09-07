@@ -9,6 +9,7 @@ export interface FaqRecord {
   question: string;
   answer: string;
   createdBy?: { fullName?: string; username?: string };
+  createdById?: string | null;
   createdAt: string;
   updatedAt: string;
   module?: string;

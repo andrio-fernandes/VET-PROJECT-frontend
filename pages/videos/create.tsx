@@ -3,17 +3,16 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import { createVideo, getVideoById, updateVideo } from "@/services/videoService";
+import { createVideo, getVideoById, updateVideo, signVideoUpload, uploadFileToCloudinary, type UploadAbortHandle } from "@/services/videoService";
 import { ROUTE_PATHS, MAX_VIDEO_SIZE, MAX_THUMBNAIL_SIZE, RETAINED_VIDEO_STORAGE_KEY, countWords } from "@/constants";
-import { Form, Input, Upload, Button, Modal, Space, Spin, App as AntApp, Typography } from "antd";
+import { Form, Input, Upload, Button, Modal, Space, Spin, Progress, App as AntApp, Typography } from "antd";
 import {
   UploadOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
 import WordCount from "@/components/WordCount";
 import ModuleCategorySelects from "@/components/ModuleCategorySelects";
-import { mediaUrl } from "@/utils/media";
-import type { CreateVideoResult } from "@/services/videoService";
+import { mediaUrl, contentThumbnail } from "@/utils/media";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -22,7 +21,11 @@ const UploadVideo = () => {
   const router = useRouter();
 
   const videoId =
-    typeof router.query.id === "string" && router.query.id ? router.query.id : "";
+    typeof router.query.id === "string" &&
+    router.query.id &&
+    router.query.id !== "undefined"
+      ? router.query.id
+      : "";
   const editMode = Boolean(videoId);
 
   const [form] = Form.useForm();
@@ -34,7 +37,6 @@ const UploadVideo = () => {
   const [seeding, setSeeding] = useState(editMode);
   const [loading, setLoading] = useState(false);
   const [uploadFailed, setUploadFailed] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -44,13 +46,17 @@ const UploadVideo = () => {
     description: string;
     thumbnail?: string;
   } | null>(null);
-  const [stayOpen, setStayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelLeaveRef = useRef<(() => void) | null>(null);
   const pendingNavRef = useRef<string | null>(null);
   const skipNavConfirmRef = useRef(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
+  // Progress reported by the direct-to-Cloudinary transfer (browser -> CDN).
+  const [uploadProgress, setUploadProgress] = useState<{
+    phase: "video" | "thumbnail";
+    percent: number;
+  } | null>(null);
   // Original server values (edit mode only) used as the baseline so Cancel only
   // prompts when the user actually changed something.
   const [baseline, setBaseline] = useState<{
@@ -61,8 +67,10 @@ const UploadVideo = () => {
     hasVideo: boolean;
     hasThumbnail: boolean;
   }>({ title: '', description: '', hasVideo: false, hasThumbnail: false });
-  const jobRef = useRef<CreateVideoResult | null>(null);
   const mountedRef = useRef(true);
+  const abortRef = useRef<UploadAbortHandle | null>(null);
+  const abortingRef = useRef(false);
+  const [uploadLeaveOpen, setUploadLeaveOpen] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -162,20 +170,66 @@ const UploadVideo = () => {
     return false;
   };
 
+  // Uploads the selected file(s) directly to Cloudinary under a server-issued
+  // signature, then returns the new public ids. A missing file is skipped, so
+  // edit submissions can keep their existing media.
+  const uploadSelectedMedia = async (): Promise<{
+    publicId: string | undefined;
+    thumbnailPublicId: string | undefined;
+  }> => {
+    abortRef.current = null;
+    abortingRef.current = false;
+    let publicId: string | undefined;
+    if (file) {
+      setUploadProgress({ phase: "video", percent: 0 });
+      const signature = await signVideoUpload("video");
+      const result = await uploadFileToCloudinary(
+        file,
+        signature,
+        (percent) => setUploadProgress({ phase: "video", percent }),
+        abortRef
+      );
+      publicId = result?.public_id as string | undefined;
+      if (!publicId) throw new Error("Video upload did not return a public id.");
+    }
+
+    let thumbnailPublicId: string | undefined;
+    if (thumbnail) {
+      setUploadProgress({ phase: "thumbnail", percent: 0 });
+      const signature = await signVideoUpload("thumbnail");
+      const result = await uploadFileToCloudinary(
+        thumbnail,
+        signature,
+        (percent) => setUploadProgress({ phase: "thumbnail", percent }),
+        abortRef
+      );
+      thumbnailPublicId = result?.public_id as string | undefined;
+      if (!thumbnailPublicId)
+        throw new Error("Thumbnail upload did not return a public id.");
+    }
+
+    setUploadProgress(null);
+    return { publicId, thumbnailPublicId };
+  };
+
   const onFinish = async (values: any) => {
     if (editMode) {
       setLoading(true);
+      setUploadFailed(null);
       try {
+        // Upload replacement media (if any) directly to Cloudinary.
+        const media = await uploadSelectedMedia();
         await updateVideo(videoId, {
           title: values.title,
           description: values.description,
           module: values.module,
           category: values.category,
-          video: file,
-          thumbnail,
+          publicId: media.publicId ?? null,
+          thumbnailPublicId: media.thumbnailPublicId ?? null,
         });
         message.success("Video updated successfully");
         localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
+        setIsDirty(false);
         router.push(ROUTE_PATHS.videos);
       } catch (error: any) {
         message.error(error.message || "Failed to update video");
@@ -191,85 +245,52 @@ const UploadVideo = () => {
 
     setLoading(true);
     setUploadFailed(null);
-    setProcessing(false);
-    setStayOpen(true);
 
-    // Start the background upload. `createVideo` resolves as soon as the
-    // backend returns 202 Accepted — processing continues module-level,
-    // independent of this page. Real XHR progress is tracked internally but
-    // not displayed (per requirements).
-    const job = createVideo(
-      {
+    try {
+      // 1) Push the bytes to Cloudinary from the browser (server never buffers
+      //    the video), then 2) persist metadata + the resulting ids. No
+      //    background step: the record is created "ready" once this returns.
+      const media = await uploadSelectedMedia();
+      const created = await createVideo({
         title: values.title,
         description: values.description,
         module: values.module,
         category: values.category,
-        video: file,
-        thumbnail: thumbnail ?? undefined,
-      },
-      // real progress tracked internally, not rendered
-      () => {}
-    );
-    jobRef.current = job;
+        publicId: media.publicId as string,
+        thumbnailPublicId: media.thumbnailPublicId,
+      });
 
-    try {
-      // Wait until background processing reaches ready/failed/timeout.
-      const reason = await job.settled;
+      if (!created) throw new Error("Failed to create the video record.");
 
       if (!mountedRef.current) return;
 
-      if (reason.kind === "ready") {
-        setProcessing(false);
-        setSubmitted(false);
-        setIsDirty(false);
-        message.open({
-          content: "Video created successfully",
-          type: "success",
-          duration: 4,
-          className: "vc-center-message-open",
-          style: { fontSize: 16 },
-        });
-        localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
-        form.resetFields();
-        setFile(null);
-        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
-        setThumbnail(null);
-        setThumbnailPreview("");
-      } else {
-        // failed or timeout
-        setUploadFailed(reason.error);
-        setProcessing(false);
-        message.error(reason.error || "Failed to upload video");
-      }
+      setIsDirty(false);
+      message.open({
+        content: "Video created successfully",
+        type: "success",
+        duration: 4,
+        className: "vc-center-message-open",
+        style: { fontSize: 16 },
+      });
+      localStorage.removeItem(RETAINED_VIDEO_STORAGE_KEY);
+      form.resetFields();
+      setFile(null);
+      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+      setThumbnail(null);
+      setThumbnailPreview("");
+      // Navigate only after the loading flag clears so the route guard does
+      // not treat the finished upload as "in progress".
+      setLoading(false);
+      skipNavConfirmRef.current = true;
+      router.push(ROUTE_PATHS.adminDashboard);
     } catch (error: any) {
-      // Upload itself failed before the backend accepted it (network,
-      // validation, auth...). The manager mirrors "failed" in the slice, but
-      // the Create page surfaces the error so the admin can retry here.
-      if (mountedRef.current) {
+      if (mountedRef.current && !abortingRef.current) {
         setUploadFailed(error.message || "Failed to upload video");
         message.error(error.message || "Failed to upload video");
       }
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
-
-  // "Stay & View Progress": keep the admin on this page, show an
-  // indeterminate processing state, and keep waiting for the backend.
-  const handleStay = () => {
-    if (!mountedRef.current) return;
-    setStayOpen(false);
-    setProcessing(true);
-  };
-
-  // "Continue Working": do NOT cancel the upload. Redirect to the dashboard;
-  // the background manager keeps uploading/processing and the global
-  // notification fires when it's ready/failed.
-  const handleContinue = () => {
-    if (!mountedRef.current) return;
-    setStayOpen(false);
-    skipNavConfirmRef.current = true;
-    router.push(ROUTE_PATHS.adminDashboard);
   };
 
   const handleRetry = () => {
@@ -325,6 +346,10 @@ const UploadVideo = () => {
   };
 
   const handleCancel = () => {
+    if (loading) {
+      setUploadLeaveOpen(true);
+      return;
+    }
     if (editMode) {
       skipNavConfirmRef.current = true;
       setIsDirty(false);
@@ -335,8 +360,11 @@ const UploadVideo = () => {
         (values.description ?? "") !== baseline.description ||
         (values.module ?? "") !== baseline.module ||
         (values.category ?? "") !== baseline.category ||
-        Boolean(file) !== baseline.hasVideo ||
-        Boolean(thumbnail) !== baseline.hasThumbnail;
+        // In edit mode the existing video/thumbnail can only be REPLACED (never
+        // removed), so a newly picked file is exactly a media change. "Boolean(file)
+        // !== baseline.hasVideo" would miss a replacement (true !== true).
+        Boolean(file) ||
+        Boolean(thumbnail);
 
       if (!hasChanges) {
         router.push(ROUTE_PATHS.videos);
@@ -398,6 +426,24 @@ const UploadVideo = () => {
     router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
   };
 
+  const confirmUploadLeave = () => {
+    const url =
+      pendingNavRef.current ||
+      (editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
+    abortingRef.current = true;
+    abortRef.current?.abort();
+    skipNavConfirmRef.current = true;
+    setIsDirty(false);
+    setUploadLeaveOpen(false);
+    pendingNavRef.current = null;
+    router.push(url);
+  };
+
+  const confirmStayUploading = () => {
+    pendingNavRef.current = null;
+    setUploadLeaveOpen(false);
+  };
+
   const confirmRestoreDraft = () => {
     if (retainedDataRef.current) {
       const parsed = JSON.parse(retainedDataRef.current);
@@ -437,6 +483,12 @@ const UploadVideo = () => {
     const handleRouteChange = (url: string) => {
       if (editMode) return;
       if (skipNavConfirmRef.current) return;
+      if (loading) {
+        pendingNavRef.current = url;
+        setUploadLeaveOpen(true);
+        router.events.emit('routeChangeError');
+        throw 'Navigation cancelled';
+      }
       if (!isDirty) return;
       pendingNavRef.current = url;
       openCancelConfirm(() => {
@@ -449,24 +501,46 @@ const UploadVideo = () => {
     const handleRouteChangeError = (err: any) => {
       if (err !== 'Navigation cancelled') throw err;
     };
+    const handleRouteChangeComplete = () => {
+      skipNavConfirmRef.current = false;
+    };
     router.events.on('routeChangeStart', handleRouteChange);
     router.events.on('routeChangeError', handleRouteChangeError);
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
       router.events.off('routeChangeError', handleRouteChangeError);
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
     };
-  }, [isDirty, router, openCancelConfirm, editMode]);
+  }, [isDirty, router, openCancelConfirm, editMode, loading]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (editMode) return;
+      if (loading) {
+        e.preventDefault();
+        e.returnValue = '';
+        return;
+      }
       if (!isDirty) return;
+      // Flush the current values so a refresh / tab close preserves the draft
+      // exactly like the save-on-leave flow (confirmLeave).
+      const values = form.getFieldsValue();
+      localStorage.setItem(
+        RETAINED_VIDEO_STORAGE_KEY,
+        JSON.stringify({
+          title: values.title,
+          description: values.description,
+          module: values.module,
+          category: values.category,
+        })
+      );
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty, editMode]);
+  }, [isDirty, editMode, form, loading]);
 
   return (
     <AdminLayout>
@@ -643,11 +717,21 @@ const UploadVideo = () => {
                 ) : editMode && existingThumbnailUrl ? (
                   <div className="selected-thumbnail">
                     <img
-                      src={existingThumbnailUrl}
+                      src={contentThumbnail(existingThumbnailUrl)}
                       alt="Current thumbnail"
                       className="thumbnail-preview"
                     />
                     <span className="thumbnail-name">Current thumbnail</span>
+                    <span className="thumbnail-replace-hint">Click to replace</span>
+                  </div>
+                ) : editMode ? (
+                  <div className="selected-thumbnail">
+                    <img
+                      src={contentThumbnail()}
+                      alt="Default thumbnail"
+                      className="thumbnail-preview"
+                    />
+                    <span className="thumbnail-name">Default thumbnail</span>
                     <span className="thumbnail-replace-hint">Click to replace</span>
                   </div>
                 ) : (
@@ -748,10 +832,19 @@ const UploadVideo = () => {
               </div>
             )}
 
-            {processing && !uploadFailed && (
+            {uploadProgress && !uploadFailed && (
               <div className="vc-upload-status">
-                <Spin size="small" />
-                <Text className="vc-upload-label">Processing video...</Text>
+                <Progress
+                  percent={uploadProgress.percent}
+                  size="small"
+                  status="active"
+                  style={{ width: 240 }}
+                />
+                <Text className="vc-upload-label">
+                  {uploadProgress.phase === "thumbnail"
+                    ? "Uploading thumbnail..."
+                    : "Uploading video..."}
+                </Text>
               </div>
             )}
 
@@ -830,25 +923,27 @@ const UploadVideo = () => {
         <p>You have a previously unsaved video draft. Would you like to restore it?</p>
       </Modal>
 
-      {/* STAY OR CONTINUE WORKING MODAL */}
+      {/* UPLOAD IN PROGRESS MODAL */}
       <Modal
-        open={stayOpen}
+        open={uploadLeaveOpen}
         title="Upload in progress"
-        closable={false}
+        onCancel={confirmStayUploading}
+        closable
         maskClosable={false}
         footer={
           <Space>
-            <Button onClick={handleContinue}>Continue Working</Button>
-            <Button type="primary" onClick={handleStay}>
-              Stay &amp; View Progress
+            <Button type="primary" onClick={confirmStayUploading}>
+              Keep Uploading
+            </Button>
+            <Button danger onClick={confirmUploadLeave}>
+              Leave Anyway
             </Button>
           </Space>
         }
       >
         <p>
-          Your video is being uploaded. The upload will continue in the
-          background. You can stay here to monitor the process or continue
-          working in the dashboard.
+          Your video is still uploading. If you leave now, the video will not
+          be created. Do you want to keep uploading?
         </p>
       </Modal>
 

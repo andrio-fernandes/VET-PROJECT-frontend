@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import defaultThumbnail from '@/assets/default.jpg';
-import { App as AntApp, Button, Modal, Typography } from 'antd';
+import { App as AntApp, Button, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -12,7 +11,8 @@ import { ViewAllTable } from '@/components/common/ViewAllTable';
 import {
   ROUTE_PATHS,
 } from '@/constants';
-import { mediaUrl } from '@/utils/media';
+import { contentThumbnail } from '@/utils/media';
+import { useCurrentUser } from '@/hooks/useAuth';
 import { deleteBlog } from '@/services/blogService';
 import { fetchBlogsPage } from '@/redux/blog/blogSlice';
 import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '@/redux/blog/selectors';
@@ -26,8 +26,18 @@ const PAGE_SIZE = 10;
 
 const BlogsPage = () => {
   const router = useRouter();
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const dispatch = useAppDispatch();
+  const currentUser = useCurrentUser();
+
+  const currentUserId = currentUser?._id ? String(currentUser._id) : "";
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
+
+  // Ownership check (mirrors the server rule enabled by the createdById field
+  // on each blog row): only the creator or a super admin can edit/delete.
+  const canManage = (record: BlogListItem) =>
+    isSuperAdmin ||
+    (Boolean(record.createdById) && record.createdById === currentUserId);
 
   const [page, setPage] = useState(1);
   const [moduleFilter, setModuleFilter] = useState('All');
@@ -41,12 +51,19 @@ const BlogsPage = () => {
   const loadPage = useCallback(
     async (pageNum: number) => {
       try {
-        await dispatch(fetchBlogsPage({ page: pageNum, limit: PAGE_SIZE })).unwrap();
+        await dispatch(
+          fetchBlogsPage({
+            page: pageNum,
+            limit: PAGE_SIZE,
+            module: moduleFilter === 'All' ? undefined : moduleFilter,
+            category: categoryFilter === 'All' ? undefined : categoryFilter,
+          })
+        ).unwrap();
       } catch (error: any) {
         message.error(error.message || 'Failed to load blogs.');
       }
     },
-    [dispatch, message]
+    [dispatch, message, moduleFilter, categoryFilter]
   );
 
   useEffect(() => {
@@ -56,7 +73,7 @@ const BlogsPage = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = (record: BlogListItem) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete blog',
       content: 'Are you sure you want to delete this blog? Its thumbnail and attachments will also be removed. This action cannot be undone.',
       okText: 'Delete',
@@ -77,11 +94,9 @@ const BlogsPage = () => {
     });
   };
 
-  const filteredBlogs = blogs.filter((blog) => {
-    const matchesModule = moduleFilter === 'All' || blog.module === moduleFilter;
-    const matchesCategory = categoryFilter === 'All' || blog.category === categoryFilter;
-    return matchesModule && matchesCategory;
-  });
+  // Filtering is server-side: the fetched page already matches the current
+  // module/category filters and the total reflects the filtered set, so no
+  // client-side re-filtering of a single page's slice is performed.
 
   const columns: ColumnsType<BlogListItem> = [
     {
@@ -91,21 +106,12 @@ const BlogsPage = () => {
       width: '38%',
       render: (text: string, record) => (
         <div className="blogs-cell-title">
-          {record.thumbnail ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={mediaUrl(record.thumbnail)}
-              alt={text}
-              className="blogs-cell-thumb"
-            />
-          ) : (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={defaultThumbnail.src}
-              alt={text}
-              className="blogs-cell-thumb"
-            />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={contentThumbnail(record.thumbnail)}
+            alt={text}
+            className="blogs-cell-thumb"
+          />
           <Text strong className="blogs-cell-name">{text}</Text>
         </div>
       ),
@@ -126,7 +132,7 @@ const BlogsPage = () => {
       key: 'createdAt',
       width: '18%',
       render: (text: string) => (
-        <Text className="blogs-cell-muted">{dayjs(text).format('DD MMM YYYY')}</Text>
+        <Text className="blogs-cell-muted">{dayjs(text).format('DD/MM/YY')}</Text>
       ),
     },
     {
@@ -151,19 +157,23 @@ const BlogsPage = () => {
             icon={<EyeOutlined className="blogs-action-icon" />}
             onClick={() => router.push(`${ROUTE_PATHS.blogPreview}?id=${record._id}`)}
           />
-          <Button
-            type="text"
-            title="Edit"
-            icon={<EditOutlined className="blogs-action-icon" />}
-            onClick={() => router.push(`${ROUTE_PATHS.uploadBlog}?id=${record._id}`)}
-          />
-          <Button
-            type="text"
-            title="Delete"
-            loading={deletingId === record._id}
-            icon={<DeleteOutlined className="blogs-action-delete" />}
-            onClick={() => handleDelete(record)}
-          />
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Edit"
+              icon={<EditOutlined className="blogs-action-icon" />}
+              onClick={() => router.push(`${ROUTE_PATHS.uploadBlog}?id=${record._id}`)}
+            />
+          )}
+          {canManage(record) && (
+            <Button
+              type="text"
+              title="Delete"
+              loading={deletingId === record._id}
+              icon={<DeleteOutlined className="blogs-action-delete" />}
+              onClick={() => handleDelete(record)}
+            />
+          )}
         </div>
       ),
     },
@@ -177,7 +187,7 @@ const BlogsPage = () => {
         icon={<FileTextOutlined />}
         createHref={ROUTE_PATHS.uploadBlog}
         columns={columns}
-        dataSource={filteredBlogs}
+        dataSource={blogs}
         rowKey="_id"
         loading={loading}
         total={total}
@@ -191,8 +201,12 @@ const BlogsPage = () => {
         onModuleChange={(value) => {
           setModuleFilter(value);
           setCategoryFilter('All');
+          setPage(1);
         }}
-        onCategoryChange={setCategoryFilter}
+        onCategoryChange={(value) => {
+          setCategoryFilter(value);
+          setPage(1);
+        }}
         showCount={!loadError}
         tableLayout="fixed"
       />
