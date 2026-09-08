@@ -131,6 +131,7 @@ export const ROUTE_PATHS = {
   blogPreview: "/blogs/preview",
   blogAttachmentViewer: "/blogs/attachment-preview",
   faqs: "/faqs",
+  profile: "/profile",
 } as const;
 
 // Auth API endpoints
@@ -157,6 +158,9 @@ export const API_ENDPOINTS = {
   // Blog endpoints
   createBlog: "/blogs",
   getMyBlogs: "/blogs/mine",
+  // Profile endpoints
+  updateProfileAvatar: "/auth/profile/avatar",
+  deleteProfileAvatar: "/auth/profile/avatar",
 } as const;
 
 // Session storage keys for password reset flow

@@ -195,7 +195,7 @@ const Dashboard = () => {
                 );
                 router.push(ROUTE_PATHS.videoPreview);
               } else {
-                router.push(ROUTE_PATHS.blogs);
+                router.push(`${ROUTE_PATHS.blogPreview}?id=${record.key}`);
               }
             }}
           />

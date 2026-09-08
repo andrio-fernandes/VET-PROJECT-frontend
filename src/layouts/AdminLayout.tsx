@@ -1,10 +1,11 @@
 import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Layout, Menu, Button, Typography, Avatar, ConfigProvider } from 'antd';
+import { Layout, Menu, Typography, Avatar, ConfigProvider } from 'antd';
 import {
   FileTextOutlined,
   HomeOutlined,
+  LogoutOutlined,
   QuestionCircleOutlined,
   UserOutlined,
   VideoCameraOutlined,
@@ -51,6 +52,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }
       <Sider width={250} className="admin-sider">
         <div className="admin-sider-column">
 
+          <div
+            className="admin-profile-header"
+            style={{ cursor: 'pointer' }}
+            onClick={() => router.push(ROUTE_PATHS.profile)}
+          >
+            <Avatar
+              size={64}
+              src={user?.avatar || undefined}
+              icon={<UserOutlined style={{ color: '#000' }} />}
+              style={{ backgroundColor: 'transparent', border: '2px solid #000', marginBottom: '8px' }}
+            />
+            <div>
+              <Text strong style={{ fontSize: '14px', display: 'block' }}>{user?.fullName || user?.username || 'Admin'}</Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>{userEmail}</Text>
+            </div>
+          </div>
+
           <div className="admin-logo-block">
             <Image
               src="/logo.jpg"
@@ -91,15 +109,33 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }
             </ConfigProvider>
           </div>
 
-          <div className="admin-profile-card">
-            <div className="admin-profile-inner">
-              <Avatar size={64} icon={<UserOutlined style={{ color: '#000' }} />} style={{ backgroundColor: 'transparent', border: '2px solid #000', marginBottom: '8px' }} />
-              <div style={{ lineHeight: '1.2' }}>
-                <Text strong style={{ color: '#fff', fontSize: '16px', display: 'block' }}>Admin</Text>
-                <Text style={{ color: '#fff', fontSize: '12px' }}>{userEmail}</Text>
-              </div>
-            </div>
-            <Button type="primary" onClick={handleLogout} style={{ width: '100%', backgroundColor: '#2e7d32', borderColor: '#2e7d32', borderRadius: '6px' }}>Log out</Button>
+          <div className="admin-logout">
+            <ConfigProvider
+              theme={{
+                components: {
+                  Menu: {
+                    itemSelectedBg: '#54b325',
+                    itemSelectedColor: '#fff',
+                    itemColor: '#333',
+                    itemHoverColor: '#333',
+                    itemHoverBg: '#54b325',
+                  },
+                },
+              }}
+            >
+              <Menu
+                mode="inline"
+                style={{ backgroundColor: 'transparent', borderRight: 'none' }}
+                onClick={handleLogout}
+                items={[
+                  {
+                    key: 'logout',
+                    icon: <span style={{ fontSize: '18px' }}><LogoutOutlined /></span>,
+                    label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Logout</span>,
+                  },
+                ]}
+              />
+            </ConfigProvider>
           </div>
 
         </div>

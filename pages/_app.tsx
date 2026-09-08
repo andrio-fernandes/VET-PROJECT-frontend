@@ -15,6 +15,7 @@ import '@/styles/videos.scss';
 import '@/styles/videos-create.css';
 import '@/styles/blogs.scss';
 import '@/styles/blogs-preview.css';
+import '@/styles/user-layout.css';
 
 const cache = createCache();
 

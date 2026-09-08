@@ -148,6 +148,7 @@ const protectedPaths = [
   "/videos",
   "/videos/create",
   "/videos/preview",
+  "/profile",
 ];
 
 const authPages = [
@@ -172,6 +173,7 @@ export const config = {
     "/videos",
     "/videos/create",
     "/videos/preview",
+    "/profile",
     "/auth/login",
     "/auth/register",
     "/auth/forgot-password",

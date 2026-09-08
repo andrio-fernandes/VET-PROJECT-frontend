@@ -30,6 +30,7 @@ export interface StoredUser {
   username?: string;
   email?: string;
   role?: "admin" | "user" | string;
+  avatar?: string;
   [key: string]: unknown;
 }
 
@@ -97,10 +98,20 @@ const useCurrentUser = (): StoredUser | null => {
   );
 };
 
+const updateStoredUser = (patch: Partial<StoredUser>): void => {
+  const current = readStoredUser();
+  if (!current) return;
+  const updated = { ...current, ...patch };
+  const normalized = normalizeUser(updated);
+  localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+  storedUserCache = normalized;
+};
+
 export {
   readStoredUser,
   storeSession,
   clearSession,
   useCurrentUser,
+  updateStoredUser,
   emptySubscribe,
 };

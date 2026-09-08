@@ -93,8 +93,9 @@ $border-light: #b7eb8f;
 
   .#{$ns}-filter-group {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .#{$ns}-filter-label {

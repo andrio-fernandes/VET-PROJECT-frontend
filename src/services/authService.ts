@@ -65,3 +65,20 @@ export const resetPassword = async (
     body: JSON.stringify({ email, token, newPassword }),
   });
 };
+
+export const updateProfileAvatar = async (
+  file: File
+): Promise<any> => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  return api(API_ENDPOINTS.updateProfileAvatar, {
+    method: "PUT",
+    body: formData,
+  });
+};
+
+export const deleteProfileAvatar = async (): Promise<any> => {
+  return api(API_ENDPOINTS.deleteProfileAvatar, {
+    method: "DELETE",
+  });
+};
