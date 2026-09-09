@@ -135,6 +135,8 @@ const VideoPreview = () => {
             controls
             autoPlay
             src={src}
+            disablePictureInPicture
+            controlsList="nodownload"
           />
 
           <div className="vp-info">

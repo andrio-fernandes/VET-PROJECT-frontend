@@ -178,22 +178,23 @@ export const useBlogAssets = ({
   };
 
   // Removes an existing (server) attachment and records its identity so the
-  // server can delete it from Cloudinary on save. Names are used as the stable
-  // identity (URLs also work but names are more readable for the server-side
-  // matching logic).
+  // server can delete it from Cloudinary on save. The stored URL is used as the
+  // stable identity: it uniquely identifies one attached file, whereas two
+  // different files can share a display name. The server matches removals by
+  // name OR url, so the URL is always sufficient.
   const handleExistingAttachmentRemove = (index: number) => {
     const current = existingAttachmentsRef.current;
     const target = current[index];
-    if (target) {
-      // Compute the filtered list manually instead of nesting one setState
-      // inside another's updater, and record the removal in one go.
-      setRemovedAttachmentUrls((prevUrls) =>
-        prevUrls.includes(target.name)
-          ? prevUrls
-          : [...prevUrls, target.name]
-      );
-      setExistingAttachments(current.filter((_, i) => i !== index));
-    }
+    if (!target) return;
+    const next = current.filter((_, i) => i !== index);
+    // Update the ref synchronously (event handler, not render) so a second
+    // rapid remove click always operates on the latest list instead of a state
+    // ref that only catches up in a post-commit effect.
+    existingAttachmentsRef.current = next;
+    setExistingAttachments(next);
+    setRemovedAttachmentUrls((prevUrls) =>
+      prevUrls.includes(target.url) ? prevUrls : [...prevUrls, target.url]
+    );
   };
 
   // Seeds the form's existing assets once the server blog is loaded (edit mode).
@@ -207,18 +208,22 @@ export const useBlogAssets = ({
     originalExistingThumbnailRef.current = data.thumbnail ?? null;
   };
 
-  // Re-applies the removal intent captured by the preview round-trip snapshot.
-  // Called after the server blog is re-seeded on return to the edit page, so
-  // attachments the user removed before previewing stay removed (instead of
-  // reappearing because the removal list was cleared during re-seed). Matches on
-  // NAME as the stable identity across the round-trip.
-  const applyAttachmentRemovals = (removedNames: string[]) => {
-    if (!Array.isArray(removedNames) || removedNames.length === 0) return;
-    const removeSet = new Set(removedNames);
-    setExistingAttachments((prev) =>
-      prev.filter((att) => !removeSet.has(att.name))
-    );
-    setRemovedAttachmentUrls(removedNames);
+  // Re-applies the edit-mode preview round-trip snapshot after the server blog
+  // is re-seeded on return to the edit page. The snapshot carries the resolved
+  // remaining server attachment list AT PREVIEW TIME plus the removals that were
+  // pending, so the form seeds from that list directly instead of re-filtering
+  // the freshly-fetched server list by display name. This is idempotent and
+  // immune to duplicate names / name mismatches between seed and snapshot.
+  const applyRoundTripState = (state: {
+    existingAttachments?: { name: string; url: string }[];
+    removedAttachmentUrls?: string[];
+  }) => {
+    if (Array.isArray(state.existingAttachments)) {
+      setExistingAttachments(state.existingAttachments);
+    }
+    if (Array.isArray(state.removedAttachmentUrls)) {
+      setRemovedAttachmentUrls(state.removedAttachmentUrls);
+    }
   };
 
   // Restores a thumbnail that was persisted as a data URL (draft restore).
@@ -263,7 +268,7 @@ export const useBlogAssets = ({
     removeAttachmentUrls: removedAttachmentUrls,
     handleExistingAttachmentRemove,
     resetEditState: setEditInitialData,
-    applyAttachmentRemovals,
+    applyRoundTripState,
     restoreThumbnail,
     restoreAttachments,
     resetPickedAssets,

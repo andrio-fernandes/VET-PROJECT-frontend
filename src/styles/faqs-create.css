@@ -1,130 +1,15 @@
 /* =============================================
-   FAQS CREATE PAGE
-   Styles extracted from faqs/create.tsx inline styles.
-   Values preserved exactly - do not change
-   colors, sizes or geometry.
+   FAQS CREATE PAGE - PAGE-LOCAL STYLES
+   The shared shell (page/header/card/labels/buttons/divider) lives in
+   create-base.css. This file keeps only FAQ-specific rules.
+   Values preserved exactly - do not change colors, sizes or geometry.
    ============================================= */
-
-.faqs-create-page {
-  padding: 32px;
-  background-color: #f0f2f5;
-  min-height: calc(100vh - 64px);
-}
-
-.faqs-create-inner {
-  width: 100%;
-}
-
-.faqs-create-header {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.faqs-create-header-body {
-  display: flex;
-  flex-direction: column;
-}
-
-.faqs-create-header-title {
-  margin: 0;
-  font-weight: 600;
-  color: #262626;
-}
-
-.faqs-create-card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 32px;
-  border: 1px solid #e8e8e8;
-}
-
-.faqs-create-card-title {
-  margin: 0 0 24px 0;
-}
 
 .faqs-create-loading {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 48px 0;
-}
-
-.faqs-create-label {
-  font-weight: 600;
-}
-
-.faqs-create-input {
-  border-radius: 6px;
-}
-
-.faqs-create-textarea {
-  border-radius: 6px;
-  resize: none;
-}
-
-.faqs-create-select {
-  border-radius: 6px;
-}
-
-.faqs-create-select-block {
-  margin-bottom: 24px;
-}
-
-.faqs-create-section-label {
-  display: block;
-  font-weight: 600;
-  font-size: 15px;
-  color: #262626;
-  margin-bottom: 4px;
-}
-
-.faqs-create-required {
-  color: #ff4d4f;
-  margin-left: 2px;
-}
-
-.faqs-create-hint {
-  display: block;
-  margin: 4px 0 10px;
-  color: #8c8c8c;
-  font-size: 13px;
-}
-
-.faqs-create-select-item {
-  margin-bottom: 0;
-}
-
-.faqs-create-divider {
-  height: 1px;
-  background-color: #f0f0f0;
-  margin: 32px 0 24px 0;
-}
-
-.faqs-create-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.faqs-create-btn-preview {
-  border-color: #52c41a;
-  color: #52c41a;
-  border-radius: 6px;
-  padding: 0 32px;
-}
-
-.faqs-create-btn-cancel {
-  border-color: #ff4d4f;
-  color: #ff4d4f;
-  border-radius: 6px;
-  padding: 0 24px;
-}
-
-.faqs-create-btn-create {
-  background-color: #52c41a;
-  border-radius: 6px;
-  padding: 0 32px;
 }
 
 .faqs-create-block {

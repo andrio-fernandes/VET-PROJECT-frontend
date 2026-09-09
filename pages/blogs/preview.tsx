@@ -196,23 +196,15 @@ const BlogPreview = () => {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-        <div style={{ width: '100%' }}>
-        <div className="blog-content">
-          <PageHeader
-            backHref={
-              isPreviewMode
-                ? blogId
-                  ? `${ROUTE_PATHS.uploadBlog}?id=${blogId}`
-                  : ROUTE_PATHS.uploadBlog
-                : ROUTE_PATHS.adminDashboard
-            }
-            title="Blog preview"
-            icon={<FileTextOutlined />}
-            showBack={false}
-          />
+      <div className="bp-page">
+      <PageHeader
+        backHref={ROUTE_PATHS.blogs}
+        title="Blog preview"
+        icon={<FileTextOutlined />}
+        showBack={false}
+      />
 
-          <div className="blog-card bp-card">
+      <div className="bp-card">
             {loading ? (
               <div className="bp-loading">
                 <Spin size="large" />
@@ -255,7 +247,7 @@ const BlogPreview = () => {
 
                 {hasVisibleText(contentHtml) && (
                   <>
-                    <Divider className="blog-divider" />
+                    <Divider className="create-divider" />
                     <div
                       className="blog-rich-content bp-rich-content"
                       dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -265,8 +257,8 @@ const BlogPreview = () => {
 
                 {attachmentUrls.length > 0 && (
                   <>
-                    <Divider className="blog-divider" />
-                    <Title level={5} className="bp-attachment-title">
+                    <Divider className="create-divider" />
+                    <Title level={5} className="create-section-label">
                       Attachment
                     </Title>
                     {attachmentUrls.map((att, idx) => (
@@ -293,8 +285,6 @@ const BlogPreview = () => {
               </>
             )}
           </div>
-        </div>
-      </div>
       </div>
     </AdminLayout>
   );

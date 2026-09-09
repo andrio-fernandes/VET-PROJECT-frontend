@@ -160,7 +160,7 @@ export const BlogImageEditorModal: React.FC<BlogImageEditorModalProps> = ({
     }
 
     if (!composed) {
-      message.error(`Image is too large even at the lowest quality (${baseW}px wide).`);
+      message.error("This image can't be compressed under 2MB. Crop a smaller region or use a smaller image.");
       return;
     }
 

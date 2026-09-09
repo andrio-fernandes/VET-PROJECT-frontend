@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Form, Input, Button, Typography, Space, Modal, App as AntApp } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Form, Input, Typography, Modal, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
-import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { createFaq } from '@/services/faqService';
 import { ROUTE_PATHS, RETAINED_FAQ_STORAGE_KEY, countWords } from '@/constants';
 import WordCount from '@/components/WordCount';
 import ModuleCategorySelects from '@/components/ModuleCategorySelects';
+import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
+import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
+import { CreateFormActions } from '@/components/common/create/CreateFormActions';
+import { useUnsavedNavigation } from '@/hooks/useUnsavedNavigation';
 
 const { Title, Text } = Typography;
 
@@ -19,12 +22,10 @@ const UploadFAQ = () => {
   const [submitted, setSubmitted] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
-  const pendingNavRef = useRef<string | null>(null);
-  const confirmLeaveRef = useRef<(() => void) | null>(null);
   const retainedDataRef = useRef<string | null>(null);
-  const skipNavConfirmRef = useRef(false);
+
+  const nav = useUnsavedNavigation({ router, isDirty });
 
   // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
@@ -65,23 +66,13 @@ const UploadFAQ = () => {
       setSubmitted(false);
       form.resetFields();
       setPreviewVisible(false);
-      skipNavConfirmRef.current = true;
+      nav.skipNextNavigation();
       router.push(ROUTE_PATHS.adminDashboard);
     } catch (error: any) {
       message.error(error.message || 'Failed to upload FAQ');
     } finally {
       setLoading(false);
     }
-  };
-
-  const openLeaveConfirm = useCallback((onLeave: () => void) => {
-    confirmLeaveRef.current = onLeave;
-    setConfirmOpen(true);
-  }, []);
-
-  const closeLeaveConfirm = () => {
-    confirmLeaveRef.current = null;
-    setConfirmOpen(false);
   };
 
   const confirmRestoreDraft = () => {
@@ -100,18 +91,18 @@ const UploadFAQ = () => {
   };
 
   const confirmSaveAndLeave = () => {
-    const onLeave = confirmLeaveRef.current;
+    const onLeave = nav.confirmLeaveRef.current;
     localStorage.setItem(RETAINED_FAQ_STORAGE_KEY, JSON.stringify(form.getFieldsValue()));
     message.info('Progress saved.');
-    setConfirmOpen(false);
+    nav.dismissLeaveConfirm();
     setIsDirty(false);
     if (onLeave) onLeave();
   };
 
   const confirmDiscardAndLeave = () => {
-    const onLeave = confirmLeaveRef.current;
+    const onLeave = nav.confirmLeaveRef.current;
     localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
-    setConfirmOpen(false);
+    nav.dismissLeaveConfirm();
     setIsDirty(false);
     if (onLeave) onLeave();
   };
@@ -129,48 +120,11 @@ const UploadFAQ = () => {
       router.push(ROUTE_PATHS.adminDashboard);
       return;
     }
-    openLeaveConfirm(() => {
+    nav.openLeaveConfirm(() => {
       form.resetFields();
       router.push(ROUTE_PATHS.adminDashboard);
     });
   };
-
-  useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      if (skipNavConfirmRef.current || !isDirty) return;
-      pendingNavRef.current = url;
-      openLeaveConfirm(() => {
-        pendingNavRef.current = null;
-        router.push(url);
-      });
-      router.events.emit('routeChangeError');
-      throw 'Navigation cancelled';
-    };
-    const handleRouteChangeError = (err: any) => {
-      if (err !== 'Navigation cancelled') throw err;
-    };
-    const handleRouteChangeComplete = () => {
-      skipNavConfirmRef.current = false;
-    };
-    router.events.on('routeChangeStart', handleRouteChange);
-    router.events.on('routeChangeError', handleRouteChangeError);
-    router.events.on('routeChangeComplete', handleRouteChangeComplete);
-    return () => {
-      router.events.off('routeChangeStart', handleRouteChange);
-      router.events.off('routeChangeError', handleRouteChangeError);
-      router.events.off('routeChangeComplete', handleRouteChangeComplete);
-    };
-  }, [isDirty, router, openLeaveConfirm]);
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (!isDirty) return;
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
 
   const previewContent = (
     <div>
@@ -197,26 +151,33 @@ const UploadFAQ = () => {
   );
 
   return (
-    <AdminLayout>
-      <div className="faqs-create-page">
-        
-        <div className="faqs-create-inner">
-          
+    <CreateContentLayout
+      pageClassName="create-page"
+      innerClassName="create-inner"
+      leaveConfirm={{
+        open: nav.leaveConfirmOpen,
+        onCancel: nav.dismissLeaveConfirm,
+        onSave: confirmSaveAndLeave,
+        onDiscard: confirmDiscardAndLeave,
+      }}
+      restoreDraft={{
+        open: restoreOpen,
+        noun: 'FAQ draft',
+        onRestore: confirmRestoreDraft,
+        onDiscard: confirmDiscardDraft,
+      }}
+    >
           {/* Header Section */}
-          <div className="faqs-create-header">
-            <div className="faqs-create-header-body">
-              <Title level={3} className="faqs-create-header-title">
-                Create New FAQs 
-              </Title>
-              {/* <Text type="secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
-                Add new FAQs to your list
-              </Text> */}
-            </div>
-          </div>
+          <CreatePageHeader
+            wrapperClassName="create-header"
+            bodyClassName="create-header-body"
+            titleClassName="create-header-title"
+            title="Create New FAQs"
+          />
 
           {/* Main Form Card */}
-          <div className="faqs-create-card">
-            <Title level={5} className="faqs-create-card-title">FAQ Details</Title>
+          <div className="create-card">
+            <Title level={5} className="create-card-title">FAQ Details</Title>
 
             <Form
               form={form}
@@ -231,7 +192,7 @@ const UploadFAQ = () => {
                 }
               }}
             >
-              <Form.Item label={<span className="faqs-create-label">Question</span>} name="question" required rules={[
+              <Form.Item label={<span className="create-label">Question</span>} name="question" required rules={[
                 { required: true, message: 'Please Enter The Question' },
                 // { min: 5, message: 'Question must be at least 5 characters' },
                 {
@@ -244,12 +205,12 @@ const UploadFAQ = () => {
                   },
                 },
               ]}>
-                <Input placeholder="Enter question" maxLength={200} size="large" className="faqs-create-input" />
+                <Input placeholder="Enter question" maxLength={200} size="large" className="create-input" />
               </Form.Item>
 
               <WordCount value={questionValue} max={30} />
 
-              <Form.Item label={<span className="faqs-create-label">Answer</span>} name="answer" required rules={[
+              <Form.Item label={<span className="create-label">Answer</span>} name="answer" required rules={[
                 { required: true, message: 'Please provide an answer' },
                 // { min: 10, message: 'Answer must be at least 10 characters' },
                 {
@@ -262,46 +223,43 @@ const UploadFAQ = () => {
                   },
                 },
               ]}>
-                <Input.TextArea placeholder="Describe your answer" maxLength={2000} size="large" rows={4} className="faqs-create-textarea" />
+                <Input.TextArea placeholder="Describe your answer" maxLength={2000} size="large" rows={4} className="create-textarea" />
               </Form.Item>
 
               <WordCount value={answerValue} max={60} />
 
-              <div className="faqs-create-select-block">
-                <div className="faqs-create-section-label">
+              <div className="create-select-block">
+                <div className="create-section-label">
                   Select the module and categories
-                  <span className="faqs-create-required">*</span>
+                  <span className="create-required">*</span>
                 </div>
-                <div className="faqs-create-hint">
+                <div className="create-hint">
                   Select the module and category where your FAQ should be placed
                 </div>
                 <ModuleCategorySelects
                   showFieldLabels
-                  moduleItemClassName="faqs-create-select-item"
-                  moduleSelectClassName="faqs-create-select"
-                  categoryItemClassName="faqs-create-select-item"
-                  categorySelectClassName="faqs-create-select"
+                  moduleItemClassName="create-select-item"
+                  moduleSelectClassName="create-select"
+                  categoryItemClassName="create-select-item"
+                  categorySelectClassName="create-select"
                   moduleRequiredMessage="Please select a module"
                   categoryRequiredMessage="Please select a category"
                 />
               </div>
 
-              <div className="faqs-create-divider" />
+              <div className="create-divider" />
 
-              <div className="faqs-create-footer">
-                <Button 
-                  size="large" 
-                  onClick={() => setPreviewVisible(true)} 
-                  className="faqs-create-btn-preview"
-                >
-                  Preview
-                </Button>
-
-                <Space size="middle">
-                  <Button size="large" onClick={handleCancel} disabled={loading} className="faqs-create-btn-cancel">Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="faqs-create-btn-create">Create</Button>
-                </Space>
-              </div>
+              <CreateFormActions
+                  onPreview={() => setPreviewVisible(true)}
+                  onCancel={handleCancel}
+                  loading={loading}
+                  submitLabel="Create"
+                  wrapperClassName="create-footer"
+                  previewButtonClassName="create-btn-preview"
+                  cancelButtonClassName="create-btn-cancel"
+                  cancelDisabled={loading}
+                  submitButtonClassName="create-btn-create"
+                />
 
               {/* PREVIEW MODAL */}
               <Modal
@@ -310,57 +268,19 @@ const UploadFAQ = () => {
                 footer={null}
                 width={736}
                 centered
-                maskStyle={{ 
-                  backdropFilter: 'blur(6px)', 
-                  backgroundColor: 'rgba(0, 0, 0, 0.2)' 
+                styles={{
+                  mask: {
+                    backdropFilter: 'blur(6px)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  },
+                  body: { borderRadius: '12px', padding: '24px' },
                 }}
-                styles={{ body: { borderRadius: '12px', padding: '24px' } }}
               >
                 {previewContent}
               </Modal>
             </Form>
           </div>
-          
-        </div>
-      </div>
-
-      <Modal
-        open={confirmOpen}
-        title="You have unsaved changes"
-        onCancel={closeLeaveConfirm}
-        closable
-        maskClosable
-        footer={
-          <Space>
-            <Button onClick={confirmDiscardAndLeave}>No, Don&apos;t Save</Button>
-            <Button type="primary" onClick={confirmSaveAndLeave}>
-              Yes, Save
-            </Button>
-          </Space>
-        }
-      >
-        <p>Do you want to save your changes before leaving?</p>
-      </Modal>
-
-      {/* RESTORE PREVIOUS DRAFT MODAL */}
-      <Modal
-        open={restoreOpen}
-        title="Restore previous draft?"
-        onCancel={confirmDiscardDraft}
-        closable
-        maskClosable
-        footer={
-          <Space>
-            <Button onClick={confirmDiscardDraft}>No, Start Fresh</Button>
-            <Button type="primary" onClick={confirmRestoreDraft}>
-              Yes, Restore
-            </Button>
-          </Space>
-        }
-      >
-        <p>You have a previously unsaved FAQ draft. Would you like to restore it?</p>
-      </Modal>
-    </AdminLayout>
+    </CreateContentLayout>
   );
 };
 

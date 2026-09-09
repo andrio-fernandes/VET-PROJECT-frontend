@@ -25,6 +25,11 @@ import {
 } from '@/utils/blogPreviewStorage';
 import { dataUrlToFile } from '@/utils/file';
 
+// Round-trip snapshots older than this are treated as stale leftovers from an
+// earlier session that never went through the preview-return flow. They are
+// dropped so they can never wipe attachments the server still has.
+const EDIT_PREVIEW_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+
 export interface BlogFormValues {
   title: string;
   description: string;
@@ -139,6 +144,17 @@ export const useBlogDraft = ({
     }
     if (snapshot.blogId !== targetBlogId) return;
 
+    // Only apply recent snapshots. A stale snapshot left behind by an earlier
+    // session that never returned through the edit URL must not re-delete
+    // attachments the user has since decided to keep; the freshly-fetched
+    // server list seeded by the page is authoritative in that case.
+    if (
+      typeof snapshot.createdAt !== 'number' ||
+      Date.now() - snapshot.createdAt > EDIT_PREVIEW_SNAPSHOT_MAX_AGE_MS
+    ) {
+      return;
+    }
+
     reset({
       title: snapshot.title ?? '',
       description: snapshot.description ?? '',
@@ -166,14 +182,14 @@ export const useBlogDraft = ({
       if (picked.length) assets.restoreAttachments(picked);
     }
 
-    // Re-apply the removal intent captured when previewing, so attachments the
-    // user removed before previewing don't reappear after the round-trip.
-    if (
-      Array.isArray(snapshot.removedAttachmentUrls) &&
-      snapshot.removedAttachmentUrls.length
-    ) {
-      assets.applyAttachmentRemovals(snapshot.removedAttachmentUrls);
-    }
+    // Seed the form from the exact remaining server-list + removal intent the
+    // user had when previewing, instead of re-filtering the freshly-fetched
+    // server list by display name (idempotent, and immune to duplicate or
+    // mismatched names across the round-trip).
+    assets.applyRoundTripState({
+      existingAttachments: snapshot.existingAttachments,
+      removedAttachmentUrls: snapshot.removedAttachmentUrls,
+    });
   };
 
   const navigation = useBlogDraftNavigation({
@@ -197,6 +213,9 @@ export const useBlogDraft = ({
   return {
     loading,
     setLoading,
+    draftAvailable: persistence.draftAvailable,
+    confirmRestoreDraft: persistence.confirmRestoreDraft,
+    confirmDiscardDraft: persistence.confirmDiscardDraft,
     thumbnail: assets.thumbnail,
     thumbnailError: assets.thumbnailError,
     setThumbnailError: assets.setThumbnailError,

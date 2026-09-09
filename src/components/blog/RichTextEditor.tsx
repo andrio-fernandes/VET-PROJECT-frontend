@@ -19,7 +19,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons';
 
-import { EDITOR_IMAGE_MAX_BYTES, THUMBNAIL_EXTENSIONS } from '@/constants/blog';
+import { EDITOR_IMAGE_MAX_BYTES, BLOG_CONTENT_MAX_BYTES, THUMBNAIL_EXTENSIONS } from '@/constants/blog';
 import { getFileExtension } from '@/utils/file';
 import { BlogImageEditorModal } from '@/components/blog/BlogImageEditorModal';
 
@@ -68,6 +68,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
   const insertImageAtSelection = (dataUrl: string) => {
     const editor = editorRef.current;
     if (!editor) return;
+
+    // Block the insert when the new image would push the whole blog content
+    // (all inline base64 images) past the 5MB field limit the server allows.
+    if (editor.innerHTML.length + dataUrl.length > BLOG_CONTENT_MAX_BYTES) {
+      message.error(
+        'Image not inserted - blog content would exceed 5MB. Use smaller or compressed images.'
+      );
+      return;
+    }
+
     editor.focus();
 
     const selection = window.getSelection();

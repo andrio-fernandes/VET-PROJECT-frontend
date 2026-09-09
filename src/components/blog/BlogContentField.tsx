@@ -27,8 +27,8 @@ export const BlogContentField: React.FC<BlogContentFieldProps> = ({
   trackChange,
 }) => (
   <>
-    <Title level={5} className="blog-section-label" style={{ margin: '0 0 18px 0' }}>
-      Blog content <span className="blog-required">*</span>
+    <Title level={5} className="create-section-label">
+      Blog content <span className="create-required">*</span>
     </Title>
 
     <Controller
@@ -45,6 +45,6 @@ export const BlogContentField: React.FC<BlogContentFieldProps> = ({
       )}
     />
 
-    <Divider className="blog-divider" style={{ margin: '32px 0 24px 0' }} />
+    <Divider className="create-divider" />
   </>
 );

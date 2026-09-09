@@ -153,8 +153,6 @@ export const uploadWithProgress = (
     const token =
       typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
-    const transferStart = performance.now();
-
     const request = (authToken: string | null, alreadyRetried = false) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${API_URL}${endpoint}`);
@@ -175,20 +173,12 @@ export const uploadWithProgress = (
 
       // Fires when the request body has been fully sent to the server.
       xhr.upload.onload = () => {
-        console.warn(
-          `[upload] ALL BYTES SENT (pure transfer) in ${(performance.now() - transferStart).toFixed(0)}ms`
-        );
         if (onTransferComplete) {
           onTransferComplete();
         }
       };
 
       xhr.onload = () => {
-        const responseAt = performance.now();
-        console.warn(
-          `[upload] full response received in ${(responseAt - transferStart).toFixed(0)}ms`
-        );
-
         let data: any = null;
         try {
           data = JSON.parse(xhr.responseText);

@@ -1,7 +1,6 @@
 ﻿/* eslint-disable @next/next/no-img-element */
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout } from "@/layouts/AdminLayout";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
 import { createVideo, getVideoById, updateVideo, signVideoUpload, uploadFileToCloudinary, type UploadAbortHandle } from "@/services/videoService";
 import { ROUTE_PATHS, MAX_VIDEO_SIZE, MAX_THUMBNAIL_SIZE, RETAINED_VIDEO_STORAGE_KEY, countWords } from "@/constants";
@@ -12,6 +11,10 @@ import {
 } from "@ant-design/icons";
 import WordCount from "@/components/WordCount";
 import ModuleCategorySelects from "@/components/ModuleCategorySelects";
+import { CreateContentLayout } from "@/components/common/create/CreateContentLayout";
+import { CreatePageHeader } from "@/components/common/create/CreatePageHeader";
+import { CreateFormActions } from "@/components/common/create/CreateFormActions";
+import { useUnsavedNavigation } from "@/hooks/useUnsavedNavigation";
 import { mediaUrl, contentThumbnail } from "@/utils/media";
 
 const { Title, Text, Paragraph } = Typography;
@@ -46,10 +49,6 @@ const UploadVideo = () => {
     description: string;
     thumbnail?: string;
   } | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const cancelLeaveRef = useRef<(() => void) | null>(null);
-  const pendingNavRef = useRef<string | null>(null);
-  const skipNavConfirmRef = useRef(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const retainedDataRef = useRef<string | null>(null);
   // Progress reported by the direct-to-Cloudinary transfer (browser -> CDN).
@@ -71,6 +70,26 @@ const UploadVideo = () => {
   const abortRef = useRef<UploadAbortHandle | null>(null);
   const abortingRef = useRef(false);
   const [uploadLeaveOpen, setUploadLeaveOpen] = useState(false);
+
+  const nav = useUnsavedNavigation({
+    router,
+    isDirty,
+    loading,
+    skipGuard: editMode,
+    onBlockedDuringUpload: () => setUploadLeaveOpen(true),
+    beforeUnloadFlush: () => {
+      const values = form.getFieldsValue();
+      localStorage.setItem(
+        RETAINED_VIDEO_STORAGE_KEY,
+        JSON.stringify({
+          title: values.title,
+          description: values.description,
+          module: values.module,
+          category: values.category,
+        })
+      );
+    },
+  });
 
   useEffect(() => {
     mountedRef.current = true;
@@ -281,7 +300,7 @@ const UploadVideo = () => {
       // Navigate only after the loading flag clears so the route guard does
       // not treat the finished upload as "in progress".
       setLoading(false);
-      skipNavConfirmRef.current = true;
+      nav.skipNextNavigation();
       router.push(ROUTE_PATHS.adminDashboard);
     } catch (error: any) {
       if (mountedRef.current && !abortingRef.current) {
@@ -335,23 +354,13 @@ const UploadVideo = () => {
     setIsDirty(true);
   };
 
-  const openCancelConfirm = useCallback((onLeave: () => void) => {
-    cancelLeaveRef.current = onLeave;
-    setCancelOpen(true);
-  }, []);
-
-  const closeCancelConfirm = () => {
-    cancelLeaveRef.current = null;
-    setCancelOpen(false);
-  };
-
   const handleCancel = () => {
     if (loading) {
       setUploadLeaveOpen(true);
       return;
     }
     if (editMode) {
-      skipNavConfirmRef.current = true;
+      nav.skipNextNavigation();
       setIsDirty(false);
 
       const values = form.getFieldsValue();
@@ -370,7 +379,7 @@ const UploadVideo = () => {
         router.push(ROUTE_PATHS.videos);
         return;
       }
-      openCancelConfirm(() => {
+      nav.openLeaveConfirm(() => {
         router.push(ROUTE_PATHS.videos);
       });
       return;
@@ -391,13 +400,13 @@ const UploadVideo = () => {
       router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
       return;
     }
-    openCancelConfirm(() => {
+    nav.openLeaveConfirm(() => {
       router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
     });
   };
 
   const confirmLeave = () => {
-    const onLeave = cancelLeaveRef.current;
+    const onLeave = nav.confirmLeaveRef.current;
     const values = form.getFieldsValue();
     if (!editMode) {
       localStorage.setItem(
@@ -411,36 +420,33 @@ const UploadVideo = () => {
       );
       message.info("Progress saved.");
     }
-    setCancelOpen(false);
-    cancelLeaveRef.current = null;
-    pendingNavRef.current = null;
+    nav.dismissLeaveConfirm();
     setIsDirty(false);
     if (onLeave) onLeave();
   };
 
   const confirmDiscard = () => {
-    setCancelOpen(false);
-    cancelLeaveRef.current = null;
-    pendingNavRef.current = null;
+    nav.dismissLeaveConfirm();
+    nav.clearPendingNavigation();
     setIsDirty(false);
     router.push(editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
   };
 
   const confirmUploadLeave = () => {
     const url =
-      pendingNavRef.current ||
+      nav.pendingNavRef.current ||
       (editMode ? ROUTE_PATHS.videos : ROUTE_PATHS.adminDashboard);
     abortingRef.current = true;
     abortRef.current?.abort();
-    skipNavConfirmRef.current = true;
+    nav.skipNextNavigation();
     setIsDirty(false);
     setUploadLeaveOpen(false);
-    pendingNavRef.current = null;
+    nav.clearPendingNavigation();
     router.push(url);
   };
 
   const confirmStayUploading = () => {
-    pendingNavRef.current = null;
+    nav.clearPendingNavigation();
     setUploadLeaveOpen(false);
   };
 
@@ -479,86 +485,34 @@ const UploadVideo = () => {
     });
   }, [form, message, editMode]);
 
-  useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      if (editMode) return;
-      if (skipNavConfirmRef.current) return;
-      if (loading) {
-        pendingNavRef.current = url;
-        setUploadLeaveOpen(true);
-        router.events.emit('routeChangeError');
-        throw 'Navigation cancelled';
-      }
-      if (!isDirty) return;
-      pendingNavRef.current = url;
-      openCancelConfirm(() => {
-        pendingNavRef.current = null;
-        router.push(url);
-      });
-      router.events.emit('routeChangeError');
-      throw 'Navigation cancelled';
-    };
-    const handleRouteChangeError = (err: any) => {
-      if (err !== 'Navigation cancelled') throw err;
-    };
-    const handleRouteChangeComplete = () => {
-      skipNavConfirmRef.current = false;
-    };
-    router.events.on('routeChangeStart', handleRouteChange);
-    router.events.on('routeChangeError', handleRouteChangeError);
-    router.events.on('routeChangeComplete', handleRouteChangeComplete);
-    return () => {
-      router.events.off('routeChangeStart', handleRouteChange);
-      router.events.off('routeChangeError', handleRouteChangeError);
-      router.events.off('routeChangeComplete', handleRouteChangeComplete);
-    };
-  }, [isDirty, router, openCancelConfirm, editMode, loading]);
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (editMode) return;
-      if (loading) {
-        e.preventDefault();
-        e.returnValue = '';
-        return;
-      }
-      if (!isDirty) return;
-      // Flush the current values so a refresh / tab close preserves the draft
-      // exactly like the save-on-leave flow (confirmLeave).
-      const values = form.getFieldsValue();
-      localStorage.setItem(
-        RETAINED_VIDEO_STORAGE_KEY,
-        JSON.stringify({
-          title: values.title,
-          description: values.description,
-          module: values.module,
-          category: values.category,
-        })
-      );
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty, editMode, form, loading]);
-
   return (
-    <AdminLayout>
-      <div className="vc-page">
-        <div className="vc-inner">
-
+    <CreateContentLayout
+      pageClassName="create-page"
+      innerClassName="create-inner"
+      leaveConfirm={{
+        open: nav.leaveConfirmOpen,
+        onCancel: nav.dismissLeaveConfirm,
+        onSave: confirmLeave,
+        onDiscard: confirmDiscard,
+      }}
+      restoreDraft={{
+        open: restoreOpen,
+        noun: "video draft",
+        onRestore: confirmRestoreDraft,
+        onDiscard: confirmDiscardDraft,
+      }}
+    >
           {/* Header Section */}
-          <div className="vc-header">
-            <div className="vc-header-body">
-              <Title level={3} className="vc-header-title">
-                {editMode ? "Edit Video" : "Create New Video"}
-              </Title>
-            </div>
-          </div>
+          <CreatePageHeader
+            wrapperClassName="create-header"
+            bodyClassName="create-header-body"
+            titleClassName="create-header-title"
+            title={editMode ? "Edit Video" : "Create New Video"}
+          />
 
           {/* Main Form Card */}
-          <div className="vc-card">
-            <Title level={5} className="vc-card-title">Video Details</Title>
+          <div className="create-card">
+            <Title level={5} className="create-card-title">Video Details</Title>
 
             {seeding ? (
               <div className="vc-loading">
@@ -586,7 +540,7 @@ const UploadVideo = () => {
 
             {/* Title */}
             <Form.Item
-              label={<span className="vc-label">Title</span>}
+              label={<span className="create-label">Title</span>}
               name="title"
               required
               rules={[
@@ -613,7 +567,7 @@ const UploadVideo = () => {
               <Input
                 placeholder="Enter video title"
                 size="large"
-                className="vc-input"
+                className="create-input"
               />
             </Form.Item>
 
@@ -621,7 +575,7 @@ const UploadVideo = () => {
 
             {/* Description */}
             <Form.Item
-              label={<span className="vc-label">Description</span>}
+              label={<span className="create-label">Description</span>}
               name="description"
               required
               rules={[
@@ -649,27 +603,27 @@ const UploadVideo = () => {
                 placeholder="Describe your video"
                 rows={4}
                 size="large"
-                className="vc-textarea"
+                className="create-textarea"
               />
             </Form.Item>
 
             <WordCount value={descriptionValue} max={60} />
 
             {/* Module & Category */}
-              <div className="vc-select-block">
-                <div className="vc-section-label">
+              <div className="create-select-block">
+                <div className="create-section-label">
                   Select the module and categories
-                  <span className="vc-required">*</span>
+                  <span className="create-required">*</span>
                 </div>
-                <div className="vc-hint">
+                <div className="create-hint">
                   Select the module and category where your video should be placed
                 </div>
                 <ModuleCategorySelects
                   showFieldLabels
-                  moduleItemClassName="vc-select-item"
-                  moduleSelectClassName="vc-select"
-                  categoryItemClassName="vc-select-item"
-                  categorySelectClassName="vc-select"
+                  moduleItemClassName="create-select-item"
+                  moduleSelectClassName="create-select"
+                  categoryItemClassName="create-select-item"
+                  categorySelectClassName="create-select"
                   moduleRequiredMessage="Please select module."
                   categoryRequiredMessage="Please select category."
                 />
@@ -677,10 +631,10 @@ const UploadVideo = () => {
 
             {/* Thumbnail Upload */}
             <Form.Item
-              label={<span className="vc-label">Upload Thumbnail</span>}
+              label={<span className="create-label">Upload Thumbnail</span>}
               className="vc-thumb-block"
             >
-              <div className="vc-hint">
+              <div className="create-hint">
                 Choose a visual cover for your video (16:9). Optional — a default
                 thumbnail is used if you skip this.
               </div>
@@ -753,11 +707,11 @@ const UploadVideo = () => {
 
             {/* Upload Video */}
             <Form.Item
-              label={<span className="vc-label">Upload Video</span>}
+              label={<span className="create-label">Upload Video</span>}
               required
               className="upload-section"
             >
-              <div className="vc-hint">
+              <div className="create-hint">
                 Upload one video
               </div>
 
@@ -771,19 +725,21 @@ const UploadVideo = () => {
                 <div className="vc-drop-inner">
                   {file ? (
                     <>
-                      <span className="vc-file-name">{file.name}</span>
-                      <Button
-                        danger
-                        type="link"
-                        icon={<DeleteOutlined />}
-                        className="remove-file-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeFile();
-                        }}
-                      >
-                        Remove
-                      </Button>
+                      <div className="vc-file-select">
+                        <span className="vc-file-name">{file.name}</span>
+                        <Button
+                          danger
+                          type="link"
+                          icon={<DeleteOutlined />}
+                          className="remove-file-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile();
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
                     </>
                   ) : editMode && existingVideoUrl ? (
                     <>
@@ -816,7 +772,7 @@ const UploadVideo = () => {
               </div>
             </Form.Item>
 
-            <div className="vc-divider-wide" />
+            <div className="create-divider" />
 
             {uploadFailed && (
               <div className="vc-upload-failed">
@@ -849,87 +805,28 @@ const UploadVideo = () => {
             )}
 
             {/* Footer */}
-            <div className="vc-footer">
-
-              <Button
-                size="large"
-                htmlType="button"
-                onClick={preview}
-                className="vc-btn-preview"
-              >
-                Preview
-              </Button>
-
-              <Space size="middle">
-                <Button size="large" onClick={handleCancel} className="vc-btn-cancel">
-                  Cancel
-                </Button>
-
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  disabled={loading}
-                  loading={loading}
-                  className="vc-btn-create"
-                >
-                  {editMode ? "Save Changes" : "Create"}
-                </Button>
-              </Space>
-
-            </div>
+            <CreateFormActions
+              onPreview={preview}
+              onCancel={handleCancel}
+              loading={loading}
+              submitLabel={editMode ? "Save Changes" : "Create"}
+              wrapperClassName="create-footer"
+              previewButtonClassName="create-btn-preview"
+              cancelButtonClassName="create-btn-cancel"
+              submitButtonClassName="create-btn-create"
+            />
 
           </Form>
         )}
         </div>
 
-        </div>
-      </div>
-
-      <Modal
-        open={cancelOpen}
-        title="You have unsaved changes"
-        onCancel={closeCancelConfirm}
-        closable
-        maskClosable
-        footer={
-          <Space>
-            <Button onClick={confirmDiscard}>No, Don&apos;t Save</Button>
-            <Button type="primary" onClick={confirmLeave}>
-              Yes, Save
-            </Button>
-          </Space>
-        }
-      >
-        <p>Do you want to save your changes before leaving?</p>
-      </Modal>
-
-      {/* RESTORE PREVIOUS DRAFT MODAL */}
-      <Modal
-        open={restoreOpen}
-        title="Restore previous draft?"
-        onCancel={confirmDiscardDraft}
-        closable
-        maskClosable
-        footer={
-          <Space>
-            <Button onClick={confirmDiscardDraft}>No, Start Fresh</Button>
-            <Button type="primary" onClick={confirmRestoreDraft}>
-              Yes, Restore
-            </Button>
-          </Space>
-        }
-      > 
-        <p>You have a previously unsaved video draft. Would you like to restore it?</p>
-      </Modal>
-
-      {/* UPLOAD IN PROGRESS MODAL */}
-      <Modal
+        {/* UPLOAD IN PROGRESS MODAL */}
+        <Modal
         open={uploadLeaveOpen}
         title="Upload in progress"
         onCancel={confirmStayUploading}
         closable
-        maskClosable={false}
+        mask={{ closable: false }}
         footer={
           <Space>
             <Button type="primary" onClick={confirmStayUploading}>
@@ -955,9 +852,11 @@ const UploadVideo = () => {
         centered
         width={860}
         footer={null}
-        maskStyle={{
-          backdropFilter: 'blur(6px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        styles={{
+          mask: {
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          },
         }}
       >
         {previewOpen && previewData && previewData.src && (
@@ -967,6 +866,8 @@ const UploadVideo = () => {
               controls
               autoPlay
               src={previewData.src}
+              disablePictureInPicture
+              controlsList="nodownload"
             />
             {(previewData.title || previewData.description || previewData.thumbnail) && (
               <div className="vc-preview-info">
@@ -994,7 +895,7 @@ const UploadVideo = () => {
           </div>
         )}
       </Modal>
-    </AdminLayout>
+    </CreateContentLayout>
   );
 };
 

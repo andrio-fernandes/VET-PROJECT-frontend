@@ -42,15 +42,15 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
 
   return (
     <>
-    <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
-      Select the module and categories <span className="blog-required">*</span>
+    <Title level={5} className="create-section-label">
+      Select the module and categories <span className="create-required">*</span>
     </Title>
-    <Text type="secondary" className="blog-section-hint">
+    <Text type="secondary" className="create-hint">
       Select the module where the blog should be placed
     </Text>
 
-    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-      <div style={{ flex: 1, minWidth: 220, marginBottom: 8 }}>
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
         <Controller
           name="module"
           control={control}
@@ -68,6 +68,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
                 size="large"
                 status={fieldState.error ? 'error' : undefined}
                 style={{ width: '100%' }}
+                className="create-select"
               />
               {fieldState.error && (
                 <div className="blog-field-error">{fieldState.error.message}</div>
@@ -77,7 +78,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
         />
       </div>
 
-      <div style={{ flex: 1, minWidth: 220, marginBottom: 8 }}>
+      <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
         <Controller
           name="category"
           control={control}
@@ -99,6 +100,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
                 size="large"
                 status={fieldState.error ? 'error' : undefined}
                 style={{ width: '100%' }}
+                className="create-select"
               />
               {fieldState.error && (
                 <div className="blog-field-error">{fieldState.error.message}</div>
@@ -109,7 +111,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
       </div>
     </div>
 
-    <Divider className="blog-divider" />
+    <Divider className="create-divider" />
   </>
   );
 };

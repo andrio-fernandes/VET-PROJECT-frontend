@@ -12,7 +12,7 @@ interface RequiredLabelProps {
 }
 
 export const RequiredLabel: React.FC<RequiredLabelProps> = ({ label }) => (
-  <label className="blog-field-label">
-    {label} <span className="blog-required">*</span>
+  <label className="create-label">
+    {label} <span className="create-required">*</span>
   </label>
 );

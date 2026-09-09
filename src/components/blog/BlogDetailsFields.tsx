@@ -31,7 +31,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
   trackChange,
 }) => (
   <>
-    <Title level={5} className="blog-section-label" style={{ margin: '0 0 18px 0' }}>
+    <Title level={5} className="create-card-title">
       Blog Details
     </Title>
 
@@ -48,7 +48,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
             onChange={(e) => trackChange(field.onChange)(e.target.value)}
             placeholder="Enter blog title"
             size="large"
-            style={{ borderRadius: 6 }}
+            className="create-input"
             status={fieldState.error ? 'error' : undefined}
           />
           <div className="word-counter">
@@ -61,7 +61,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
       )}
     />
 
-    <div style={{ height: 16 }} />
+    <div style={{ height: 24 }} />
 
     <Controller
       name="description"
@@ -77,7 +77,7 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
             placeholder="Describe your blog..."
             rows={4}
             size="large"
-            style={{ borderRadius: 6, resize: 'none' }}
+            className="create-textarea"
             status={fieldState.error ? 'error' : undefined}
           />
           <div className="word-counter">
@@ -90,6 +90,6 @@ export const BlogDetailsFields: React.FC<BlogDetailsFieldsProps> = ({
       )}
     />
 
-    <Divider className="blog-divider" />
+    <Divider className="create-divider" />
   </>
 );

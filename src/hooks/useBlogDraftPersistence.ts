@@ -9,7 +9,7 @@
 // can read the current values without triggering re-renders of the page.
 // =============================================
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageInstance } from 'antd/es/message/interface';
 
 import {
@@ -180,16 +180,22 @@ export const useBlogDraftPersistence = ({
     removeDraftFromStorage();
   };
 
-  // Restore a previously saved draft (if any) once when the page opens.
-  // Runs only in genuine create mode once the route is resolved. Skipped in
-  // edit mode (the form is seeded from the server blog), and skipped until the
-  // router has hydrated so a stale create draft is never written over a blog
-  // that is actually being edited.
+  // A saved draft exists but the user has not yet decided whether to restore
+  // it. Mirrors the FAQ / Video create pages, which ask "Restore previous
+  // draft?" before repopulating the form instead of silently auto-restoring.
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const pendingDraftRef = useRef<BlogDraft | null>(null);
+
+  // Detects a saved draft once when the page opens and prompts the user to
+  // restore or discard it (Blog create page). Runs only in genuine create mode
+  // once the route is resolved. Skipped in edit mode (the form is seeded from
+  // the server blog), and skipped until the router has hydrated so a stale
+  // create draft is never written over a blog that is actually being edited.
   useEffect(() => {
     if (editMode || !isReady) return;
     let cancelled = false;
 
-    const restoreDraft = async () => {
+    const checkDraft = async () => {
       const draft = readDraftFromStorage();
       if (!draft?.values) return;
 
@@ -202,41 +208,71 @@ export const useBlogDraftPersistence = ({
         return;
       }
 
-      reset({ title, description, module: moduleName, category, content });
-
-      if (draft.thumbnail?.dataUrl) {
-        const restoredFile = await dataUrlToFile(
-          draft.thumbnail.dataUrl,
-          draft.thumbnail.name || 'thumbnail.png'
-        );
-        if (!cancelled && restoredFile) {
-          restoreThumbnail(restoredFile, draft.thumbnail.dataUrl);
-        }
-      }
-
-      if (!cancelled && draft.attachments?.length) {
-        const restored = await Promise.all(
-          draft.attachments.map(async (att) => {
-            const file = await dataUrlToFile(att.dataUrl, att.name);
-            return file ? { file, name: att.name } : null;
-          })
-        );
-        const valid = restored.filter(Boolean) as { file: File; name: string }[];
-        if (!cancelled && valid.length) {
-          restoreAttachments(valid);
-        }
-      }
-
-      if (!cancelled) message.success('Draft restored');
+      if (cancelled) return;
+      pendingDraftRef.current = draft;
+      // Defer into a microtask so the setState is not called synchronously
+      // within the effect body (avoids the React Compiler rule).
+      queueMicrotask(() => {
+        if (!cancelled) setDraftAvailable(true);
+      });
     };
 
-    restoreDraft();
+    checkDraft();
 
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode, isReady]);
+
+  // Applies a saved draft to the form and asset state. Kept as a standalone
+  // function so the user-driven restore (chosen from the prompt modal) behaves
+  // exactly like the old silent restore.
+  const applyDraft = async (draft: BlogDraft) => {
+    const draftValues = draft.values as any;
+    const { title = '', description = '', module: moduleName = '', content = '' } = draftValues;
+    // Tolerate drafts saved before the rename of `feature` -> `category`.
+    const category = draftValues.category ?? draftValues.feature ?? '';
+
+    reset({ title, description, module: moduleName, category, content });
+
+    if (draft.thumbnail?.dataUrl) {
+      const restoredFile = await dataUrlToFile(
+        draft.thumbnail.dataUrl,
+        draft.thumbnail.name || 'thumbnail.png'
+      );
+      if (restoredFile) {
+        restoreThumbnail(restoredFile, draft.thumbnail.dataUrl);
+      }
+    }
+
+    if (draft.attachments?.length) {
+      const restored = await Promise.all(
+        draft.attachments.map(async (att) => {
+          const file = await dataUrlToFile(att.dataUrl, att.name);
+          return file ? { file, name: att.name } : null;
+        })
+      );
+      const valid = restored.filter(Boolean) as { file: File; name: string }[];
+      if (valid.length) {
+        restoreAttachments(valid);
+      }
+    }
+  };
+
+  const confirmRestoreDraft = async () => {
+    const draft = pendingDraftRef.current;
+    pendingDraftRef.current = null;
+    setDraftAvailable(false);
+    if (!draft) return;
+    await applyDraft(draft);
+    message.info('Restored your previous unsaved progress.');
+  };
+
+  const confirmDiscardDraft = () => {
+    pendingDraftRef.current = null;
+    setDraftAvailable(false);
+    resetDraftStorage();
+  };
 
   // Refresh / tab close: flush the latest state synchronously and let the
   // browser show its native leave confirmation. Draft persistence is skipped in
@@ -265,6 +301,9 @@ export const useBlogDraftPersistence = ({
   }, [editMode]);
 
   return {
+    draftAvailable,
+    confirmRestoreDraft,
+    confirmDiscardDraft,
     hasUnsavedContent,
     getHasUnsavedContent: () => hasUnsavedContentRef.current(),
     writeDraftToStorage,

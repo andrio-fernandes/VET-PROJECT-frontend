@@ -127,11 +127,16 @@ export const useBlogDraftNavigation = ({
 
     // In edit mode, snapshot the current (possibly unsaved) form state so the
     // round-trip back to the edit URL can restore it instead of reverting to
-    // the last-saved server values. Existing server assets are re-seeded from
-    // the server on return, so only picked (unsaved) assets and text are kept.
+    // the last-saved server values. The resolved remaining server attachments
+    // are captured too so the return seeds the form from the list the user
+    // actually saw, instead of re-filtering the freshly-fetched server list by
+    // display name. createdAt lets the edit page drop snapshots that are stale
+    // leftovers from an earlier session (they must never resurrect a "delete
+    // everything" wipe against attachments the server still has).
     if (editMode && blogId) {
       const editSnapshot = {
         blogId,
+        createdAt: Date.now(),
         title: values.title ?? '',
         description: values.description ?? '',
         module: values.module ?? '',
@@ -141,6 +146,10 @@ export const useBlogDraftNavigation = ({
           ? { source: 'picked', name: thumbnail.name, dataUrl: thumbnailDataUrl }
           : null,
         attachments: pickedDataUrls,
+        existingAttachments: existingAttachments.map((a) => ({
+          name: a.name,
+          url: a.url,
+        })),
         // Preserve the removal intent so the round-trip back to the edit page
         // keeps attaching-sensitive edits (removing an existing attachment)
         // instead of resurrecting them from the freshly-fetched server list.

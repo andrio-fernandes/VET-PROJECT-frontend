@@ -8,6 +8,7 @@
 
 import { api } from "./api";
 import { API_ENDPOINTS } from "@/constants";
+import { BLOG_CONTENT_MAX_BYTES } from "@/constants/blog";
 import type { BlogListItem, BlogRecord } from "@/types/blog";
 
 export interface PaginatedBlogs {
@@ -40,7 +41,19 @@ interface UpdateBlogPayload {
   removeAttachmentUrls: string[];
 }
 
+// Blog HTML (text + inline base64 images) is ASCII, so `length` is a good
+// byte proxy. Guards the multipart field-size limit the server enforces
+// (LIMIT_FIELD_VALUE) with a message the admin actually understands.
+const assertContentWithinLimit = (content: string): void => {
+  if (content.length > BLOG_CONTENT_MAX_BYTES) {
+    throw new Error(
+      'Blog content is too large (max 5MB). Remove or compress embedded images and try again.'
+    );
+  }
+};
+
 export const createBlog = async (payload: CreateBlogPayload): Promise<void> => {
+  assertContentWithinLimit(payload.content);
   const formData = new FormData();
   formData.append("title", payload.title.trim());
   formData.append("description", payload.description.trim());
@@ -70,6 +83,7 @@ export const updateBlog = async (
   blogId: string,
   payload: UpdateBlogPayload
 ): Promise<void> => {
+  assertContentWithinLimit(payload.content);
   const formData = new FormData();
   formData.append("title", payload.title.trim());
   formData.append("description", payload.description.trim());

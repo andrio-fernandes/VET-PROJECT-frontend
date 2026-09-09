@@ -148,21 +148,21 @@ const EditFAQ = () => {
 
   return (
     <AdminLayout>
-      <div className="faqs-create-page">
-        <div className="faqs-create-inner">
+      <div className="create-page">
+        <div className="create-inner">
 
           {/* Header Section */}
-          <div className="faqs-create-header">
-            <div className="faqs-create-header-body">
-              <Title level={3} className="faqs-create-header-title">
+          <div className="create-header">
+            <div className="create-header-body">
+              <Title level={3} className="create-header-title">
                 Edit FAQ
               </Title>
             </div>
           </div>
 
           {/* Main Form Card */}
-          <div className="faqs-create-card">
-            <Title level={5} className="faqs-create-card-title">FAQ Details</Title>
+          <div className="create-card">
+            <Title level={5} className="create-card-title">FAQ Details</Title>
 
             {seeding ? (
               <div className="faqs-create-loading">
@@ -187,7 +187,7 @@ const EditFAQ = () => {
               }}
             >
               <Form.Item
-                label={<span className="faqs-create-label">Question</span>}
+                label={<span className="create-label">Question</span>}
                 name="question"
                 required
                 rules={[
@@ -203,13 +203,13 @@ const EditFAQ = () => {
                   },
                 ]}
               >
-                <Input placeholder="Enter question" maxLength={200} size="large" className="faqs-create-input" />
+                <Input placeholder="Enter question" maxLength={200} size="large" className="create-input" />
               </Form.Item>
 
               <WordCount value={questionValue} max={30} />
 
               <Form.Item
-                label={<span className="faqs-create-label">Answer</span>}
+                label={<span className="create-label">Answer</span>}
                 name="answer"
                 required
                 rules={[
@@ -230,42 +230,42 @@ const EditFAQ = () => {
                   maxLength={2000}
                   size="large"
                   rows={4}
-                  className="faqs-create-textarea"
+                  className="create-textarea"
                 />
               </Form.Item>
 
               <WordCount value={answerValue} max={60} />
 
               <Form.Item
-                label={<span className="faqs-create-label">Select the module and categories</span>}
+                label={<span className="create-label">Select the module and categories</span>}
                 required
-                className="faqs-create-select-block"
+                className="create-select-block"
               >
                 <ModuleCategorySelects
                   showFieldLabels
-                  moduleItemClassName="faqs-create-select-item"
-                  moduleSelectClassName="faqs-create-select"
-                  categoryItemClassName="faqs-create-select-item"
-                  categorySelectClassName="faqs-create-select"
+                  moduleItemClassName="create-select-item"
+                  moduleSelectClassName="create-select"
+                  categoryItemClassName="create-select-item"
+                  categorySelectClassName="create-select"
                   moduleRequiredMessage="Please select a module"
                   categoryRequiredMessage="Please select a category"
                 />
               </Form.Item>
 
-              <div className="faqs-create-divider" />
+              <div className="create-divider" />
 
-              <div className="faqs-create-footer">
+              <div className="create-footer">
                 <Button
                   size="large"
                   onClick={() => setPreviewVisible(true)}
-                  className="faqs-create-btn-preview"
+                  className="create-btn-preview"
                 >
                   Preview
                 </Button>
 
                 <Space size="middle">
-                  <Button size="large" onClick={handleCancel} disabled={loading} className="faqs-create-btn-cancel">Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="faqs-create-btn-create">Save</Button>
+                  <Button size="large" onClick={handleCancel} disabled={loading} className="create-btn-cancel">Cancel</Button>
+                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="create-btn-create">Save</Button>
                 </Space>
               </div>
 
@@ -276,11 +276,13 @@ const EditFAQ = () => {
                 footer={null}
                 width={736}
                 centered
-                maskStyle={{
-                  backdropFilter: 'blur(6px)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                styles={{
+                  mask: {
+                    backdropFilter: 'blur(6px)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  },
+                  body: { borderRadius: '12px', padding: '24px' },
                 }}
-                styles={{ body: { borderRadius: '12px', padding: '24px' } }}
               >
                 {previewContent}
               </Modal>
@@ -296,7 +298,7 @@ const EditFAQ = () => {
         title="You have unsaved changes"
         onCancel={closeLeaveConfirm}
         closable
-        maskClosable
+        mask={{ closable: true }}
         footer={
           <Space>
             <Button onClick={confirmDiscardAndLeave}>No, Don&apos;t Save</Button>

@@ -20,11 +20,13 @@ export function ViewFAQModal({ open, question, answer, onClose }: ViewFAQModalPr
       width={736}
       centered
       className="faq-view-modal"
-      maskStyle={{
-        backdropFilter: 'blur(6px)',
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+      styles={{
+        mask: {
+          backdropFilter: 'blur(6px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        },
+        body: { borderRadius: '12px', padding: '24px' },
       }}
-      styles={{ body: { borderRadius: '12px', padding: '24px' } }}
     >
       <div>
         <div className="faqs-create-block">

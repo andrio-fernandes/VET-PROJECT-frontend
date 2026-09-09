@@ -5,14 +5,14 @@ import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '@/components/blog/PageHeader';
+import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
+import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
+import { CreateFormActions } from '@/components/common/create/CreateFormActions';
 import { ThumbnailUpload } from '@/components/blog/ThumbnailUpload';
 import { AttachmentUpload } from '@/components/blog/AttachmentUpload';
 import { BlogDetailsFields } from '@/components/blog/BlogDetailsFields';
 import { BlogCategoryFields } from '@/components/blog/BlogCategoryFields';
 import { BlogContentField } from '@/components/blog/BlogContentField';
-import { BlogFormActions } from '@/components/blog/BlogFormActions';
 
 import { GREEN } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
@@ -93,6 +93,9 @@ const UploadBlog = () => {
     resetEditState,
     scheduleDraftSave,
     resetBlogForm,
+    draftAvailable,
+    confirmRestoreDraft,
+    confirmDiscardDraft,
     performNavigation,
     handlePreview,
     requestNavigation,
@@ -226,11 +229,21 @@ const UploadBlog = () => {
 
   const submit = handleSubmit(onFinish, onInvalid);
   return (
-    <AdminLayout onNavigate={requestNavigation}>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-        <div style={{ width: '100%' }}>
-          <div className="blog-content">
-          <PageHeader
+    <CreateContentLayout
+      onNavigate={requestNavigation}
+      pageClassName="create-page"
+      innerClassName="create-inner"
+      restoreDraft={{
+        open: draftAvailable,
+        noun: 'blog draft',
+        onRestore: confirmRestoreDraft,
+        onDiscard: confirmDiscardDraft,
+      }}
+    >
+          <CreatePageHeader
+            wrapperClassName="create-header"
+            bodyClassName="create-header-body"
+            titleClassName="create-header-title"
             backHref={ROUTE_PATHS.blogs}
             backOnClick={(event) => {
               event.preventDefault();
@@ -240,7 +253,7 @@ const UploadBlog = () => {
             showBack={false}
           />
 
-          <div className="blog-card" style={{ padding: '32px', borderRadius: '12px' }}>
+          <div className="create-card">
             {seeding ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
                 <Spin size="large" />
@@ -252,10 +265,10 @@ const UploadBlog = () => {
                 <BlogCategoryFields control={control} trackChange={trackChange} setValue={setValue} />
 
                 <div id="blog-thumbnail">
-                  <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
+                  <Title level={5} className="create-section-label">
                     Upload Thumbnail
                   </Title>
-                  <Text type="secondary" className="blog-section-hint">
+                  <Text type="secondary" className="create-hint">
                     Upload a thumbnail image for your blog. A default image is
                     shown if you skip this.
                   </Text>
@@ -269,14 +282,14 @@ const UploadBlog = () => {
                   />
                 </div>
 
-                <Divider className="blog-divider" />
+                <Divider className="create-divider" />
 
                 <BlogContentField control={control} trackChange={trackChange} />
 
-                <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
+                <Title level={5} className="create-section-label">
                   Attachment
                 </Title>
-                <Text type="secondary" className="blog-section-hint">
+                <Text type="secondary" className="create-hint">
                   Upload file required in this blog
                 </Text>
 
@@ -289,20 +302,21 @@ const UploadBlog = () => {
                   onRemoveExisting={handleExistingAttachmentRemove}
                 />
 
-                <Divider className="blog-divider" />
+                <Divider className="create-divider" />
 
-                <BlogFormActions
-                  handlePreview={handlePreview}
+                <CreateFormActions
+                  onPreview={handlePreview}
                   onCancel={() => requestNavigation(editMode ? ROUTE_PATHS.blogs : ROUTE_PATHS.adminDashboard)}
                   loading={loading}
                   submitLabel={editMode ? 'Save Changes' : 'Create'}
+                  previewButtonClassName="create-btn-preview"
+                  cancelDanger
+                  cancelButtonClassName="create-btn-cancel"
+                  submitButtonClassName="create-btn-create"
                 />
               </form>
             )}
           </div>
-        </div>
-        </div>
-      </div>
 
       {/* UNSAVED BLOG DRAFT CONFIRMATION */}
       <Modal
@@ -329,7 +343,7 @@ const UploadBlog = () => {
       >
         <Text>Do you want to save this blog as a draft?</Text>
       </Modal>
-    </AdminLayout>
+    </CreateContentLayout>
   );
 };
 

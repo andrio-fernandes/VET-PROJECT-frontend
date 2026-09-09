@@ -10,5 +10,5 @@ interface WordCountProps {
 // surrounding white-space is preserved so pages can drop it inline without
 // any change to their markup.
 export default function WordCount({ value = "", max }: WordCountProps) {
-  return <div className="word-counter">{countWords(value)}/{max}</div>;
+  return <div className="word-counter">{countWords(value)}/{max} word</div>;
 }

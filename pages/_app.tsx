@@ -10,6 +10,7 @@ import '@/styles/blog.scss';
 import '@/styles/admin-layout.css';
 import '@/styles/admin-dashboard.css';
 import '@/styles/faqs.scss';
+import '@/styles/create-base.css';
 import '@/styles/faqs-create.css';
 import '@/styles/videos.scss';
 import '@/styles/videos-create.css';
