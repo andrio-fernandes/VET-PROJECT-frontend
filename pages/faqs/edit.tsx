@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Form, Input, Button, Typography, Space, Spin, Modal, App as AntApp } from 'antd';
+import { Form, Input, Typography, Spin, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
-import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { updateFaq, getFaqById } from '@/services/faqService';
-import { ROUTE_PATHS, countWords } from '@/constants';
+import { ROUTE_PATHS } from '@/constants';
 import WordCount from '@/components/WordCount';
 import ModuleCategorySelects from '@/components/ModuleCategorySelects';
+import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
+import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
+import { CreateFormActions } from '@/components/common/create/CreateFormActions';
+import { FaqPreviewModal } from '@/components/common/FaqPreviewModal';
+import {
+  wordCountValidator,
+  scrollToFirstError,
+  resetCategoryOnModuleChange,
+} from '@/utils/formValidation';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const EditFAQ = () => {
   const [form] = Form.useForm();
@@ -50,30 +58,6 @@ const EditFAQ = () => {
     setConfirmOpen(false);
     if (onLeave) onLeave();
   };
-
-  const previewContent = (
-    <div>
-      <div className="faqs-create-block">
-        <Text className="faqs-create-preview-label faqs-create-preview-label-q">
-          Question
-        </Text>
-        <Text strong className="faqs-create-preview-question">
-          {questionValue || 'Your question will appear here?'}
-        </Text>
-      </div>
-
-      <div className="faqs-create-preview-answer-block">
-        <Text className="faqs-create-preview-label">
-          Answer
-        </Text>
-      </div>
-      <div className="faqs-create-preview-answer-box">
-        <Text className="faqs-create-preview-answer">
-          {answerValue || 'Your answer description will appear here.'}
-        </Text>
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     if (!faqId || !router.isReady) return;
@@ -147,170 +131,119 @@ const EditFAQ = () => {
   };
 
   return (
-    <AdminLayout>
-      <div className="create-page">
-        <div className="create-inner">
+    <CreateContentLayout
+      pageClassName="create-page"
+      innerClassName="create-inner"
+      leaveConfirm={{
+        open: confirmOpen,
+        onCancel: closeLeaveConfirm,
+        onSave: closeLeaveConfirm,
+        onDiscard: confirmDiscardAndLeave,
+      }}
+    >
+      {/* Header Section */}
+      <CreatePageHeader
+        wrapperClassName="create-header"
+        bodyClassName="create-header-body"
+        titleClassName="create-header-title"
+        title="Edit FAQ"
+      />
 
-          {/* Header Section */}
-          <div className="create-header">
-            <div className="create-header-body">
-              <Title level={3} className="create-header-title">
-                Edit FAQ
-              </Title>
-            </div>
+      {/* Main Form Card */}
+      <div className="create-card">
+        <Title level={5} className="create-card-title">FAQ Details</Title>
+
+        {seeding ? (
+          <div className="faqs-create-loading">
+            <Spin size="large" />
           </div>
-
-          {/* Main Form Card */}
-          <div className="create-card">
-            <Title level={5} className="create-card-title">FAQ Details</Title>
-
-            {seeding ? (
-              <div className="faqs-create-loading">
-                <Spin size="large" />
-              </div>
-            ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              validateTrigger={submitted ? 'onChange' : 'onSubmit'}
-              onFinish={onFinish}
-              onValuesChange={(changedValues: any) => {
-                if ('module' in changedValues) {
-                  form.setFieldsValue({ category: undefined });
-                }
-              }}
-              onFinishFailed={({ errorFields }) => {
-                setSubmitted(true);
-                if (errorFields && errorFields.length) {
-                  form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
-                }
-              }}
+        ) : (
+          <Form
+            form={form}
+            layout="vertical"
+            validateTrigger={submitted ? 'onChange' : 'onSubmit'}
+            onFinish={onFinish}
+            onValuesChange={resetCategoryOnModuleChange(form)}
+            onFinishFailed={({ errorFields }) => {
+              setSubmitted(true);
+              scrollToFirstError(form, errorFields);
+            }}
+          >
+            <Form.Item
+              label={<span className="create-label">Question</span>}
+              name="question"
+              required
+              rules={[
+                { required: true, message: 'Please Enter The Question' },
+                { validator: wordCountValidator(5, 30, 'Question') },
+              ]}
             >
-              <Form.Item
-                label={<span className="create-label">Question</span>}
-                name="question"
-                required
-                rules={[
-                  { required: true, message: 'Please Enter The Question' },
-                  {
-                    validator: (_rule, value) => {
-                      if (!value) return Promise.resolve();
-                      const wordCount = countWords(value);
-                      if (wordCount < 5) return Promise.reject('Question must contain at least 5 words.');
-                      if (wordCount > 30) return Promise.reject('Question must not exceed 30 words.');
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-              >
-                <Input placeholder="Enter question" maxLength={200} size="large" className="create-input" />
-              </Form.Item>
+              <Input placeholder="Enter question" maxLength={200} size="large" className="create-input" />
+            </Form.Item>
 
-              <WordCount value={questionValue} max={30} />
+            <WordCount value={questionValue} max={30} />
 
-              <Form.Item
-                label={<span className="create-label">Answer</span>}
-                name="answer"
-                required
-                rules={[
-                  { required: true, message: 'Please provide an answer' },
-                  {
-                    validator: (_rule, value) => {
-                      if (!value) return Promise.resolve();
-                      const wordCount = countWords(value);
-                      if (wordCount < 10) return Promise.reject('Answer must contain at least 10 words.');
-                      if (wordCount > 60) return Promise.reject('Answer must not exceed 60 words.');
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-              >
-                <Input.TextArea
-                  placeholder="Describe your answer"
-                  maxLength={2000}
-                  size="large"
-                  rows={4}
-                  className="create-textarea"
-                />
-              </Form.Item>
+            <Form.Item
+              label={<span className="create-label">Answer</span>}
+              name="answer"
+              required
+              rules={[
+                { required: true, message: 'Please provide an answer' },
+                { validator: wordCountValidator(10, 60, 'Answer') },
+              ]}
+            >
+              <Input.TextArea
+                placeholder="Describe your answer"
+                maxLength={2000}
+                size="large"
+                rows={4}
+                className="create-textarea"
+              />
+            </Form.Item>
 
-              <WordCount value={answerValue} max={60} />
+            <WordCount value={answerValue} max={60} />
 
-              <Form.Item
-                label={<span className="create-label">Select the module and categories</span>}
-                required
-                className="create-select-block"
-              >
-                <ModuleCategorySelects
-                  showFieldLabels
-                  moduleItemClassName="create-select-item"
-                  moduleSelectClassName="create-select"
-                  categoryItemClassName="create-select-item"
-                  categorySelectClassName="create-select"
-                  moduleRequiredMessage="Please select a module"
-                  categoryRequiredMessage="Please select a category"
-                />
-              </Form.Item>
+            <Form.Item
+              label={<span className="create-label">Select the module and categories</span>}
+              required
+              className="create-select-block"
+            >
+              <ModuleCategorySelects
+                showFieldLabels
+                moduleItemClassName="create-select-item"
+                moduleSelectClassName="create-select"
+                categoryItemClassName="create-select-item"
+                categorySelectClassName="create-select"
+                moduleRequiredMessage="Please select a module"
+                categoryRequiredMessage="Please select a category"
+              />
+            </Form.Item>
 
-              <div className="create-divider" />
+            <div className="create-divider" />
 
-              <div className="create-footer">
-                <Button
-                  size="large"
-                  onClick={() => setPreviewVisible(true)}
-                  className="create-btn-preview"
-                >
-                  Preview
-                </Button>
+            <CreateFormActions
+              onPreview={() => setPreviewVisible(true)}
+              onCancel={handleCancel}
+              loading={loading}
+              submitLabel="Save"
+              wrapperClassName="create-footer"
+              previewButtonClassName="create-btn-preview"
+              cancelButtonClassName="create-btn-cancel"
+              cancelDisabled={loading}
+              submitButtonClassName="create-btn-create"
+            />
 
-                <Space size="middle">
-                  <Button size="large" onClick={handleCancel} disabled={loading} className="create-btn-cancel">Cancel</Button>
-                  <Button type="primary" htmlType="submit" size="large" loading={loading} disabled={loading} className="create-btn-create">Save</Button>
-                </Space>
-              </div>
-
-              {/* PREVIEW MODAL */}
-              <Modal
-                open={previewVisible}
-                onCancel={() => setPreviewVisible(false)}
-                footer={null}
-                width={736}
-                centered
-                styles={{
-                  mask: {
-                    backdropFilter: 'blur(6px)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  },
-                  body: { borderRadius: '12px', padding: '24px' },
-                }}
-              >
-                {previewContent}
-              </Modal>
-            </Form>
-            )}
-          </div>
-
-        </div>
+            {/* PREVIEW MODAL */}
+            <FaqPreviewModal
+              open={previewVisible}
+              question={questionValue}
+              answer={answerValue}
+              onClose={() => setPreviewVisible(false)}
+            />
+          </Form>
+        )}
       </div>
-
-      <Modal
-        open={confirmOpen}
-        title="You have unsaved changes"
-        onCancel={closeLeaveConfirm}
-        closable
-        mask={{ closable: true }}
-        footer={
-          <Space>
-            <Button onClick={confirmDiscardAndLeave}>No, Don&apos;t Save</Button>
-            <Button type="primary" onClick={closeLeaveConfirm}>
-              Yes, Save
-            </Button>
-          </Space>
-        }
-      >
-        <p>Do you want to save your changes before leaving?</p>
-      </Modal>
-    </AdminLayout>
+    </CreateContentLayout>
   );
 };
 

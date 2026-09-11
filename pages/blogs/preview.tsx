@@ -11,9 +11,9 @@ import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
 import {
   buildDocumentViewerUrl,
-  fileNameFromUrl,
   getAttachmentExtension,
   mediaUrl,
+  parseBlogAttachments,
 } from '@/utils/media';
 import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
 import { readPreviewValue, removePreviewValue } from '@/utils/blogPreviewStorage';
@@ -108,37 +108,9 @@ const BlogPreview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, blogId, isPreviewMode]);
 
-  const parseAttachments = (raw: string | undefined): ParsedAttachment[] => {
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed
-          .map((item) => {
-            if (typeof item === 'string') {
-              return { name: fileNameFromUrl(item), url: item };
-            }
-            if (item && typeof item === 'object') {
-              // Persisted backend shape: { name, url } (Cloudinary or disk upload)
-              if (typeof item.name === 'string' && typeof item.url === 'string') {
-                return { name: item.name, url: item.url };
-              }
-              // Preview-draft localStorage shape: { name, dataUrl }
-              if (typeof item.name === 'string' && typeof item.dataUrl === 'string') {
-                return { name: item.name, url: item.dataUrl };
-              }
-            }
-            return null;
-          })
-          .filter(Boolean) as ParsedAttachment[];
-      }
-    } catch {}
-    return raw ? [{ name: fileNameFromUrl(raw), url: raw }] : [];
-  };
-
   // mediaUrl resolves server-relative /uploads paths and passes data: / https:
   // URLs through unchanged, so it is safe to apply in both preview modes.
-  const attachmentUrls = parseAttachments(blog?.attachment).map((a) => ({
+  const attachmentUrls = parseBlogAttachments(blog?.attachment).map((a) => ({
     ...a,
     url: mediaUrl(a.url),
   }));

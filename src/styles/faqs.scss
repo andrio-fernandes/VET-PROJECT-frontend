@@ -25,6 +25,12 @@
   color: #000;
 }
 
+.faqs-cell-question-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 .faqs-cell-question {
   display: block;
   white-space: normal;

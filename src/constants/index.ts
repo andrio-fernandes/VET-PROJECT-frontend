@@ -12,7 +12,7 @@ export type ContentModule = (typeof CONTENT_MODULES)[number];
 
 export const CONTENT_CATEGORIES = [
   "Customer Order",
-  "Enquiry",
+"Inquiry",
   "Quotation",
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
@@ -20,7 +20,7 @@ export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 // Categories available per module. Add a new entry here when a new module
 // is introduced so its categories become selectable on the create forms.
 export const MODULE_CATEGORIES: Record<ContentModule, readonly ContentCategory[]> = {
-  Sales: ["Customer Order", "Enquiry", "Quotation"],
+  Sales: ["Customer Order", "Inquiry", "Quotation"],
 };
 
 // Commonly used weak passwords to reject during registration / reset
@@ -132,6 +132,16 @@ export const ROUTE_PATHS = {
   blogAttachmentViewer: "/blogs/attachment-preview",
   faqs: "/faqs",
   profile: "/profile",
+  // Customer content library (read-only views of admin content)
+  userVideos: "/user/videos",
+  userVideoPreview: "/user/videos/preview",
+  userBlogs: "/user/blogs",
+  userBlogPreview: "/user/blogs/preview",
+  userFaqs: "/user/faqs",
+  // Customer content search
+  search: "/search",
+  // Admin feedback inbox
+  feedback: "/dashboard/feedback",
 } as const;
 
 // Auth API endpoints
@@ -144,23 +154,34 @@ export const API_ENDPOINTS = {
   resetPassword: "/auth/reset-password",
   createFaq: "/faqs",
   getMyFaqs: "/faqs/mine",
-  getFaq: (id: string) => `/faqs/${id}`,
-  deleteFaq: (id: string) => `/faqs/${id}`,
   dashboardStats: "/dashboard/stats",
   // Video endpoints
   createVideo: "/videos",
   getVideos: "/videos",
-  getVideo: (id: string) => `/videos/${id}`,
-  updateVideo: (id: string) => `/videos/${id}`,
-  deleteVideo: (id: string) => `/videos/${id}`,
   getVideoStatus: (id: string) => `/videos/${id}/status`,
   signVideoUpload: "/videos/sign",
   // Blog endpoints
   createBlog: "/blogs",
   getMyBlogs: "/blogs/mine",
+  // Customer content library endpoints (protect only, GET-only server-side)
+  libraryFaqs: "/library/faqs",
+  libraryFaqById: (id: string) => `/library/faqs/${id}`,
+  libraryVideos: "/library/videos",
+  libraryVideoById: (id: string) => `/library/videos/${id}`,
+  libraryBlogs: "/library/blogs",
+  libraryBlogById: (id: string) => `/library/blogs/${id}`,
+  // View history / continue learning endpoints
+  libraryViewed: (type: string, id: string) => `/library/viewed/${type}/${id}`,
+  libraryViewedIds: "/library/viewed-ids",
+  libraryContinue: "/library/continue",
+  libraryProgress: (id: string) => `/library/videos/${id}/progress`,
   // Profile endpoints
   updateProfileAvatar: "/auth/profile/avatar",
   deleteProfileAvatar: "/auth/profile/avatar",
+  // Feedback endpoints
+  feedback: "/feedback",
+  feedbackCount: "/feedback/count",
+  feedbackStatus: (id: string) => `/feedback/${id}/status`,
 } as const;
 
 // Session storage keys for password reset flow

@@ -62,6 +62,52 @@ export const refreshSession = async (): Promise<string | null> => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Request helpers
+// ---------------------------------------------------------------------------
+
+// Builds an item-level endpoint for a resource collection, e.g.
+//   itemEndpoint("/videos", "123") -> "/videos/123"
+export const itemEndpoint = (collection: string, id: string): string =>
+  `${collection}/${id}`;
+
+// Pulls a resource off an API response, accepting both the direct shape
+// (data.<key>) and the legacy envelope (data.data.<key>).
+export const getNested = <T = any>(data: any, key: string): T | null =>
+  data?.[key] ?? data?.data?.[key] ?? null;
+
+// Serializes request bodies: FormData passes through untouched (so the
+// browser keeps the multipart boundary), anything else becomes JSON.
+const jsonify = (body?: unknown): BodyInit | undefined => {
+  if (body === undefined || body === null) return undefined;
+  if (typeof FormData !== "undefined" && body instanceof FormData) return body;
+  return JSON.stringify(body);
+};
+
+export const get = (endpoint: string, options?: RequestInit) =>
+  api(endpoint, options);
+
+export const post = (endpoint: string, body?: unknown) =>
+  api(endpoint, { method: "POST", body: jsonify(body) });
+
+export const put = (endpoint: string, body?: unknown) =>
+  api(endpoint, { method: "PUT", body: jsonify(body) });
+
+export const del = (endpoint: string) => api(endpoint, { method: "DELETE" });
+
+// Builds a query string from a parameter object, skipping keys that are
+// undefined, empty, or the "All" placeholder used by the content filters.
+export const buildQuery = (
+  params: Record<string, string | number | undefined>
+): string => {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === "All") continue;
+    query.set(key, String(value));
+  }
+  return query.toString();
+};
+
 // Single-flight: parallel requests that all hit a 401 share one refresh call.
 let refreshInFlight: Promise<string | null> | null = null;
 

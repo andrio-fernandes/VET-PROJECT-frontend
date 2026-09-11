@@ -1,17 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, Typography, Modal, App as AntApp } from 'antd';
+import React, { useState } from 'react';
+import { Form, Input, Typography, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { createFaq } from '@/services/faqService';
-import { ROUTE_PATHS, RETAINED_FAQ_STORAGE_KEY, countWords } from '@/constants';
+import { ROUTE_PATHS, RETAINED_FAQ_STORAGE_KEY } from '@/constants';
 import WordCount from '@/components/WordCount';
 import ModuleCategorySelects from '@/components/ModuleCategorySelects';
 import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
 import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
 import { CreateFormActions } from '@/components/common/create/CreateFormActions';
+import { FaqPreviewModal } from '@/components/common/FaqPreviewModal';
+import {
+  wordCountValidator,
+  scrollToFirstError,
+  resetCategoryOnModuleChange,
+} from '@/utils/formValidation';
 import { useUnsavedNavigation } from '@/hooks/useUnsavedNavigation';
+import { useDraftRestore } from '@/hooks/useDraftRestore';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const UploadFAQ = () => {
   const [form] = Form.useForm();
@@ -22,32 +29,23 @@ const UploadFAQ = () => {
   const [submitted, setSubmitted] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [restoreOpen, setRestoreOpen] = useState(false);
-  const retainedDataRef = useRef<string | null>(null);
 
   const nav = useUnsavedNavigation({ router, isDirty });
+
+  const { restoreOpen, confirmRestoreDraft, confirmDiscardDraft } = useDraftRestore({
+    storageKey: RETAINED_FAQ_STORAGE_KEY,
+    form,
+    message,
+    applyValues: (values) => form.setFieldsValue(values),
+  });
 
   // Reactive values so the preview popover stays in sync while typing.
   const questionValue = Form.useWatch('question', form);
   const answerValue = Form.useWatch('answer', form);
 
-  useEffect(() => {
-    const retainedData = localStorage.getItem(RETAINED_FAQ_STORAGE_KEY);
-    if (!retainedData) return;
-    // Defer into a microtask so the setState is not called synchronously
-    // within the effect body (avoids the React Compiler rule), while still
-    // showing the restore prompt on first mount with the same behavior.
-    queueMicrotask(() => {
-      retainedDataRef.current = retainedData;
-      setRestoreOpen(true);
-    });
-  }, [form, message]);
-
   const handleValuesChange = (changedValues: any, allValues: any) => {
     setIsDirty(true);
-    if ('module' in changedValues) {
-      form.setFieldsValue({ category: undefined });
-    }
+    resetCategoryOnModuleChange(form)(changedValues);
     localStorage.setItem(RETAINED_FAQ_STORAGE_KEY, JSON.stringify(allValues));
   };
 
@@ -73,21 +71,6 @@ const UploadFAQ = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const confirmRestoreDraft = () => {
-    if (retainedDataRef.current) {
-      form.setFieldsValue(JSON.parse(retainedDataRef.current));
-      retainedDataRef.current = null;
-      message.info('Restored your previous unsaved progress.');
-    }
-    setRestoreOpen(false);
-  };
-
-  const confirmDiscardDraft = () => {
-    localStorage.removeItem(RETAINED_FAQ_STORAGE_KEY);
-    retainedDataRef.current = null;
-    setRestoreOpen(false);
   };
 
   const confirmSaveAndLeave = () => {
@@ -126,30 +109,6 @@ const UploadFAQ = () => {
     });
   };
 
-  const previewContent = (
-    <div>
-      <div className="faqs-create-block">
-        <Text className="faqs-create-preview-label faqs-create-preview-label-q">
-          Question
-        </Text>
-        <Text strong className="faqs-create-preview-question">
-          {questionValue || 'Your question will appear here?'}
-        </Text>
-      </div>
-
-      <div className="faqs-create-preview-answer-block">
-        <Text className="faqs-create-preview-label">
-          Answer
-        </Text>
-      </div>
-      <div className="faqs-create-preview-answer-box">
-        <Text className="faqs-create-preview-answer">
-          {answerValue || 'Your answer description will appear here.'}
-        </Text>
-      </div>
-    </div>
-  );
-
   return (
     <CreateContentLayout
       pageClassName="create-page"
@@ -187,23 +146,13 @@ const UploadFAQ = () => {
               onValuesChange={handleValuesChange}
               onFinishFailed={({ errorFields }) => {
                 setSubmitted(true);
-                if (errorFields && errorFields.length) {
-                  form.scrollToField(errorFields[0].name, { behavior: 'smooth', block: 'center' });
-                }
+                scrollToFirstError(form, errorFields);
               }}
             >
               <Form.Item label={<span className="create-label">Question</span>} name="question" required rules={[
                 { required: true, message: 'Please Enter The Question' },
                 // { min: 5, message: 'Question must be at least 5 characters' },
-                {
-                  validator: (_rule, value) => {
-                    if (!value) return Promise.resolve();
-                    const wordCount = countWords(value);
-                    if (wordCount < 5) return Promise.reject('Question must contain at least 5 words.');
-                    if (wordCount > 30) return Promise.reject('Question must not exceed 30 words.');
-                    return Promise.resolve();
-                  },
-                },
+                { validator: wordCountValidator(5, 30, 'Question') },
               ]}>
                 <Input placeholder="Enter question" maxLength={200} size="large" className="create-input" />
               </Form.Item>
@@ -213,15 +162,7 @@ const UploadFAQ = () => {
               <Form.Item label={<span className="create-label">Answer</span>} name="answer" required rules={[
                 { required: true, message: 'Please provide an answer' },
                 // { min: 10, message: 'Answer must be at least 10 characters' },
-                {
-                  validator: (_rule, value) => {
-                    if (!value) return Promise.resolve();
-                    const wordCount = countWords(value);
-                    if (wordCount < 10) return Promise.reject('Answer must contain at least 10 words.');
-                    if (wordCount > 60) return Promise.reject('Answer must not exceed 60 words.');
-                    return Promise.resolve();
-                  },
-                },
+                { validator: wordCountValidator(10, 60, 'Answer') },
               ]}>
                 <Input.TextArea placeholder="Describe your answer" maxLength={2000} size="large" rows={4} className="create-textarea" />
               </Form.Item>
@@ -262,22 +203,12 @@ const UploadFAQ = () => {
                 />
 
               {/* PREVIEW MODAL */}
-              <Modal
+              <FaqPreviewModal
                 open={previewVisible}
-                onCancel={() => setPreviewVisible(false)}
-                footer={null}
-                width={736}
-                centered
-                styles={{
-                  mask: {
-                    backdropFilter: 'blur(6px)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  },
-                  body: { borderRadius: '12px', padding: '24px' },
-                }}
-              >
-                {previewContent}
-              </Modal>
+                question={questionValue}
+                answer={answerValue}
+                onClose={() => setPreviewVisible(false)}
+              />
             </Form>
           </div>
     </CreateContentLayout>

@@ -24,6 +24,7 @@ interface ViewAllTableProps<T> {
   icon: React.ReactNode;
   createHref: string;
   createLabel?: string;
+  hideCreateButton?: boolean;
   columns: ColumnsType<T>;
   dataSource: T[];
   rowKey: string | ((record: T) => string);
@@ -51,6 +52,7 @@ export function ViewAllTable<T>({
   icon,
   createHref,
   createLabel = 'Create',
+  hideCreateButton = false,
   columns,
   dataSource,
   rowKey,
@@ -126,14 +128,16 @@ export function ViewAllTable<T>({
           </Row>
 
           <div className={`${ns}-create-wrap`}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push(createHref)}
-              className={`${ns}-create-btn`}
-            >
-              {createLabel}
-            </Button>
+            {!hideCreateButton && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => router.push(createHref)}
+                className={`${ns}-create-btn`}
+              >
+                {createLabel}
+              </Button>
+            )}
           </div>
         </div>
 

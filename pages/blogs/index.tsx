@@ -1,24 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { App as AntApp, Button, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
+import { buildContentColumns } from '@/components/common/contentColumns';
 
 import {
   ROUTE_PATHS,
 } from '@/constants';
 import { contentThumbnail } from '@/utils/media';
-import { useCurrentUser } from '@/hooks/useAuth';
+import { useCanManage } from '@/hooks/useCanManage';
+import { useContentFilters } from '@/hooks/useContentFilters';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 import { deleteBlog } from '@/services/blogService';
 import { fetchBlogsPage } from '@/redux/blog/blogSlice';
 import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '@/redux/blog/selectors';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import type { BlogListItem } from '@/types/blog';
-import type { ColumnsType } from 'antd/es/table';
 
 const { Text } = Typography;
 
@@ -28,20 +29,15 @@ const BlogsPage = () => {
   const router = useRouter();
   const { message, modal } = AntApp.useApp();
   const dispatch = useAppDispatch();
-  const currentUser = useCurrentUser();
-
-  const currentUserId = currentUser?._id ? String(currentUser._id) : "";
-  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
-
-  // Ownership check (mirrors the server rule enabled by the createdById field
-  // on each blog row): only the creator or a super admin can edit/delete.
-  const canManage = (record: BlogListItem) =>
-    isSuperAdmin ||
-    (Boolean(record.createdById) && record.createdById === currentUserId);
-
-  const [page, setPage] = useState(1);
-  const [moduleFilter, setModuleFilter] = useState('All');
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const { canManage } = useCanManage<BlogListItem>();
+  const {
+    page,
+    setPage,
+    moduleFilter,
+    categoryFilter,
+    onModuleChange,
+    onCategoryChange,
+  } = useContentFilters();
 
   const blogs = useAppSelector(selectBlogsForPage(page));
   const total = useAppSelector(selectBlogsTotal);
@@ -70,114 +66,72 @@ const BlogsPage = () => {
     void loadPage(page);
   }, [page, loadPage]);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const handleDelete = (record: BlogListItem) => {
-    modal.confirm({
-      title: 'Delete blog',
-      content: 'Are you sure you want to delete this blog? Its thumbnail and attachments will also be removed. This action cannot be undone.',
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: async () => {
-        setDeletingId(record._id);
-        try {
-          await deleteBlog(record._id);
-          message.success('Blog deleted successfully.');
-          await loadPage(page);
-        } catch (error: any) {
-          message.error(error.message || 'Failed to delete blog.');
-        } finally {
-          setDeletingId(null);
-        }
-      },
-    });
-  };
+  const { confirmDelete, deletingId } = useDeleteConfirm<BlogListItem>({
+    modal,
+    message,
+    confirmTitle: 'Delete blog',
+    confirmContent: 'Are you sure you want to delete this blog? Its thumbnail and attachments will also be removed. This action cannot be undone.',
+    okText: 'Delete',
+    cancelText: 'Cancel',
+    getRecordId: (record) => record._id,
+    deleteFn: deleteBlog,
+    successMessage: 'Blog deleted successfully.',
+    errorMessage: 'Failed to delete blog.',
+    isLastItemOnPage: () => false,
+    onPageBack: () => {},
+    onReload: () => loadPage(page),
+  });
 
   // Filtering is server-side: the fetched page already matches the current
   // module/category filters and the total reflects the filtered set, so no
   // client-side re-filtering of a single page's slice is performed.
 
-  const columns: ColumnsType<BlogListItem> = [
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-      width: '38%',
-      render: (text: string, record) => (
-        <div className="blogs-cell-title">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={contentThumbnail(record.thumbnail)}
-            alt={text}
-            className="blogs-cell-thumb"
-          />
-          <Text strong className="blogs-cell-name">{text}</Text>
-        </div>
-      ),
-    },
-    {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      width: '15%',
-      ellipsis: true,
-      render: (text: string) => (
-        <Text className="blogs-cell-muted">{text}</Text>
-      ),
-    },
-    {
-      title: 'Created On',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: '18%',
-      render: (text: string) => (
-        <Text className="blogs-cell-muted">{dayjs(text).format('DD/MM/YY')}</Text>
-      ),
-    },
-    {
-      title: 'Created By',
-      dataIndex: 'createdBy',
-      key: 'createdBy',
-      width: '17%',
-      ellipsis: true,
-      render: (_: unknown, record: BlogListItem) => (
-        <Text className="blogs-cell-muted">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '12%',
-      render: (_, record) => (
-        <div className="blogs-action-group">
+  const columns = buildContentColumns<BlogListItem>({
+    ns: 'blogs',
+    renderTitle: (text, record) => (
+      <div className="blogs-cell-title">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={contentThumbnail(record.thumbnail)}
+          alt={text}
+          className="blogs-cell-thumb"
+        />
+        <Text strong className="blogs-cell-name">{text}</Text>
+      </div>
+    ),
+    categoryEllipsis: true,
+    createdByEllipsis: true,
+    renderCreatedBy: (record) => (
+      <Text className="blogs-cell-muted">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
+    ),
+    renderActions: (record) => (
+      <div className="blogs-action-group">
+        <Button
+          type="text"
+          title="View"
+          icon={<EyeOutlined className="blogs-action-icon" />}
+          onClick={() => router.push(`${ROUTE_PATHS.blogPreview}?id=${record._id}`)}
+        />
+        {canManage(record) && (
           <Button
             type="text"
-            title="View"
-            icon={<EyeOutlined className="blogs-action-icon" />}
-            onClick={() => router.push(`${ROUTE_PATHS.blogPreview}?id=${record._id}`)}
+            title="Edit"
+            icon={<EditOutlined className="blogs-action-icon" />}
+            onClick={() => router.push(`${ROUTE_PATHS.uploadBlog}?id=${record._id}`)}
           />
-          {canManage(record) && (
-            <Button
-              type="text"
-              title="Edit"
-              icon={<EditOutlined className="blogs-action-icon" />}
-              onClick={() => router.push(`${ROUTE_PATHS.uploadBlog}?id=${record._id}`)}
-            />
-          )}
-          {canManage(record) && (
-            <Button
-              type="text"
-              title="Delete"
-              loading={deletingId === record._id}
-              icon={<DeleteOutlined className="blogs-action-delete" />}
-              onClick={() => handleDelete(record)}
-            />
-          )}
-        </div>
-      ),
-    },
-  ];
+        )}
+        {canManage(record) && (
+          <Button
+            type="text"
+            title="Delete"
+            loading={deletingId === record._id}
+            icon={<DeleteOutlined className="blogs-action-delete" />}
+            onClick={() => confirmDelete(record)}
+          />
+        )}
+      </div>
+    ),
+  });
 
   return (
     <AdminLayout>
@@ -198,15 +152,8 @@ const BlogsPage = () => {
         countNoun="blogs"
         moduleFilter={moduleFilter}
         categoryFilter={categoryFilter}
-        onModuleChange={(value) => {
-          setModuleFilter(value);
-          setCategoryFilter('All');
-          setPage(1);
-        }}
-        onCategoryChange={(value) => {
-          setCategoryFilter(value);
-          setPage(1);
-        }}
+        onModuleChange={onModuleChange}
+        onCategoryChange={onCategoryChange}
         showCount={!loadError}
         tableLayout="fixed"
       />

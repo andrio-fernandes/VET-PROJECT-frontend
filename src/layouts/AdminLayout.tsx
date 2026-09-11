@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Layout, Menu, Typography, Avatar, ConfigProvider } from 'antd';
+import { Badge, Layout, Menu, Typography, Avatar, ConfigProvider } from 'antd';
 import {
   FileTextOutlined,
   HomeOutlined,
   LogoutOutlined,
+  MessageOutlined,
   QuestionCircleOutlined,
   UserOutlined,
   VideoCameraOutlined,
@@ -13,6 +14,7 @@ import {
 
 import { clearSession, useCurrentUser } from '@/hooks/useAuth';
 import { ROUTE_PATHS } from '@/constants';
+import { getFeedbackCount } from '@/services/feedbackService';
 import { clearBlogs } from '@/redux/blog/blogSlice';
 import { clearDashboard } from '@/redux/dashboard/dashboardSlice';
 import { useAppDispatch } from '@/redux/hooks';
@@ -31,6 +33,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }
   const user = useCurrentUser();
   const dispatch = useAppDispatch();
   const userEmail = user?.email || '';
+  const [feedbackCount, setFeedbackCount] = useState(0);
+
+  // Unread feedback badge. Refreshed on mount, whenever the admin lands on
+  // the feedback page (where they mark items read), and on any in-page status
+  // update broadcast by the feedback page.
+  useEffect(() => {
+    const loadCount = () => {
+      getFeedbackCount()
+        .then((count) => setFeedbackCount(count))
+        .catch(() => {
+          // Badge is best-effort; a failed fetch just leaves the last value.
+        });
+    };
+    loadCount();
+    window.addEventListener('feedback:count-changed', loadCount);
+    return () => {
+      window.removeEventListener('feedback:count-changed', loadCount);
+    };
+  }, [router.pathname]);
 
   const handleLogout = () => {
     dispatch(clearBlogs());
@@ -104,6 +125,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, onNavigate }
                   { key: '/videos', icon: <VideoCameraOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Video</span> },
                   { key: '/blogs', icon: <FileTextOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>Blog</span> },
                   { key: '/faqs', icon: <QuestionCircleOutlined style={{ fontSize: '18px' }} />, label: <span style={{ fontSize: '15px', fontWeight: 500 }}>FAQs</span> },
+                  {
+                    key: ROUTE_PATHS.feedback,
+                    icon: <MessageOutlined style={{ fontSize: '18px' }} />,
+                    label: (
+                      <span style={{ fontSize: '15px', fontWeight: 500 }}>
+                        Feedback
+                        {feedbackCount > 0 && (
+                          <Badge count={feedbackCount} size="small" style={{ marginInlineStart: 8 }} />
+                        )}
+                      </span>
+                    ),
+                  },
                 ]}
               />
             </ConfigProvider>

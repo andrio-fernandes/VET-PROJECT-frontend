@@ -13,7 +13,7 @@
 // The Express server never buffers video bytes.
 // =============================================
 
-import { api } from "./api";
+import { del, get, getNested, itemEndpoint, post, put } from "./api";
 import { API_ENDPOINTS } from "@/constants";
 import type { PurgedVideo, VideoRecord } from "@/types/video";
 
@@ -61,10 +61,7 @@ export interface UpdateVideoPayload {
 export const signVideoUpload = async (
   kind: "video" | "thumbnail" = "video"
 ): Promise<CloudinarySignature> => {
-  const data = await api(API_ENDPOINTS.signVideoUpload, {
-    method: "POST",
-    body: JSON.stringify({ kind }),
-  });
+  const data = await post(API_ENDPOINTS.signVideoUpload, { kind });
   return data as CloudinarySignature;
 };
 
@@ -149,22 +146,12 @@ export const uploadFileToCloudinary = (
 export const createVideo = async (
   payload: CreateVideoPayload
 ): Promise<VideoRecord | null> => {
-  const data = await api(API_ENDPOINTS.createVideo, {
-    method: "POST",
-    body: JSON.stringify({
-      title: payload.title,
-      description: payload.description,
-      module: payload.module,
-      category: payload.category,
-      publicId: payload.publicId,
-      thumbnailPublicId: payload.thumbnailPublicId,
-    }),
-  });
+  const data = await post(API_ENDPOINTS.createVideo, payload);
   return data?.video ? normalizeVideo(data.video) : null;
 };
 
 export const getVideos = async (query: string): Promise<PaginatedVideos> => {
-  const data = await api(`${API_ENDPOINTS.getVideos}?${query}`);
+  const data = await get(`${API_ENDPOINTS.getVideos}?${query}`);
   return {
     videos: (data?.videos ?? []).map(normalizeVideo),
     totalVideos: data?.totalVideos ?? 0,
@@ -176,7 +163,7 @@ export const getVideos = async (query: string): Promise<PaginatedVideos> => {
 };
 
 export const deleteVideo = async (videoId: string): Promise<void> => {
-  await api(API_ENDPOINTS.deleteVideo(videoId), { method: "DELETE" });
+  await del(itemEndpoint(API_ENDPOINTS.createVideo, videoId));
 };
 
 const normalizeVideo = (v: any): VideoRecord => ({
@@ -205,8 +192,8 @@ const normalizeVideo = (v: any): VideoRecord => ({
 export const getVideoById = async (
   videoId: string
 ): Promise<VideoRecord | null> => {
-  const data = await api(API_ENDPOINTS.getVideo(videoId));
-  const v = data?.video ?? data?.data?.video ?? null;
+  const data = await get(itemEndpoint(API_ENDPOINTS.createVideo, videoId));
+  const v = getNested(data, "video");
   if (!v?._id) return null;
   return normalizeVideo(v);
 };
@@ -217,18 +204,15 @@ export const updateVideo = async (
   videoId: string,
   payload: UpdateVideoPayload
 ): Promise<VideoRecord | null> => {
-  const data = await api(API_ENDPOINTS.updateVideo(videoId), {
-    method: "PUT",
-    body: JSON.stringify({
-      title: payload.title,
-      description: payload.description,
-      module: payload.module,
-      category: payload.category,
-      ...(payload.publicId ? { publicId: payload.publicId } : {}),
-      ...(payload.thumbnailPublicId
-        ? { thumbnailPublicId: payload.thumbnailPublicId }
-        : {}),
-    }),
+  const data = await put(itemEndpoint(API_ENDPOINTS.createVideo, videoId), {
+    title: payload.title,
+    description: payload.description,
+    module: payload.module,
+    category: payload.category,
+    ...(payload.publicId ? { publicId: payload.publicId } : {}),
+    ...(payload.thumbnailPublicId
+      ? { thumbnailPublicId: payload.thumbnailPublicId }
+      : {}),
   });
   return data?.video ? normalizeVideo(data.video) : null;
 };

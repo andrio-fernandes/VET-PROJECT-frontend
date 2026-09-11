@@ -1,38 +1,291 @@
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import { useRouter } from 'next/router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   PlayCircleFilled,
-  SearchOutlined,
-} from "@ant-design/icons";
+  EyeOutlined,
+} from '@ant-design/icons';
 import {
   App as AntApp,
   Button,
   Card,
   Flex,
   Input,
+  Table,
+  Space,
+  Spin,
   Typography,
-} from "antd";
+} from 'antd';
+import dayjs from 'dayjs';
 
-import videoThumbnail from "@/assets/default.jpg";
-import { UserLayout } from "@/layouts/UserLayout";
-import { ROUTE_PATHS } from "@/constants";
+import videoThumbnail from '@/assets/default.jpg';
+import { UserLayout } from '@/layouts/UserLayout';
+import { withAuth } from '@/components/auth/with-auth';
+import { useCurrentUser } from '@/hooks/useAuth';
+import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
+import {
+  getContinueLearning,
+  getLibraryBlogs,
+  getLibraryFaqs,
+  getLibraryVideos,
+  type ContinueLearningData,
+} from '@/services/libraryService';
+import { submitFeedback } from '@/services/feedbackService';
+import { mediaUrl, contentThumbnail } from '@/utils/media';
+import { ViewFAQModal } from '@/components/common/ViewFAQModal';
 
 const { Title, Text, Paragraph } = Typography;
 
-export default function UserDashboardPage() {
-  const { message } = AntApp.useApp();
+interface LibraryTableItem {
+  key: string;
+  title: string;
+  createdAt: string;
+  createdByName: string;
+  category?: string;
+  thumbnailUrl?: string;
+  question?: string;
+  answer?: string;
+  description?: string;
+  videoUrl?: string;
+  processingStatus?: string;
+}
 
-  const [feedbackEmail, setFeedbackEmail] = useState("");
+const UserDashboardPage = () => {
+  const router = useRouter();
+  const { message } = AntApp.useApp();
+  const currentUser = useCurrentUser();
+
+  // Feedback email comes from the authenticated account and is read-only; the
+  // server stamps it from the token, so the field is informational only.
+  const accountEmail = currentUser?.email || '';
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackEmailTouched, setFeedbackEmailTouched] = useState(false);
+  const [feedbackSending, setFeedbackSending] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('Video');
+  const [loading, setLoading] = useState(true);
+  const [dashboardSearch, setDashboardSearch] = useState('');
+  const [recentVideos, setRecentVideos] = useState<LibraryTableItem[]>([]);
+  const [recentBlogs, setRecentBlogs] = useState<LibraryTableItem[]>([]);
+  const [recentFaqs, setRecentFaqs] = useState<LibraryTableItem[]>([]);
+  const [continueData, setContinueData] = useState<ContinueLearningData | null>(null);
+  const [viewingFaq, setViewingFaq] = useState<LibraryTableItem | null>(null);
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isEmailValid = isValidEmail(feedbackEmail);
-  const showEmailError = feedbackEmailTouched && !isEmailValid && feedbackEmail.length > 0;
+  const isEmailValid = isValidEmail(accountEmail);
 
-  const handleSendMessage = () => {
-    message.success("Message sent successfully!");
+  const handleSendMessage = async () => {
+    const feedbackMessageTrimmed = feedbackMessage.trim();
+    if (feedbackSending || !isEmailValid || !feedbackMessageTrimmed) return;
+
+    setFeedbackSending(true);
+    try {
+      await submitFeedback(feedbackMessageTrimmed);
+      setFeedbackMessage("");
+      message.success("Message sent successfully!");
+    } catch (error: any) {
+      message.error(error.message || 'Failed to send your message. Please try again.');
+    } finally {
+      setFeedbackSending(false);
+    }
   };
+
+  const handleSearchSubmit = (value: string) => {
+    const query = value.trim();
+    router.push({
+      pathname: ROUTE_PATHS.search,
+      query: query ? { q: query } : {},
+    });
+  };
+
+  const handleContinueVideo = () => {
+    const cv = continueData?.continueVideo;
+    if (!cv?.video?.key) return;
+    sessionStorage.setItem(
+      VIDEO_PREVIEW_STORAGE_KEY,
+      JSON.stringify({
+        id: cv.video.key,
+        title: cv.video.title,
+        description: cv.video.description || '',
+        src: cv.video.videoUrl ? mediaUrl(cv.video.videoUrl) : '',
+      })
+    );
+    router.push(ROUTE_PATHS.userVideoPreview);
+  };
+
+  const fetchVideoLibrary = useCallback(async () => {
+    try {
+      const data = await getLibraryVideos({ page: 1, limit: 4 });
+      setRecentVideos(
+        (data.videos ?? []).filter((v) => v.processingStatus !== 'failed').map((v) => ({
+          key: v.key,
+          title: v.title,
+          createdAt: v.createdAt,
+          createdByName: v.createdBy,
+          category: v.category,
+          thumbnailUrl: v.thumbnailUrl,
+          description: v.description,
+          videoUrl: v.videoUrl,
+          processingStatus: v.processingStatus,
+        }))
+      );
+    } catch (error: any) {
+      message.error(error.message || 'Failed to load videos.');
+    } finally {
+      setLoading(false);
+    }
+  }, [message]);
+
+  const fetchBlogLibrary = useCallback(async () => {
+    try {
+      const data = await getLibraryBlogs({ page: 1, limit: 4 });
+      setRecentBlogs(
+        (data.blogs ?? []).map((b) => ({
+          key: b._id,
+          title: b.title,
+          createdAt: b.createdAt,
+          createdByName: b.createdBy?.fullName || b.createdBy?.username || 'Unknown',
+          category: b.category,
+          thumbnailUrl: b.thumbnail,
+        }))
+      );
+    } catch (error: any) {
+      message.error(error.message || 'Failed to load blogs.');
+    } finally {
+      setLoading(false);
+    }
+  }, [message]);
+
+  const fetchFaqLibrary = useCallback(async () => {
+    try {
+      const data = await getLibraryFaqs({ page: 1, limit: 4 });
+      setRecentFaqs(
+        (data.faqs ?? []).map((f) => ({
+          key: f._id,
+          title: f.question,
+          createdAt: f.createdAt,
+          createdByName: f.createdBy?.fullName || f.createdBy?.username || 'Unknown',
+          category: f.category,
+          question: f.question,
+          answer: f.answer,
+        }))
+      );
+    } catch (error: any) {
+      message.error(error.message || 'Failed to load FAQs.');
+    } finally {
+      setLoading(false);
+    }
+  }, [message]);
+
+  // Load the continue-learning / recently-viewed payload once on mount.
+  useEffect(() => {
+    getContinueLearning()
+      .then((data) => setContinueData(data))
+      .catch(() => {
+        // Continue card falls back to the empty state; the library still works.
+      });
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      if (activeTab === 'Video') await fetchVideoLibrary();
+      else if (activeTab === 'Blog') await fetchBlogLibrary();
+      else await fetchFaqLibrary();
+    };
+    void load();
+  }, [activeTab, fetchVideoLibrary, fetchBlogLibrary, fetchFaqLibrary]);
+
+  const activeRecentData: LibraryTableItem[] =
+    activeTab === 'Video'
+      ? recentVideos
+      : activeTab === 'Blog'
+      ? recentBlogs
+      : recentFaqs;
+
+  const tableColumns = [
+    {
+      title: 'Title',
+      dataIndex: 'title',
+      key: 'title',
+      width: '38%',
+      render: (text: string, record: LibraryTableItem) => (
+        <Space>
+          {activeTab !== 'FAQs' && (
+            <img
+              src={contentThumbnail(record.thumbnailUrl)}
+              alt={text}
+              style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+            />
+          )}
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      width: '15%',
+      render: (text: string) => <Text>{text}</Text>
+    },
+    {
+      title: 'Created On',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: '18%',
+      render: (text: string) => <Text>{dayjs(text).format('DD/MM/YY')}</Text>
+    },
+    {
+      title: 'Created By',
+      dataIndex: 'createdByName',
+      key: 'createdByName',
+      width: '17%',
+      render: (text: string) => <Text>{text}</Text>
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: '12%',
+      render: (_: unknown, record: LibraryTableItem) => {
+        const status = record.processingStatus;
+        const processing = status && status !== 'ready' && status !== 'failed';
+        return (
+          <Space size="middle">
+            <Button
+              type="text"
+              disabled={Boolean(processing)}
+              title={processing ? 'Processing video...' : 'View'}
+              icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
+              onClick={() => {
+                if (activeTab === 'FAQs') {
+                  setViewingFaq(record);
+                } else if (activeTab === 'Video') {
+                  sessionStorage.setItem(
+                    VIDEO_PREVIEW_STORAGE_KEY,
+                    JSON.stringify({
+                      id: record.key,
+                      title: record.title,
+                      description: record.description || '',
+                      src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
+                    })
+                  );
+                  router.push(ROUTE_PATHS.userVideoPreview);
+                } else {
+                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.key}`);
+                }
+              }}
+            />
+          </Space>
+        );
+      },
+    },
+  ];
+
+  const libraryViewAll =
+    activeTab === 'Video'
+      ? ROUTE_PATHS.userVideos
+      : activeTab === 'Blog'
+      ? ROUTE_PATHS.userBlogs
+      : ROUTE_PATHS.userFaqs;
 
   return (
     <UserLayout activeKey={ROUTE_PATHS.userDashboard}>
@@ -46,25 +299,187 @@ export default function UserDashboardPage() {
             {/* Search and Quick Actions */}
             <Flex vertical align="center" style={{ textAlign: "center", marginBottom: 24 }}>
               <Title level={2}>What would you like to learn?</Title>
-              <Input className="user-dashboard-search" prefix={<SearchOutlined />} placeholder="search..." size="large" />
+              <Input.Search
+                className="user-dashboard-search"
+                placeholder="search..."
+                size="large"
+                value={dashboardSearch}
+                onChange={(e) => setDashboardSearch(e.target.value)}
+                onSearch={handleSearchSubmit}
+                allowClear
+              />
             </Flex>
 
             {/* Continue Learning Card */}
             <Card className="user-continue-card">
-              <Flex align="center" gap={16}>
-                <div className="user-continue-thumbnail">
-                  <img src={videoThumbnail.src} alt="Continue learning" />
-                  <span className="user-thumbnail-play"><PlayCircleFilled /></span>
-                </div>
-                <Flex vertical style={{ flex: 1 }}>
-                  <Title level={4} style={{ fontWeight: 700, marginBottom: 4 }}>Continue learning</Title>
-                  <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Description: a clear breakdown of the item name, quantity, and unit price for goods or services.
-                  </Paragraph>
+              {continueData?.continueVideo?.video ? (
+                <Flex align="center" gap={16} wrap="wrap">
+                  <div className="user-continue-thumbnail">
+                    <img
+                      src={contentThumbnail(continueData.continueVideo.video.thumbnailUrl)}
+                      alt="Continue learning"
+                    />
+                    <span className="user-thumbnail-play"><PlayCircleFilled /></span>
+                  </div>
+                  <Flex vertical style={{ flex: 1, minWidth: 240 }}>
+                    <Title level={4} style={{ fontWeight: 700, marginBottom: 4 }}>Continue learning</Title>
+                    <Text strong ellipsis style={{ marginBottom: 4 }}>
+                      {continueData.continueVideo.video.title}
+                    </Text>
+                    <Paragraph type="secondary" style={{ marginBottom: 0 }} ellipsis={{ rows: 2 }}>
+                      {continueData.continueVideo.video.description || 'No description provided.'}
+                    </Paragraph>
+                  </Flex>
+                  <Button
+                    type="primary"
+                    ghost
+                    icon={<PlayCircleFilled />}
+                    style={{ borderRadius: 6 }}
+                    onClick={handleContinueVideo}
+                  >
+                    Continue
+                  </Button>
                 </Flex>
-                <Button type="primary" ghost icon={<PlayCircleFilled />} style={{ borderRadius: 6 }}>Continue</Button>
-              </Flex>
+              ) : (
+                <Flex align="center" gap={16}>
+                  <div className="user-continue-thumbnail">
+                    <img src={videoThumbnail.src} alt="Continue learning" />
+                  </div>
+                  <Flex vertical style={{ flex: 1 }}>
+                    <Title level={4} style={{ fontWeight: 700, marginBottom: 4 }}>Continue learning</Title>
+                    <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                      Start watching a video and we&apos;ll pick up right where you left off.
+                    </Paragraph>
+                  </Flex>
+                  <Button
+                    type="primary"
+                    ghost
+                    icon={<PlayCircleFilled />}
+                    style={{ borderRadius: 6 }}
+                    onClick={() => router.push(ROUTE_PATHS.userVideos)}
+                  >
+                    Browse videos
+                  </Button>
+                </Flex>
+              )}
             </Card>
+
+            {/* Recently Viewed */}
+            {continueData?.recentlyViewed?.length ? (
+              <div style={{ marginTop: 24 }}>
+                <div className="dash-section-title" style={{ fontWeight: 700 }}>Recently Viewed</div>
+                <div className="dash-recent-box">
+                  <Spin spinning={false}>
+                    <Table
+                      columns={[
+                        {
+                          title: 'Title',
+                          dataIndex: 'title',
+                          key: 'title',
+                          render: (text: string, record: any) => (
+                            <Space>
+                              {record.thumbnail && (
+                                <img
+                                  src={contentThumbnail(record.thumbnail)}
+                                  alt={text}
+                                  style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+                                />
+                              )}
+                              <Text strong>{text}</Text>
+                            </Space>
+                          ),
+                        },
+                        {
+                          title: 'Type',
+                          dataIndex: 'type',
+                          key: 'type',
+                          width: '15%',
+                          render: (text: string) => <Text>{text === 'faq' ? 'FAQ' : 'Blog'}</Text>,
+                        },
+                        {
+                          title: 'Viewed',
+                          dataIndex: 'viewedAt',
+                          key: 'viewedAt',
+                          width: '18%',
+                          render: (text: string) => <Text>{text ? dayjs(text).format('DD/MM/YY') : '—'}</Text>,
+                        },
+                        {
+                          title: 'Actions',
+                          key: 'actions',
+                          width: '12%',
+                          render: (_: unknown, record: any) => (
+                            <Button
+                              type="text"
+                              title="View"
+                              icon={<EyeOutlined style={{ color: '#000', fontSize: '16px' }} />}
+                              onClick={() => {
+                                if (record.type === 'faq') {
+                                  setViewingFaq({
+                                    key: record.contentId,
+                                    title: record.title,
+                                    createdAt: record.viewedAt,
+                                    createdByName: '',
+                                    question: record.title,
+                                    answer: record.text,
+                                  });
+                                } else {
+                                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.contentId}`);
+                                }
+                              }}
+                            />
+                          ),
+                        },
+                      ]}
+                      dataSource={continueData.recentlyViewed}
+                      rowKey="contentId"
+                      pagination={false}
+                      bordered={false}
+                      tableLayout="fixed"
+                    />
+                  </Spin>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Content Library */}
+            <div style={{ marginTop: 40 }}>
+              <div className="dash-section-title" style={{ fontWeight: 700 }}>Content Library</div>
+              <div className="dash-recent-box">
+                <div className="dash-tabs">
+                  {['Video', 'Blog', 'FAQs'].map((tab) => (
+                    <div
+                      key={tab}
+                      onClick={() => {
+                        if (tab !== activeTab) {
+                          setLoading(true);
+                          setActiveTab(tab);
+                        }
+                      }}
+                      className={`dash-tab${activeTab === tab ? ' dash-tab-active' : ''}`}
+                    >
+                      {tab}
+                    </div>
+                  ))}
+                </div>
+                <Spin spinning={loading}>
+                  <Table
+                    columns={tableColumns}
+                    dataSource={activeRecentData}
+                    rowKey="key"
+                    loading={loading}
+                    pagination={false}
+                    bordered={false}
+                    tableLayout="fixed"
+                    locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab === 'FAQs' ? 'FAQs' : activeTab + 's'} available yet.` }}
+                  />
+                </Spin>
+                <Flex justify="flex-end" style={{ marginTop: 12 }}>
+                  <Button type="link" onClick={() => router.push(libraryViewAll)} className="dash-view-link">
+                    View all
+                  </Button>
+                </Flex>
+              </div>
+            </div>
 
             {/* Feedback Form */}
             <Flex id="feedback" vertical align="center" gap={16} style={{ marginTop: 48, marginBottom: 40 }}>
@@ -75,14 +490,25 @@ export default function UserDashboardPage() {
               <Flex vertical gap={24} style={{ width: "100%", maxWidth: 600 }}>
                 <Flex vertical gap={8}>
                   <Text strong style={{ fontSize: "16px" }}>Email</Text>
-                  <Input size="large" value={feedbackEmail} onChange={(e) => setFeedbackEmail(e.target.value)} onBlur={() => setFeedbackEmailTouched(true)} status={showEmailError ? "error" : undefined} />
-                  {showEmailError && <Text type="danger" style={{ fontSize: 13 }}>Please enter a valid email address</Text>}
+                  <Input
+                    size="large"
+                    value={accountEmail}
+                    disabled
+                    placeholder="your@email.com"
+                  />
                 </Flex>
                 <Flex vertical gap={8}>
                   <Text strong style={{ fontSize: "16px" }}>Message</Text>
-                  <Input.TextArea rows={5} value={feedbackMessage} onChange={(e) => setFeedbackMessage(e.target.value)} />
+                  <Input.TextArea
+                    rows={5}
+                    value={feedbackMessage}
+                    onChange={(e) => setFeedbackMessage(e.target.value)}
+                    maxLength={2000}
+                    showCount
+                    placeholder="Tell us your question, suggestion, or feedback..."
+                  />
                 </Flex>
-                <Button type="primary" disabled={!isEmailValid || !feedbackMessage.trim()} style={{ width: 160, height: 42, borderRadius: 8, backgroundColor: "#52c41a", borderColor: "#52c41a", fontWeight: 600, fontSize: "15px" }} onClick={handleSendMessage}>
+                <Button type="primary" disabled={!isEmailValid || !feedbackMessage.trim()} loading={feedbackSending} style={{ width: 160, height: 42, borderRadius: 8, backgroundColor: "#52c41a", borderColor: "#52c41a", fontWeight: 600, fontSize: "15px" }} onClick={handleSendMessage}>
                   Send
                 </Button>
               </Flex>
@@ -90,6 +516,16 @@ export default function UserDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* VIEW FAQ MODAL */}
+      <ViewFAQModal
+        open={Boolean(viewingFaq)}
+        question={viewingFaq?.question}
+        answer={viewingFaq?.answer}
+        onClose={() => setViewingFaq(null)}
+      />
     </UserLayout>
   );
-}
+};
+
+export default withAuth(UserDashboardPage);

@@ -6,7 +6,7 @@
 // handles auth headers, token refresh and error normalization.
 // =============================================
 
-import { api } from "./api";
+import { del, get, getNested, itemEndpoint, post, put } from "./api";
 import { API_ENDPOINTS } from "@/constants";
 import { BLOG_CONTENT_MAX_BYTES } from "@/constants/blog";
 import type { BlogListItem, BlogRecord } from "@/types/blog";
@@ -52,8 +52,12 @@ const assertContentWithinLimit = (content: string): void => {
   }
 };
 
-export const createBlog = async (payload: CreateBlogPayload): Promise<void> => {
-  assertContentWithinLimit(payload.content);
+// Shared multipart body for create + update. The optional removeAttachmentUrls
+// list is only sent by updateBlog.
+const buildBlogFormData = (
+  payload: { title: string; description: string; module: string; category: string; content: string; thumbnail?: File | null; attachments: File[] },
+  removeAttachmentUrls?: string[]
+): FormData => {
   const formData = new FormData();
   formData.append("title", payload.title.trim());
   formData.append("description", payload.description.trim());
@@ -65,16 +69,20 @@ export const createBlog = async (payload: CreateBlogPayload): Promise<void> => {
     formData.append("thumbnail", payload.thumbnail);
   }
 
-  if (payload.attachments.length > 0) {
-    for (const att of payload.attachments) {
-      formData.append("attachment", att);
-    }
+  if (removeAttachmentUrls && removeAttachmentUrls.length > 0) {
+    formData.append("removeAttachmentUrls", JSON.stringify(removeAttachmentUrls));
   }
 
-  await api(API_ENDPOINTS.createBlog, {
-    method: "POST",
-    body: formData,
-  });
+  for (const att of payload.attachments) {
+    formData.append("attachment", att);
+  }
+
+  return formData;
+};
+
+export const createBlog = async (payload: CreateBlogPayload): Promise<void> => {
+  assertContentWithinLimit(payload.content);
+  await post(API_ENDPOINTS.createBlog, buildBlogFormData(payload));
 };
 
 // Updates an existing blog (creator only). Multipart so a new thumbnail /
@@ -84,37 +92,16 @@ export const updateBlog = async (
   payload: UpdateBlogPayload
 ): Promise<void> => {
   assertContentWithinLimit(payload.content);
-  const formData = new FormData();
-  formData.append("title", payload.title.trim());
-  formData.append("description", payload.description.trim());
-  formData.append("module", payload.module);
-  formData.append("category", payload.category);
-  formData.append("content", payload.content || "");
-
-  if (payload.thumbnail) {
-    formData.append("thumbnail", payload.thumbnail);
-  }
-
-  if (payload.removeAttachmentUrls.length > 0) {
-    formData.append("removeAttachmentUrls", JSON.stringify(payload.removeAttachmentUrls));
-  }
-
-  for (const att of payload.attachments) {
-    formData.append("attachment", att);
-  }
-
-  await api(`${API_ENDPOINTS.createBlog}/${blogId}`, {
-    method: "PUT",
-    body: formData,
-  });
+  await put(
+    itemEndpoint(API_ENDPOINTS.createBlog, blogId),
+    buildBlogFormData(payload, payload.removeAttachmentUrls)
+  );
 };
 
 // Deletes a blog (creator only). The thumbnail + attachments are removed from
 // Cloudinary by the server.
 export const deleteBlog = async (blogId: string): Promise<void> => {
-  await api(`${API_ENDPOINTS.createBlog}/${blogId}`, {
-    method: "DELETE",
-  });
+  await del(itemEndpoint(API_ENDPOINTS.createBlog, blogId));
 };
 
 export const getMyBlogs = async (
@@ -126,7 +113,7 @@ export const getMyBlogs = async (
   const query = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (module) query.set("module", module);
   if (category) query.set("category", category);
-  const data = await api(`${API_ENDPOINTS.getMyBlogs}?${query.toString()}`);
+  const data = await get(`${API_ENDPOINTS.getMyBlogs}?${query.toString()}`);
   return {
     blogs: data?.blogs ?? [],
     page: data?.page ?? page,
@@ -136,6 +123,6 @@ export const getMyBlogs = async (
 
 // Fetches a single blog by id for the preview page.
 export const getBlogById = async (blogId: string): Promise<BlogRecord | null> => {
-  const data = await api(`${API_ENDPOINTS.createBlog}/${blogId}`);
-  return data?.blog ?? data?.data?.blog ?? null;
+  const data = await get(itemEndpoint(API_ENDPOINTS.createBlog, blogId));
+  return getNested(data, "blog");
 };

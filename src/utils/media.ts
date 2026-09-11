@@ -3,6 +3,7 @@
 // =============================================
 
 import defaultThumbnail from '@/assets/default.jpg';
+import { getFileExtension } from '@/utils/file';
 
 // Resolves a content record's thumbnail: the record's own image when present
 // (uploaded media, passed through mediaUrl), otherwise the bundled
@@ -34,11 +35,10 @@ export const fileNameFromUrl = (url: string): string => {
 const PDF_EXTENSION = 'pdf';
 const OFFICE_VIEWER_EXTENSIONS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
-export const getAttachmentExtension = (fileName: string): string => {
-  const clean = fileName.split('?')[0].split('#')[0];
-  const idx = clean.lastIndexOf('.');
-  return idx === -1 ? '' : clean.slice(idx + 1).toLowerCase();
-};
+// Lowercased extension WITHOUT the leading dot. Delegates to the shared
+// getFileExtension (src/utils/file) after stripping any query/hash suffix.
+export const getAttachmentExtension = (fileName: string): string =>
+  getFileExtension(fileName.split('?')[0].split('#')[0]).replace(/^\./, '');
 
 // Builds the third-party viewer URL for a document attachment, following the
 // senior's logic:
@@ -66,7 +66,8 @@ export const isDocumentViewable = (fileName: string): boolean =>
 
 // Parses a BlogRecord.attachment JSON string into attachment references that
 // carry a stable display name and a URL. Supports the persisted backend shape
-// [{ name, url }] as well as legacy arrays of plain URL strings.
+// [{ name, url }], the website-preview draft shape [{ name, dataUrl }], and
+// legacy arrays of plain URL strings.
 export const parseBlogAttachments = (
   raw: string | undefined
 ): { name: string; url: string }[] => {
@@ -79,12 +80,22 @@ export const parseBlogAttachments = (
           if (typeof item === 'string') {
             return { name: fileNameFromUrl(item), url: item };
           }
-          if (item && typeof item === 'object' && typeof item.url === 'string') {
-            return {
-              name:
-                typeof item.name === 'string' ? item.name : fileNameFromUrl(item.url),
-              url: item.url,
-            };
+          if (item && typeof item === 'object') {
+            if (typeof item.url === 'string') {
+              return {
+                name:
+                  typeof item.name === 'string' ? item.name : fileNameFromUrl(item.url),
+                url: item.url,
+              };
+            }
+            // Preview-draft shape: { name, dataUrl }
+            if (typeof item.dataUrl === 'string') {
+              return {
+                name:
+                  typeof item.name === 'string' ? item.name : fileNameFromUrl(item.dataUrl),
+                url: item.dataUrl,
+              };
+            }
           }
           return null;
         })

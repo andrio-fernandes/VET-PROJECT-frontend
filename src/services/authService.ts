@@ -8,7 +8,7 @@
 // response handling mirror the auth pages exactly.
 // =============================================
 
-import { api } from "./api";
+import { del, post, put } from "./api";
 import { API_ENDPOINTS } from "@/constants";
 
 export interface LoginPayload {
@@ -24,24 +24,15 @@ export interface RegisterPayload {
 }
 
 export const login = async (payload: LoginPayload): Promise<any> => {
-  return api(API_ENDPOINTS.login, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return post(API_ENDPOINTS.login, payload);
 };
 
 export const register = async (payload: RegisterPayload): Promise<void> => {
-  await api(API_ENDPOINTS.register, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  await post(API_ENDPOINTS.register, payload);
 };
 
 export const forgotPassword = async (email: string): Promise<any> => {
-  return api(API_ENDPOINTS.forgotPassword, {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
+  return post(API_ENDPOINTS.forgotPassword, { email });
 };
 
 export const verifyOtp = async (
@@ -49,10 +40,7 @@ export const verifyOtp = async (
   otp: string,
   token: string
 ): Promise<void> => {
-  await api(API_ENDPOINTS.verifyOtp, {
-    method: "POST",
-    body: JSON.stringify({ email, otp, token }),
-  });
+  await post(API_ENDPOINTS.verifyOtp, { email, otp, token });
 };
 
 export const resetPassword = async (
@@ -60,10 +48,7 @@ export const resetPassword = async (
   token: string,
   newPassword: string
 ): Promise<void> => {
-  await api(API_ENDPOINTS.resetPassword, {
-    method: "POST",
-    body: JSON.stringify({ email, token, newPassword }),
-  });
+  await post(API_ENDPOINTS.resetPassword, { email, token, newPassword });
 };
 
 export const updateProfileAvatar = async (
@@ -71,14 +56,9 @@ export const updateProfileAvatar = async (
 ): Promise<any> => {
   const formData = new FormData();
   formData.append("avatar", file);
-  return api(API_ENDPOINTS.updateProfileAvatar, {
-    method: "PUT",
-    body: formData,
-  });
+  return put(API_ENDPOINTS.updateProfileAvatar, formData);
 };
 
 export const deleteProfileAvatar = async (): Promise<any> => {
-  return api(API_ENDPOINTS.deleteProfileAvatar, {
-    method: "DELETE",
-  });
+  return del(API_ENDPOINTS.deleteProfileAvatar);
 };

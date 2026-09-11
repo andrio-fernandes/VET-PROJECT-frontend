@@ -174,3 +174,36 @@
   border-color: transparent !important;
   transform: translateY(-2px);
 }
+
+/* =============================================
+   ADMIN FEEDBACK INBOX (pages/dashboard/feedback.tsx)
+   ============================================= */
+
+.feed-tag {
+  margin-inline-end: 0 !important;
+}
+
+.feed-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.feed-modal-icon {
+  color: #52c41a;
+  font-size: 16px;
+}
+
+.feed-modal-message {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  border-left: 4px solid #52c41a;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #000;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}

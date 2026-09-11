@@ -12,6 +12,9 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "@/services/api";
 import { API_ENDPOINTS } from "@/constants";
+import { getVideos } from "@/services/videoService";
+import { getMyBlogs } from "@/services/blogService";
+import { getMyFaqs } from "@/services/faqService";
 import type {
   DashboardStats,
   RecentItem,
@@ -43,15 +46,19 @@ const initialState: DashboardState = {
   error: "",
 };
 
+// Consumes both raw (populated createdBy object, _id key) and normalized
+// (createdBy string, key) records so the recent tabs can share one mapper.
 const toRecentItem = (
   record: any,
   fallbackName: string
 ): RecentItem => ({
-  key: record._id,
+  key: record.key ?? record._id,
   title: record.title,
   createdAt: record.createdAt,
   createdByName:
-    record.createdBy?.fullName || record.createdBy?.username || fallbackName,
+    record.createdBy && typeof record.createdBy === "object"
+      ? record.createdBy.fullName || record.createdBy.username || fallbackName
+      : record.createdBy || fallbackName,
   category: record.category,
   thumbnailUrl: record.thumbnailUrl ?? record.thumbnail,
   processingStatus: record.processingStatus,
@@ -75,15 +82,10 @@ export const fetchDashboardStats = createAsyncThunk(
 export const fetchRecentVideos = createAsyncThunk(
   "dashboard/fetchRecentVideos",
   async (fallbackName: string): Promise<{ list: RecentItem[]; purged: PurgedVideo[] }> => {
-    const data = await api(`${API_ENDPOINTS.getVideos}?page=1&limit=4`);
+    const data = await getVideos("page=1&limit=4");
     return {
-      list: (data?.videos ?? []).map((video: any) =>
-        toRecentItem(video, "Unknown")
-      ),
-      purged: (data?.purged ?? []).map((video: any) => ({
-        key: video?._id ?? video?.id,
-        title: video?.title ?? "",
-      })),
+      list: data.videos.map((video) => toRecentItem(video, "Unknown")),
+      purged: data.purged ?? [],
     };
   }
 );
@@ -91,18 +93,16 @@ export const fetchRecentVideos = createAsyncThunk(
 export const fetchRecentBlogs = createAsyncThunk(
   "dashboard/fetchRecentBlogs",
   async (fallbackName: string): Promise<RecentItem[]> => {
-    const data = await api(`${API_ENDPOINTS.getMyBlogs}?page=1&limit=4`);
-    return (data?.blogs ?? []).map((blog: any) =>
-      toRecentItem(blog, fallbackName)
-    );
+    const data = await getMyBlogs(1, 4);
+    return (data.blogs ?? []).map((blog) => toRecentItem(blog, fallbackName));
   }
 );
 
 export const fetchRecentFaqs = createAsyncThunk(
   "dashboard/fetchRecentFaqs",
   async (): Promise<FaqRecord[]> => {
-    const data = await api(`${API_ENDPOINTS.getMyFaqs}?limit=4`);
-    return data?.faqs ?? [];
+    const data = await getMyFaqs({ page: 1, limit: 4 });
+    return data.faqs ?? [];
   }
 );
 

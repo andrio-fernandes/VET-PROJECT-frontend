@@ -8,7 +8,7 @@
 // response parsing mirror the FAQ pages exactly.
 // =============================================
 
-import { api } from "./api";
+import { buildQuery, del, get, itemEndpoint, post, put } from "./api";
 import { API_ENDPOINTS } from "@/constants";
 import type {
   FaqRecord,
@@ -30,14 +30,14 @@ export interface GetFaqsParams {
 }
 
 export const getMyFaqs = async (params: GetFaqsParams): Promise<PaginatedFaqs> => {
-  const query = new URLSearchParams({
-    page: String(params.page),
-    limit: String(params.limit),
+  const query = buildQuery({
+    page: params.page,
+    limit: params.limit,
+    module: params.module,
+    category: params.category,
   });
-  if (params.module && params.module !== "All") query.set("module", params.module);
-  if (params.category && params.category !== "All") query.set("category", params.category);
 
-  const data = await api(`${API_ENDPOINTS.getMyFaqs}?${query.toString()}`);
+  const data = await get(`${API_ENDPOINTS.getMyFaqs}?${query}`);
   return {
     faqs: data?.faqs ?? [],
     page: data?.page ?? params.page,
@@ -46,27 +46,21 @@ export const getMyFaqs = async (params: GetFaqsParams): Promise<PaginatedFaqs> =
 };
 
 export const getFaqById = async (faqId: string): Promise<FaqRecord> => {
-  const data = await api(API_ENDPOINTS.getFaq(faqId));
+  const data = await get(itemEndpoint(API_ENDPOINTS.createFaq, faqId));
   return data?.faq ?? data ?? null;
 };
 
 export const createFaq = async (payload: CreateFaqPayload): Promise<void> => {
-  await api(API_ENDPOINTS.createFaq, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  await post(API_ENDPOINTS.createFaq, payload);
 };
 
 export const updateFaq = async (
   faqId: string,
   payload: UpdateFaqPayload
 ): Promise<void> => {
-  await api(`${API_ENDPOINTS.createFaq}/${faqId}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+  await put(itemEndpoint(API_ENDPOINTS.createFaq, faqId), payload);
 };
 
 export const deleteFaq = async (faqId: string): Promise<void> => {
-  await api(API_ENDPOINTS.deleteFaq(faqId), { method: "DELETE" });
+  await del(itemEndpoint(API_ENDPOINTS.createFaq, faqId));
 };
