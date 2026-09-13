@@ -28,7 +28,7 @@ export interface PaginatedVideos {
 // Signature + endpoint info issued by POST /videos/sign. It bounds a single
 // browser upload to the correct Cloudinary account, folder, resource type
 // and maximum file size.
-export interface CloudinarySignature {
+interface CloudinarySignature {
   cloud_name: string;
   api_key: string;
   resource_type: "video" | "image";
@@ -38,7 +38,7 @@ export interface CloudinarySignature {
   max_bytes: number;
 }
 
-export interface CreateVideoPayload {
+interface CreateVideoPayload {
   title: string;
   description: string;
   module: string;
@@ -47,7 +47,7 @@ export interface CreateVideoPayload {
   thumbnailPublicId?: string;
 }
 
-export interface UpdateVideoPayload {
+interface UpdateVideoPayload {
   title: string;
   description: string;
   module: string;
@@ -73,7 +73,7 @@ export interface UploadAbortHandle {
 }
 
 // Writable container for the abort handle; the page passes its useRef here.
-export type UploadAbortRef = { current: UploadAbortHandle | null };
+type UploadAbortRef = { current: UploadAbortHandle | null };
 
 // Uploads a file's bytes directly to Cloudinary from the browser using the
 // signature from signVideoUpload. Resolves with the file's secure_url,

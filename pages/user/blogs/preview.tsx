@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { App as AntApp, Button, Divider, Space, Spin, Tag, Typography } from 'antd';
+import { App as AntApp, Button, Divider, Space, Tag, Typography } from 'antd';
 import { EyeOutlined, FileTextOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 
 import { withAuth } from '@/components/auth/with-auth';
 import { UserLayout } from '@/layouts/UserLayout';
 import { PageHeader } from '@/components/blog/PageHeader';
+import PageLoading from '@/components/common/PageLoading';
 import { ROUTE_PATHS } from '@/constants';
 import {
   buildDocumentViewerUrl,
@@ -124,9 +125,7 @@ const UserBlogPreview = () => {
 
         <div className="bp-card">
           {loading ? (
-            <div className="bp-loading">
-              <Spin size="large" />
-            </div>
+            <PageLoading />
           ) : loadError && !blog ? (
             <Text type="secondary" className="bp-empty-text">
               {loadError}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Form, Input, Typography, Spin, App as AntApp } from 'antd';
+import { Form, Input, Typography, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import PageLoading from '@/components/common/PageLoading';
 import { updateFaq, getFaqById } from '@/services/faqService';
 import { ROUTE_PATHS } from '@/constants';
 import WordCount from '@/components/WordCount';
@@ -154,9 +155,7 @@ const EditFAQ = () => {
         <Title level={5} className="create-card-title">FAQ Details</Title>
 
         {seeding ? (
-          <div className="faqs-create-loading">
-            <Spin size="large" />
-          </div>
+          <PageLoading />
         ) : (
           <Form
             form={form}

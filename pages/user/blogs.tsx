@@ -7,11 +7,15 @@ import { withAuth } from '@/components/auth/with-auth';
 import { UserLayout } from '@/layouts/UserLayout';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { buildContentColumns } from '@/components/common/contentColumns';
-import { ROUTE_PATHS, PAGE_SIZE } from '@/constants';
+import { ROUTE_PATHS, PAGE_SIZE, VIEWED_FLASH_STORAGE_KEY } from '@/constants';
 import { useContentFilters } from '@/hooks/useContentFilters';
-import { getLibraryBlogs, getViewedIds } from '@/services/libraryService';
+import { useClampedRows } from '@/hooks/useClampedRows';
+import { getLibraryBlogs } from '@/services/libraryService';
 import type { BlogListItem } from '@/types/blog';
+import { contentThumbnail } from '@/utils/media';
 import ViewedBadge from '@/components/common/ViewedBadge';
+import useViewedFlash from '@/hooks/useViewedFlash';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
 
@@ -30,21 +34,26 @@ const UserBlogs = () => {
   const [blogs, setBlogs] = useState<BlogListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const { flashIds, flashView } = useViewedFlash();
+  const blogClamp = useClampedRows();
 
   useEffect(() => {
-    let ignore = false;
-    getViewedIds()
-      .then((data) => {
-        if (!ignore) setViewedIds(new Set(data.blog));
-      })
-      .catch(() => {
-        // Badge is best-effort; ignoring failures keeps the page usable.
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    // Restore the "just viewed" flash across the list → preview navigation.
+    const pending: string[] = [];
+    try {
+      const raw = sessionStorage.getItem(VIEWED_FLASH_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) pending.push(...parsed.map(String));
+      }
+    } catch {
+      // Malformed storage is safe to ignore.
+    }
+    if (pending.length) {
+      sessionStorage.removeItem(VIEWED_FLASH_STORAGE_KEY);
+      pending.forEach((id) => flashView(id));
+    }
+  }, [flashView]);
 
   const applyBlogsFromData = useCallback((data: any) => {
     setBlogs(data?.blogs ?? []);
@@ -83,12 +92,16 @@ const UserBlogs = () => {
       <div className="blogs-cell-title">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={record.thumbnail}
+          src={contentThumbnail(record.thumbnail)}
           alt={text}
           className="blogs-cell-thumb"
         />
-        <Text strong className="blogs-cell-name">{text}</Text>
-        {viewedIds.has(String(record._id)) && <ViewedBadge />}
+        <ClampedCellText
+          text={text}
+          expanded={blogClamp.isExpanded(String(record._id))}
+          onToggle={() => blogClamp.toggle(String(record._id))}
+        />
+        {flashIds.has(String(record._id)) && <ViewedBadge />}
       </div>
     ),
     categoryEllipsis: true,
@@ -102,7 +115,19 @@ const UserBlogs = () => {
           type="text"
           title="View"
           icon={<EyeOutlined className="blogs-action-icon" />}
-          onClick={() => router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record._id}`)}
+          onClick={() => {
+            const pending: string[] = [];
+            try {
+              const raw = sessionStorage.getItem(VIEWED_FLASH_STORAGE_KEY);
+              if (raw) pending.push(...JSON.parse(raw));
+            } catch {
+              // Malformed storage is safe to ignore.
+            }
+            pending.push(String(record._id));
+            sessionStorage.setItem(VIEWED_FLASH_STORAGE_KEY, JSON.stringify(pending));
+            flashView(String(record._id));
+            router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record._id}`);
+          }}
         />
       </div>
     ),

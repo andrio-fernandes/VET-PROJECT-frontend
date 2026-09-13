@@ -15,20 +15,24 @@ export type FeedbackStatus = "new" | "read" | "resolved";
 export interface FeedbackRecord {
   _id: string;
   userId: string;
+  userName?: string;
   email: string;
   message: string;
   status: FeedbackStatus;
+  reviewedBy?: { fullName?: string; username?: string } | null;
+  reviewedById?: string | null;
+  reviewedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface PaginatedFeedback {
+interface PaginatedFeedback {
   feedbacks: FeedbackRecord[];
   page: number;
   totalFeedbacks: number;
 }
 
-export interface GetFeedbackParams {
+interface GetFeedbackParams {
   page: number;
   limit: number;
   status?: FeedbackStatus | "all";
@@ -66,10 +70,12 @@ export const getFeedbackCount = async (): Promise<number> => {
   return data?.count ?? 0;
 };
 
-// Admin: mark a submission as read or resolved.
+// Admin: mark a submission as read or resolved. The server stamps the acting
+// admin as the reviewer and returns the updated record with the reviewer name.
 export const updateFeedbackStatus = async (
   id: string,
   status: FeedbackStatus
-): Promise<void> => {
-  await put(API_ENDPOINTS.feedbackStatus(id), { status });
+): Promise<FeedbackRecord> => {
+  const data = await put(API_ENDPOINTS.feedbackStatus(id), { status });
+  return data?.feedback;
 };

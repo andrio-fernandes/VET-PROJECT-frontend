@@ -13,11 +13,13 @@ import { PAGE_SIZE } from '@/constants';
 import { useCanManage } from '@/hooks/useCanManage';
 import { useContentFilters } from '@/hooks/useContentFilters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useClampedRows } from '@/hooks/useClampedRows';
 import { deleteFaq, getMyFaqs } from '@/services/faqService';
 import type { FaqRecord } from '@/types/faq';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
 import { buildContentColumns } from '@/components/common/contentColumns';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
 
@@ -25,6 +27,7 @@ const ViewFaqs = () => {
   const router = useRouter();
   const { message, modal } = AntApp.useApp();
   const { canManage } = useCanManage<FaqRecord>();
+  const faqClamp = useClampedRows();
 
   const [faqs, setFaqs] = useState<FaqRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,14 +98,20 @@ const ViewFaqs = () => {
   const columns = buildContentColumns<FaqRecord>({
     ns: 'faqs',
     titleKey: 'question',
-    renderTitle: (text) => <Text className="faqs-cell-text faqs-cell-question">{text}</Text>,
+    renderTitle: (text, record) => (
+      <ClampedCellText
+        text={text}
+        expanded={faqClamp.isExpanded(String(record._id))}
+        onToggle={() => faqClamp.toggle(String(record._id))}
+      />
+    ),
     categoryEllipsis: true,
     createdByEllipsis: true,
     renderCreatedBy: (record) => (
       <Text className="faqs-cell-text">{record.createdBy?.fullName || record.createdBy?.username || 'Admin'}</Text>
     ),
     renderActions: (record) => (
-      <Space size={4} className="faqs-action-col">
+      <Space size={8} className="faqs-action-col">
         <Button
           type="text"
           title="View"

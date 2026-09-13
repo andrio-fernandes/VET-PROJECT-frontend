@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { App as AntApp, Button, Typography } from 'antd';
+import { App as AntApp, Button } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -12,6 +12,7 @@ import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { useCanManage } from '@/hooks/useCanManage';
 import { useContentFilters } from '@/hooks/useContentFilters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useClampedRows } from '@/hooks/useClampedRows';
 import { deleteVideo, getVideos } from '@/services/videoService';
 import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY, type ContentModule, type ContentCategory } from '@/constants';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
@@ -19,8 +20,7 @@ import type { VideoRecord, VideoProcessingStatus } from '@/types/video';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { buildContentColumns } from '@/components/common/contentColumns';
 import { notifyFailedVideos } from '@/utils/videoFailure';
-
-const { Text } = Typography;
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 type Video = VideoRecord;
 
@@ -31,6 +31,7 @@ const Videos = () => {
   const router = useRouter();
   const { message, modal, notification } = AntApp.useApp();
   const { canManage } = useCanManage<Video>();
+  const videoClamp = useClampedRows();
   const {
     page,
     setPage,
@@ -153,7 +154,11 @@ const Videos = () => {
           alt={text}
           className="videos-cell-thumb"
         />
-        <Text strong className="videos-cell-name">{text}</Text>
+        <ClampedCellText
+          text={text}
+          expanded={videoClamp.isExpanded(record.key)}
+          onToggle={() => videoClamp.toggle(record.key)}
+        />
       </div>
     ),
     renderActions: (record) => (

@@ -15,11 +15,13 @@ import { contentThumbnail } from '@/utils/media';
 import { useCanManage } from '@/hooks/useCanManage';
 import { useContentFilters } from '@/hooks/useContentFilters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useClampedRows } from '@/hooks/useClampedRows';
 import { deleteBlog } from '@/services/blogService';
 import { fetchBlogsPage } from '@/redux/blog/blogSlice';
 import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '@/redux/blog/selectors';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import type { BlogListItem } from '@/types/blog';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
 
@@ -43,6 +45,7 @@ const BlogsPage = () => {
   const total = useAppSelector(selectBlogsTotal);
   const loading = useAppSelector(selectBlogLoading);
   const loadError = useAppSelector(selectBlogError);
+  const blogClamp = useClampedRows();
 
   const loadPage = useCallback(
     async (pageNum: number) => {
@@ -96,7 +99,11 @@ const BlogsPage = () => {
           alt={text}
           className="blogs-cell-thumb"
         />
-        <Text strong className="blogs-cell-name">{text}</Text>
+        <ClampedCellText
+          text={text}
+          expanded={blogClamp.isExpanded(String(record._id))}
+          onToggle={() => blogClamp.toggle(String(record._id))}
+        />
       </div>
     ),
     categoryEllipsis: true,

@@ -16,13 +16,13 @@ import type {
   UpdateFaqPayload,
 } from "@/types/faq";
 
-export interface PaginatedFaqs {
+interface PaginatedFaqs {
   faqs: FaqRecord[];
   page: number;
   totalFaqs: number;
 }
 
-export interface GetFaqsParams {
+interface GetFaqsParams {
   page: number;
   limit: number;
   module?: string;

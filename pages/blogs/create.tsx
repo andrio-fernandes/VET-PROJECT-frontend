@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
-import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
+import { App as AntApp, Button, Divider, Modal, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import PageLoading from '@/components/common/PageLoading';
 import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
 import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
 import { CreateFormActions } from '@/components/common/create/CreateFormActions';
@@ -255,9 +256,7 @@ const UploadBlog = () => {
 
           <div className="create-card">
             {seeding ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-                <Spin size="large" />
-              </div>
+              <PageLoading />
             ) : (
               <form onSubmit={submit}>
                 <BlogDetailsFields control={control} trackChange={trackChange} />

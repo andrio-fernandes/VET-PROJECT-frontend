@@ -6,6 +6,7 @@ import { forgotPassword } from "@/services/authService";
 import { emailRules } from "@/utils/validation";
 import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import AuthCard from "@/components/AuthCard";
+import PageLoading from "@/components/common/PageLoading";
 import { emptySubscribe } from "@/utils/input";
 import { isResetFlowActive, markResetFlowActive, clearResetFlow } from "@/utils/resetFlow";
 
@@ -115,6 +116,7 @@ useEffect(() => {
 
   return (
     <AuthCard>
+        {loading && <PageLoading />}
         <Title level={2} className="auth-card-title">
           Forgot Your Password?
         </Title>

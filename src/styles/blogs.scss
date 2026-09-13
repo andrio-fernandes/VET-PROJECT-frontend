@@ -9,11 +9,6 @@
 
 @include view-all.view-all('blogs');
 
-.blogs-content {
-  max-width: none;
-  width: 100%;
-}
-
 .blogs-select-module {
   width: 303px;
 }
@@ -24,9 +19,11 @@
 
 .blogs-cell-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
-  min-width: 380px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .blogs-cell-thumb {
@@ -39,27 +36,13 @@
   display: block;
 }
 
-.blogs-cell-thumb-placeholder {
-  width: 96px;
-  height: 64px;
-  background-color: #f6ffed;
-  border-radius: 6px;
-  border: 1px solid #b7eb8f;
-  flex-shrink: 0;
-}
-
-.blogs-cell-name {
-  color: #262626;
-  font-size: 15px;
-}
-
 .blogs-cell-muted {
   color: #595959;
 }
 
 .blogs-action-group {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .blogs-action-icon {

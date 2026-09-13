@@ -5,13 +5,6 @@
    Values preserved exactly - do not change colors, sizes or geometry.
    ============================================= */
 
-.faqs-create-loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 48px 0;
-}
-
 .faqs-create-block {
   margin-bottom: 28px;
 }

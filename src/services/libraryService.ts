@@ -13,25 +13,25 @@ import type { FaqRecord } from "@/types/faq";
 import type { BlogListItem, BlogRecord } from "@/types/blog";
 import type { VideoRecord } from "@/types/video";
 
-export interface PaginatedFaqs {
+interface PaginatedFaqs {
   faqs: FaqRecord[];
   page: number;
   totalFaqs: number;
 }
 
-export interface PaginatedVideos {
+interface PaginatedVideos {
   videos: VideoRecord[];
   page: number;
   totalVideos: number;
 }
 
-export interface PaginatedBlogs {
+interface PaginatedBlogs {
   blogs: BlogListItem[];
   page: number;
   totalBlogs: number;
 }
 
-export interface GetLibraryParams {
+interface GetLibraryParams {
   page: number;
   limit: number;
   module?: string;
@@ -47,7 +47,7 @@ const buildLibraryQuery = (params: GetLibraryParams): string => {
   return query.toString();
 };
 
-export interface GetLibraryOptions {
+interface GetLibraryOptions {
   signal?: AbortSignal;
 }
 
@@ -127,28 +127,20 @@ const normalizeVideo = (v: any): VideoRecord => ({
 
 // ── View history / continue learning ─────────────────────────
 
-export type ViewedContentType = "video" | "blog" | "faq";
-
-export interface ViewedIds {
-  video: string[];
-  blog: string[];
-  faq: string[];
-}
-
-export interface WatchProgress {
+interface WatchProgress {
   positionSeconds: number;
   durationSeconds: number;
   completed: boolean;
 }
 
-export interface ContinueVideo {
+interface ContinueVideo {
   video: VideoRecord;
   positionSeconds: number;
   durationSeconds: number;
   completed: boolean;
 }
 
-export interface RecentlyViewedItem {
+interface RecentlyViewedItem {
   type: "blog" | "faq";
   contentId: string;
   title: string;
@@ -168,16 +160,6 @@ export const markViewed = async (
   contentId: string
 ): Promise<void> => {
   await post(API_ENDPOINTS.libraryViewed(type, contentId));
-};
-
-// All viewed IDs for the current user, grouped by type.
-export const getViewedIds = async (): Promise<ViewedIds> => {
-  const data = await get(API_ENDPOINTS.libraryViewedIds);
-  return {
-    video: data?.video ?? [],
-    blog: data?.blog ?? [],
-    faq: data?.faq ?? [],
-  };
 };
 
 // Dashboard "Continue Learning" payload.

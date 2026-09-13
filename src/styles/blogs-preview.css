@@ -19,12 +19,6 @@
   padding: 32px 36px;
 }
 
-.bp-loading {
-  display: flex;
-  justify-content: center;
-  padding: 80px 0;
-}
-
 .bp-empty-text {
   font-size: 15px;
 }

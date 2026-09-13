@@ -21,7 +21,9 @@ import dayjs from 'dayjs';
 import videoThumbnail from '@/assets/default.jpg';
 import { UserLayout } from '@/layouts/UserLayout';
 import { withAuth } from '@/components/auth/with-auth';
+import PageLoading from '@/components/common/PageLoading';
 import { useCurrentUser } from '@/hooks/useAuth';
+import { useClampedRows } from '@/hooks/useClampedRows';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
 import {
   getContinueLearning,
@@ -33,6 +35,7 @@ import {
 import { submitFeedback } from '@/services/feedbackService';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -54,6 +57,8 @@ const UserDashboardPage = () => {
   const router = useRouter();
   const { message } = AntApp.useApp();
   const currentUser = useCurrentUser();
+  const rawUserName = currentUser?.fullName || currentUser?.username || 'User';
+  const userDisplayName = rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1);
 
   // Feedback email comes from the authenticated account and is read-only; the
   // server stamps it from the token, so the field is informational only.
@@ -69,6 +74,8 @@ const UserDashboardPage = () => {
   const [recentFaqs, setRecentFaqs] = useState<LibraryTableItem[]>([]);
   const [continueData, setContinueData] = useState<ContinueLearningData | null>(null);
   const [viewingFaq, setViewingFaq] = useState<LibraryTableItem | null>(null);
+  const libraryClamp = useClampedRows();
+  const recentClamp = useClampedRows();
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isEmailValid = isValidEmail(accountEmail);
@@ -208,7 +215,7 @@ const UserDashboardPage = () => {
       key: 'title',
       width: '38%',
       render: (text: string, record: LibraryTableItem) => (
-        <Space>
+        <Space size="middle">
           {activeTab !== 'FAQs' && (
             <img
               src={contentThumbnail(record.thumbnailUrl)}
@@ -216,7 +223,11 @@ const UserDashboardPage = () => {
               style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
             />
           )}
-          <Text strong>{text}</Text>
+          <ClampedCellText
+            text={text}
+            expanded={libraryClamp.isExpanded(record.key)}
+            onToggle={() => libraryClamp.toggle(record.key)}
+          />
         </Space>
       ),
     },
@@ -291,7 +302,7 @@ const UserDashboardPage = () => {
     <UserLayout activeKey={ROUTE_PATHS.userDashboard}>
       <div className="user-dashboard-page">
         <div className="user-dashboard-header">
-          <Text strong style={{ fontSize: "18px" }}>Welcome, User!</Text>
+          <Text strong style={{ fontSize: "18px" }}>Welcome, {userDisplayName}!</Text>
         </div>
 
         <div style={{ padding: "24px 32px" }}>
@@ -314,7 +325,7 @@ const UserDashboardPage = () => {
             <Card className="user-continue-card">
               {continueData?.continueVideo?.video ? (
                 <Flex align="center" gap={16} wrap="wrap">
-                  <div className="user-continue-thumbnail">
+                  <div className="user-continue-thumbnail" onClick={handleContinueVideo} style={{ cursor: 'pointer' }}>
                     <img
                       src={contentThumbnail(continueData.continueVideo.video.thumbnailUrl)}
                       alt="Continue learning"
@@ -377,7 +388,7 @@ const UserDashboardPage = () => {
                           dataIndex: 'title',
                           key: 'title',
                           render: (text: string, record: any) => (
-                            <Space>
+                            <Space size="middle">
                               {record.thumbnail && (
                                 <img
                                   src={contentThumbnail(record.thumbnail)}
@@ -385,7 +396,11 @@ const UserDashboardPage = () => {
                                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                                 />
                               )}
-                              <Text strong>{text}</Text>
+                              <ClampedCellText
+                                text={text}
+                                expanded={recentClamp.isExpanded(record.contentId)}
+                                onToggle={() => recentClamp.toggle(record.contentId)}
+                              />
                             </Space>
                           ),
                         },
@@ -461,18 +476,17 @@ const UserDashboardPage = () => {
                     </div>
                   ))}
                 </div>
-                <Spin spinning={loading}>
-                  <Table
-                    columns={tableColumns}
-                    dataSource={activeRecentData}
-                    rowKey="key"
-                    loading={loading}
-                    pagination={false}
-                    bordered={false}
-                    tableLayout="fixed"
-                    locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab === 'FAQs' ? 'FAQs' : activeTab + 's'} available yet.` }}
-                  />
-                </Spin>
+                {loading && <PageLoading />}
+                <Table
+                  columns={tableColumns}
+                  dataSource={activeRecentData}
+                  rowKey="key"
+                  loading={false}
+                  pagination={false}
+                  bordered={false}
+                  tableLayout="fixed"
+                  locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab === 'FAQs' ? 'FAQs' : activeTab + 's'} available yet.` }}
+                />
                 <Flex justify="flex-end" style={{ marginTop: 12 }}>
                   <Button type="link" onClick={() => router.push(libraryViewAll)} className="dash-view-link">
                     View all

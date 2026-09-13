@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
-import { Typography, Card, Space, Table, Button, Spin, App as AntApp } from 'antd';
+import { Typography, Card, Space, Table, Button, App as AntApp } from 'antd';
 import dayjs from 'dayjs';
 import {
   PlayCircleOutlined,
@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import PageLoading from '@/components/common/PageLoading';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import VideoStatusTag from '@/components/video/VideoStatusTag';
 import {
@@ -21,10 +22,12 @@ import {
 } from '@/redux/dashboard/dashboardSlice';
 import { selectDashboard, selectDashboardError } from '@/redux/dashboard/selectors';
 import { useCurrentUser } from '@/hooks/useAuth';
+import { useClampedRows } from '@/hooks/useClampedRows';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
 import { notifyFailedVideos } from '@/utils/videoFailure';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
 
@@ -50,6 +53,7 @@ const Dashboard = () => {
   const adminDisplayName = rawAdminName.charAt(0).toUpperCase() + rawAdminName.slice(1);
   const [activeTab, setActiveTab] = useState('Video');
   const [viewingFaq, setViewingFaq] = useState<TableItem | null>(null);
+  const dashboardClamp = useClampedRows();
 
   const { stats, recentVideos, recentBlogs, recentFaqs, purgedVideos, loading, faqsLoading } =
     useAppSelector(selectDashboard);
@@ -125,7 +129,7 @@ const Dashboard = () => {
       render: (text: string, record: TableItem) => {
         const status = (record as TableItem & { processingStatus?: string }).processingStatus;
         return (
-          <Space>
+          <Space size="middle">
             {activeTab !== 'FAQs' && (
                 <img
                   src={contentThumbnail(record.thumbnailUrl)}
@@ -133,7 +137,11 @@ const Dashboard = () => {
                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                 />
               )}
-            <Text strong style={{ color: '#000' }}>{text}</Text>
+            <ClampedCellText
+              text={text}
+              expanded={dashboardClamp.isExpanded(record.key)}
+              onToggle={() => dashboardClamp.toggle(record.key)}
+            />
             {activeTab === 'Video' && status && status !== 'ready' && (
               <VideoStatusTag status={status as any} />
             )}
@@ -215,8 +223,8 @@ const Dashboard = () => {
       </div>
 
       {/* SUMMARY CARDS */}
-      <Spin spinning={loading}>
-        <div className="dash-summary-row">
+      {loading && <PageLoading />}
+      <div className="dash-summary-row">
           {summaryCards.map((card, index) => (
             <Card
               key={index}
@@ -252,7 +260,6 @@ const Dashboard = () => {
             </Card>
           ))}
         </div>
-      </Spin>
 
       {/* QUICK ACTIONS */}
       <div className="dash-section-title">Quick action</div>
@@ -294,11 +301,13 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {(loading || faqsLoading) && <PageLoading />}
+
         <Table
           columns={tableColumns}
           dataSource={activeRecentData}
           rowKey="key"
-          loading={activeTab === 'FAQs' ? faqsLoading : loading}
+          loading={false}
           pagination={false}
           bordered={false}
           tableLayout="fixed"

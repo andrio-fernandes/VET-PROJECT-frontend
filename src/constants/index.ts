@@ -10,12 +10,8 @@ import type { Rule } from "antd/es/form";
 export const CONTENT_MODULES = ["Sales"] as const;
 export type ContentModule = (typeof CONTENT_MODULES)[number];
 
-export const CONTENT_CATEGORIES = [
-  "Customer Order",
-"Inquiry",
-  "Quotation",
-] as const;
-export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
+// Categories available per module (must mirror server-side enums).
+export type ContentCategory = "Customer Order" | "Inquiry" | "Quotation";
 
 // Categories available per module. Add a new entry here when a new module
 // is introduced so its categories become selectable on the create forms.
@@ -38,7 +34,7 @@ export const MAX_OTP_ATTEMPTS = 5;
 export const OTP_REQUEST_WINDOW_SECONDS = 15 * 60;
 
 // Password strength rules
-export interface PasswordRule {
+interface PasswordRule {
   label: string;
   test: (value: string) => boolean;
 }
@@ -129,7 +125,6 @@ export const ROUTE_PATHS = {
   uploadBlog: "/blogs/create",
   blogs: "/blogs",
   blogPreview: "/blogs/preview",
-  blogAttachmentViewer: "/blogs/attachment-preview",
   faqs: "/faqs",
   profile: "/profile",
   // Customer content library (read-only views of admin content)
@@ -158,21 +153,18 @@ export const API_ENDPOINTS = {
   // Video endpoints
   createVideo: "/videos",
   getVideos: "/videos",
-  getVideoStatus: (id: string) => `/videos/${id}/status`,
   signVideoUpload: "/videos/sign",
   // Blog endpoints
   createBlog: "/blogs",
   getMyBlogs: "/blogs/mine",
   // Customer content library endpoints (protect only, GET-only server-side)
   libraryFaqs: "/library/faqs",
-  libraryFaqById: (id: string) => `/library/faqs/${id}`,
   libraryVideos: "/library/videos",
   libraryVideoById: (id: string) => `/library/videos/${id}`,
   libraryBlogs: "/library/blogs",
   libraryBlogById: (id: string) => `/library/blogs/${id}`,
   // View history / continue learning endpoints
   libraryViewed: (type: string, id: string) => `/library/viewed/${type}/${id}`,
-  libraryViewedIds: "/library/viewed-ids",
   libraryContinue: "/library/continue",
   libraryProgress: (id: string) => `/library/videos/${id}/progress`,
   // Profile endpoints
@@ -211,10 +203,6 @@ export const TITLE_MIN_WORDS = 5;
 export const TITLE_MAX_WORDS = 30;
 export const DESCRIPTION_MIN_WORDS = 10;
 export const DESCRIPTION_MAX_WORDS = 60;
-export const QUESTION_MIN_WORDS = 5;
-export const QUESTION_MAX_WORDS = 30;
-export const ANSWER_MIN_WORDS = 10;
-export const ANSWER_MAX_WORDS = 60;
 
 // Video upload size limits (in bytes).
 export const MAX_VIDEO_SIZE = 64 * 1024 * 1024;
@@ -226,6 +214,9 @@ export const RETAINED_FAQ_STORAGE_KEY = "retained_faq_progress";
 export const RETAINED_VIDEO_STORAGE_KEY = "retained_video_progress";
 // Session storage key used to hand a video to the preview page.
 export const VIDEO_PREVIEW_STORAGE_KEY = "video_preview";
+// Session storage key used to carry "just viewed" ids across the list →
+// preview navigation so the transient Viewed badge survives the remount.
+export const VIEWED_FLASH_STORAGE_KEY = "viewed_flash_ids";
 
 // Count words in a string (mirror of the blog utils counter, kept local
 // because the answer/question fields reuse the same rule).

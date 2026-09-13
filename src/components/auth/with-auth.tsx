@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Spin } from 'antd';
 
 import { ROUTE_PATHS, isTokenExpired, TOKEN_KEY, USER_KEY } from '@/constants';
 import { refreshSession } from '@/services/api';
+import PageLoading from '@/components/common/PageLoading';
 
 interface StoredUser {
   id?: string;
@@ -77,18 +77,7 @@ export const withAuth = (WrappedComponent: React.ComponentType<any>) => {
     }, [router]);
 
     if (allowed === undefined) {
-      return (
-        <div
-          style={{
-            minHeight: '60vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Spin size="large" />
-        </div>
-      );
+      return <PageLoading />;
     }
 
     if (!allowed) {

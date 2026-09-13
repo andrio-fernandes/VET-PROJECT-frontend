@@ -6,6 +6,7 @@ import { login } from '@/services/authService';
 import { storeSession } from '@/hooks/useAuth';
 import { ROUTE_PATHS } from '@/constants';
 import { preventSpaces } from '@/utils/input';
+import PageLoading from '@/components/common/PageLoading';
 
 const { useBreakpoint } = Grid;
 
@@ -52,6 +53,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {loading && <PageLoading />}
       <Card className={`login-card${isMobile ? ' login-card-mobile' : ''}`}>
         <Form
           name="login_form"

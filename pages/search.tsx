@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { App as AntApp, Spin } from "antd";
-import { SearchOutlined, CloseCircleFilled, LoadingOutlined } from "@ant-design/icons";
+import { SearchOutlined, CloseCircleFilled } from "@ant-design/icons";
 
 import { UserLayout } from "@/layouts/UserLayout";
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from "@/constants";
@@ -237,6 +237,14 @@ function SearchPage() {
   const visibleResults = tabType ? resultsByType[tabType] : [];
   const hasMoreResults = tabType ? visibleCount < totals[tabType] : false;
 
+  // Any content currently on screen (used to keep results mounted while a
+  // follow-up search runs, so the input stays usable instead of flashing a
+  // full-screen loader on every keystroke).
+  const hasAnyResult =
+    activeTab === "all"
+      ? groupedAllResults.length > 0 || visibleFaqs.length > 0
+      : visibleResults.length > 0;
+
   const handleTabChange = (key: string) => {
     setActiveTab(key);
     setVisibleCount(ITEMS_PER_PAGE);
@@ -398,46 +406,56 @@ function SearchPage() {
           <div className="search-content-layout">
             {/* Results Section */}
             <div className="search-results-section">
-              {loading ? (
-                <div className="search-loading">
-                  <Spin size="large" indicator={<LoadingOutlined spin />} />
+              {loading && !hasAnyResult ? (
+                <div className="search-loading-panel">
+                  <Spin size="small" />
                 </div>
-              ) : activeTab === "all" ? (
-                groupedAllResults.length > 0 ? (
-                  groupedAllResults.map((group) => (
-                    <div key={group.type} className="search-result-group">
-                      <div className="search-result-group-title">{group.label}</div>
-                      {group.items.map(renderResultCard)}
-                      {hasMoreByType(group.type) && (
+              ) : (
+                <>
+                  {activeTab === "all" ? (
+                    groupedAllResults.length > 0 ? (
+                      groupedAllResults.map((group) => (
+                        <div key={group.type} className="search-result-group">
+                          <div className="search-result-group-title">{group.label}</div>
+                          {group.items.map(renderResultCard)}
+                          {hasMoreByType(group.type) && (
+                            <div className="see-more-wrapper">
+                              <button className="see-more-btn" onClick={() => handleSeeMoreSection(group.type)}>
+                                show more
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="search-empty-state">
+                        <span>Result not found</span>
+                      </div>
+                    )
+                  ) : visibleResults.length > 0 ? (
+                    <>
+                      {visibleResults.map(activeTab === "faqs" ? renderFaqCard : renderResultCard)}
+
+                      {hasMoreResults && (
                         <div className="see-more-wrapper">
-                          <button className="see-more-btn" onClick={() => handleSeeMoreSection(group.type)}>
+                          <button className="see-more-btn" onClick={handleSeeMoreResults}>
                             show more
                           </button>
                         </div>
                       )}
+                    </>
+                  ) : (
+                    <div className="search-empty-state">
+                      <span>Result not found</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="search-empty-state">
-                    <span>Result not found</span>
-                  </div>
-                )
-              ) : visibleResults.length > 0 ? (
-                <>
-                  {visibleResults.map(activeTab === "faqs" ? renderFaqCard : renderResultCard)}
+                  )}
 
-                  {hasMoreResults && (
-                    <div className="see-more-wrapper">
-                      <button className="see-more-btn" onClick={handleSeeMoreResults}>
-                        show more
-                      </button>
+                  {loading && (
+                    <div className="search-loading-indicator">
+                      <Spin size="small" />
                     </div>
                   )}
                 </>
-              ) : (
-                <div className="search-empty-state">
-                  <span>Result not found</span>
-                </div>
               )}
             </div>
 

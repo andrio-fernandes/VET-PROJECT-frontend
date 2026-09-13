@@ -57,10 +57,6 @@ a {
   margin-bottom: 16px;
 }
 
-.auth-link {
-  font-weight: bold;
-}
-
 /* Register split layout */
 
 .register-page {
@@ -136,17 +132,6 @@ a {
   color: #fff;
   font-weight: bold;
   display: inline-block;
-}
-
-.register-input.ant-input,
-.register-input.ant-input-affix-wrapper,
-.register-input.ant-input-affix-wrapper input {
-  border-radius: 20px;
-  height: 42px;
-}
-
-.register-input.ant-input-password .ant-input {
-  height: 100%;
 }
 
 .register-extra {
@@ -247,23 +232,8 @@ a {
   display: inline-block;
 }
 
-.login-username-item {
-  margin-bottom: 24px;
-}
-
 .login-password-item {
   margin-bottom: 8px;
-}
-
-.login-input.ant-input,
-.login-input.ant-input-affix-wrapper,
-.login-input.ant-input-affix-wrapper input {
-  border-radius: 20px;
-  height: 42px;
-}
-
-.login-input.ant-input-password .ant-input {
-  height: 100%;
 }
 
 .login-forgot-row {
@@ -274,16 +244,6 @@ a {
 .login-forgot-link {
   color: #54b226;
   font-size: 13px;
-  font-weight: bold;
-}
-
-.login-submit-item {
-  margin-bottom: 12px;
-}
-
-.login-submit-button {
-  border-radius: 20px;
-  height: 42px;
   font-weight: bold;
 }
 
@@ -320,45 +280,12 @@ a {
   margin-bottom: 20px;
 }
 
-.otp-resend-button {
-  margin-top: 18px;
-}
-
 /* =============================================
    RESET PASSWORD
 ============================================= */
 
 .reset-confirm-form-item {
   margin-bottom: 0;
-}
-
-/* =============================================
-   PASSWORD STRENGTH
-============================================= */
-
-.password-strength {
-  margin-top: 6px;
-}
-
-.strength-passed {
-  color: #2dce89;
-}
-
-.strength-failed {
-  color: #ff4d4f;
-}
-
-.strength-pending {
-  color: #ff4d4f;
-}
-
-.strength-met {
-  color: #2dce89;
-}
-
-/* Register page: pending requirements stay red, validated ones turn black. */
-.register-page .strength-met {
-  color: #000000;
 }
 
 /* Built-in required asterisk: show on the RIGHT side of the label instead of
@@ -398,16 +325,6 @@ a {
 
 .upload-section {
   margin-top: 8px;
-}
-
-.footer-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.footer-actions .ant-btn-primary {
-  background: #52c41a;
-  border-color: #52c41a;
 }
 
 /* Main content */
@@ -550,4 +467,72 @@ a {
   color: #52c41a;
   background: rgba(0, 0, 0, 0.15);
   cursor: pointer;
+}
+
+.page-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: opacity 150ms ease-in-out;
+}
+
+.page-loading-screen--leaving {
+  opacity: 0;
+}
+
+/* Two-line clamp for table title/text cells. Clicking toggles the full text.
+   Wired via <ClampedCellText> + useClampedRows(). */
+.clamp-cell-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+  color: #262626;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.clamp-cell-text--expanded {
+  -webkit-line-clamp: none;
+}
+
+.clamp-cell-text:hover {
+  color: #1d39c4;
+}
+
+/* =========================
+   TABLE SPACING (all tables)
+   Consistent cell padding, alignment and separators across the view-all list
+   pages and all dashboard tables.
+   ========================= */
+.ant-table-wrapper .ant-table-thead > tr > th {
+  padding: 14px 16px;
+  background: #fafafa;
+  color: #262626;
+  font-weight: 600;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 16px;
+  vertical-align: top;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.ant-table-wrapper .ant-table-empty .ant-table-cell {
+  padding: 48px 16px;
+}
+
+.ant-table-wrapper .ant-table-pagination {
+  margin: 16px 0 12px;
 }

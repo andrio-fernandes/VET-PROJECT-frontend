@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Button, Empty, Spin, Typography } from "antd";
+import { Button, Empty, Typography } from "antd";
 import { PlayCircleOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { PageHeader } from "@/components/blog/PageHeader";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
+import PageLoading from "@/components/common/PageLoading";
 import { getVideoById } from "@/services/videoService";
 import { VIDEO_PREVIEW_STORAGE_KEY, ROUTE_PATHS } from "@/constants";
 import { contentThumbnail } from "@/utils/media";
@@ -82,15 +83,7 @@ const VideoPreview = () => {
   const thumbnail = contentThumbnail(record?.thumbnailUrl || seed?.thumbnail);
 
   if (loading) {
-    return (
-      <AdminLayout>
-        <div className="vp-page">
-          <div className="vp-empty">
-            <Spin size="large" />
-          </div>
-        </div>
-      </AdminLayout>
-    );
+    return <PageLoading />;
   }
 
   if (!seed || !src || error) {

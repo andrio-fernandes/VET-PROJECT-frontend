@@ -8,12 +8,15 @@ import { UserLayout } from '@/layouts/UserLayout';
 import { withAuth } from '@/components/auth/with-auth';
 import { PAGE_SIZE, ROUTE_PATHS } from '@/constants';
 import { useContentFilters } from '@/hooks/useContentFilters';
-import { getLibraryFaqs, getViewedIds, markViewed } from '@/services/libraryService';
+import { useClampedRows } from '@/hooks/useClampedRows';
+import { getLibraryFaqs, markViewed } from '@/services/libraryService';
 import type { FaqRecord } from '@/types/faq';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
 import { buildContentColumns } from '@/components/common/contentColumns';
 import ViewedBadge from '@/components/common/ViewedBadge';
+import useViewedFlash from '@/hooks/useViewedFlash';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
 
@@ -23,36 +26,17 @@ const UserFaqs = () => {
   const [faqs, setFaqs] = useState<FaqRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const { flashIds, flashView } = useViewedFlash();
+  const faqClamp = useClampedRows();
 
   const [viewingFaq, setViewingFaq] = useState<FaqRecord | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
-    getViewedIds()
-      .then((data) => {
-        if (!ignore) setViewedIds(new Set(data.faq));
-      })
-      .catch(() => {
-        // Badge is best-effort; ignoring failures keeps the page usable.
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
   const handleOpenFaq = (record: FaqRecord) => {
     setViewingFaq(record);
-    if (!viewedIds.has(String(record._id))) {
-      setViewedIds((prev) => {
-        const next = new Set(prev);
-        next.add(String(record._id));
-        return next;
-      });
-      markViewed('faq', String(record._id)).catch(() => {
-        // Best-effort: a failed mark just keeps the badge in place locally.
-      });
-    }
+    flashView(String(record._id));
+    markViewed('faq', String(record._id)).catch(() => {
+      // Best-effort: a failed mark just keeps the badge in place locally.
+    });
   };
 
   const {
@@ -104,8 +88,12 @@ const UserFaqs = () => {
     titleKey: 'question',
     renderTitle: (text, record) => (
       <span className="faqs-cell-question-wrap">
-        <Text className="faqs-cell-text faqs-cell-question">{text}</Text>
-        {viewedIds.has(String(record._id)) && <ViewedBadge />}
+        <ClampedCellText
+          text={text}
+          expanded={faqClamp.isExpanded(String(record._id))}
+          onToggle={() => faqClamp.toggle(String(record._id))}
+        />
+        {flashIds.has(String(record._id)) && <ViewedBadge />}
       </span>
     ),
     categoryEllipsis: true,
@@ -116,7 +104,7 @@ const UserFaqs = () => {
       </Text>
     ),
     renderActions: (record) => (
-      <Space size={4} className="faqs-action-col">
+      <Space size={8} className="faqs-action-col">
         <Button
           type="text"
           title="View"

@@ -63,13 +63,6 @@
   flex-shrink: 0;
 }
 
-.vc-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 360px;
-}
-
 .vc-file-preview-btn {
   color: #52c41a;
 }

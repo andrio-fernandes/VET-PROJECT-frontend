@@ -15,6 +15,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentCategory, type ContentModule } from '@/constants';
 import type { ColumnsType } from 'antd/es/table';
+import PageLoading from '@/components/common/PageLoading';
 
 const { Title, Text } = Typography;
 
@@ -142,11 +143,12 @@ export function ViewAllTable<T>({
         </div>
 
         <div className={`${ns}-table-wrap`}>
+          {loading && <PageLoading />}
           <Table<T>
             rowKey={rowKey}
             columns={columns}
             dataSource={dataSource}
-            loading={loading}
+            loading={false}
             tableLayout={tableLayout}
             locale={{ emptyText: emptyText ?? 'No records uploaded yet.' }}
             pagination={{

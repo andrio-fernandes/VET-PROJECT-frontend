@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
+import PageLoading from '@/components/common/PageLoading';
 import { COMMON_PASSWORDS, PASSWORD_VALIDATOR_RULES, ROUTE_PATHS } from '@/constants';
 import { preventSpaces } from '@/utils/input';
 const { Title, Paragraph } = Typography;
@@ -83,6 +84,7 @@ export default function RegisterPage() {
 
   return (
     <div className="register-page">
+      {loading && <PageLoading />}
       <div className="register-left-panel">
         <div className="register-left-content">
           <Title level={2} className="register-title">

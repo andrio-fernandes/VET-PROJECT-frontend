@@ -3,10 +3,11 @@ import { useRouter } from "next/router";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
 import { createVideo, getVideoById, updateVideo } from "@/services/videoService";
 import { ROUTE_PATHS, RETAINED_VIDEO_STORAGE_KEY } from "@/constants";
-import { Form, Spin, Typography, App as AntApp } from "antd";
+import { Form, Typography, App as AntApp } from "antd";
 import { CreateContentLayout } from "@/components/common/create/CreateContentLayout";
 import { CreatePageHeader } from "@/components/common/create/CreatePageHeader";
 import { CreateFormActions } from "@/components/common/create/CreateFormActions";
+import PageLoading from "@/components/common/PageLoading";
 import { useUnsavedNavigation } from "@/hooks/useUnsavedNavigation";
 import { useDraftRestore } from "@/hooks/useDraftRestore";
 import { useVideoUpload } from "@/hooks/useVideoUpload";
@@ -358,9 +359,7 @@ const UploadVideo = () => {
             <Title level={5} className="create-card-title">Video Details</Title>
 
             {seeding ? (
-              <div className="vc-loading">
-                <Spin size="large" />
-              </div>
+              <PageLoading />
             ) : (
             <Form
               form={form}

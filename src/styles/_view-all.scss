@@ -104,14 +104,10 @@ $border-light: #b7eb8f;
     white-space: nowrap;
   }
 
-  .#{$ns}-filter-select {
-    width: 303px;
-  }
-
   .#{$ns}-table-wrap {
     background-color: $white;
     border: 1px solid $border;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow-x: auto;
   }
 

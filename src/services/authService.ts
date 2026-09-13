@@ -11,12 +11,12 @@
 import { del, post, put } from "./api";
 import { API_ENDPOINTS } from "@/constants";
 
-export interface LoginPayload {
+interface LoginPayload {
   username: string;
   password: string;
 }
 
-export interface RegisterPayload {
+interface RegisterPayload {
   fullName: string;
   username: string;
   email: string;

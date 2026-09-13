@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { App as AntApp, Button, Typography } from 'antd';
+import { App as AntApp, Button } from 'antd';
 import { EyeOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { UserLayout } from '@/layouts/UserLayout';
 import { withAuth } from '@/components/auth/with-auth';
 import { useContentFilters } from '@/hooks/useContentFilters';
-import { PAGE_SIZE, ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
-import { getLibraryVideos, getViewedIds } from '@/services/libraryService';
+import { useClampedRows } from '@/hooks/useClampedRows';
+import { PAGE_SIZE, ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY, VIEWED_FLASH_STORAGE_KEY } from '@/constants';
+import { getLibraryVideos } from '@/services/libraryService';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
 import type { VideoRecord, VideoProcessingStatus } from '@/types/video';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { buildContentColumns } from '@/components/common/contentColumns';
 import ViewedBadge from '@/components/common/ViewedBadge';
-
-const { Text } = Typography;
+import useViewedFlash from '@/hooks/useViewedFlash';
+import ClampedCellText from '@/components/common/ClampedCellText';
 
 type Video = VideoRecord;
 
@@ -35,21 +36,26 @@ const UserVideos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const { flashIds, flashView } = useViewedFlash();
+  const videoClamp = useClampedRows();
 
   useEffect(() => {
-    let ignore = false;
-    getViewedIds()
-      .then((data) => {
-        if (!ignore) setViewedIds(new Set(data.video));
-      })
-      .catch(() => {
-        // Badge is best-effort; ignoring failures keeps the page usable.
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    // Restore the "just viewed" flash across the list → preview navigation.
+    const pending: string[] = [];
+    try {
+      const raw = sessionStorage.getItem(VIEWED_FLASH_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) pending.push(...parsed.map(String));
+      }
+    } catch {
+      // Malformed storage is safe to ignore.
+    }
+    if (pending.length) {
+      sessionStorage.removeItem(VIEWED_FLASH_STORAGE_KEY);
+      pending.forEach((id) => flashView(id));
+    }
+  }, [flashView]);
 
   const applyVideosFromData = useCallback((data: any) => {
     setVideos(
@@ -113,6 +119,16 @@ const UserVideos = () => {
         src: mediaUrl(record.videoUrl),
       })
     );
+    const pending: string[] = [];
+    try {
+      const raw = sessionStorage.getItem(VIEWED_FLASH_STORAGE_KEY);
+      if (raw) pending.push(...JSON.parse(raw));
+    } catch {
+      // Malformed storage is safe to ignore.
+    }
+    pending.push(String(record.key));
+    sessionStorage.setItem(VIEWED_FLASH_STORAGE_KEY, JSON.stringify(pending));
+    flashView(String(record.key));
     router.push(ROUTE_PATHS.userVideoPreview);
   };
 
@@ -126,8 +142,12 @@ const UserVideos = () => {
           alt={text}
           className="videos-cell-thumb"
         />
-        <Text strong className="videos-cell-name">{text}</Text>
-        {viewedIds.has(String(record.key)) && <ViewedBadge />}
+        <ClampedCellText
+          text={text}
+          expanded={videoClamp.isExpanded(record.key)}
+          onToggle={() => videoClamp.toggle(record.key)}
+        />
+        {(flashIds.has(String(record.key))) && <ViewedBadge />}
       </div>
     ),
     renderActions: (record) => (

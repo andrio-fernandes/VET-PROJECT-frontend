@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { forgotPassword, verifyOtp } from "@/services/authService";
 import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
 import AuthCard from "@/components/AuthCard";
+import PageLoading from "@/components/common/PageLoading";
 import OtpInput, { type OtpInputHandle } from "@/components/OtpInput";
 import { emptySubscribe } from "@/utils/input";
 import { clearResetFlow } from "@/utils/resetFlow";
@@ -291,6 +292,7 @@ export default function OtpVerificationPage() {
 
   return (
     <AuthCard>
+        {isVerifying && <PageLoading />}
         <Flex vertical align="center">
           <Text strong className="auth-card-title">
             Enter Your OTP

@@ -8,7 +8,7 @@
 // calls exactly - do not change them.
 // =============================================
 
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { api } from "@/services/api";
 import { API_ENDPOINTS } from "@/constants";

@@ -11,7 +11,7 @@ import { API_ENDPOINTS } from "@/constants";
 import { BLOG_CONTENT_MAX_BYTES } from "@/constants/blog";
 import type { BlogListItem, BlogRecord } from "@/types/blog";
 
-export interface PaginatedBlogs {
+interface PaginatedBlogs {
   blogs: BlogListItem[];
   page: number;
   totalBlogs: number;

@@ -136,8 +136,8 @@
 }
 
 .dash-recent-box {
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
   padding: 20px;
   background-color: #fff;
 }
@@ -181,6 +181,13 @@
 
 .feed-tag {
   margin-inline-end: 0 !important;
+  vertical-align: top;
+}
+
+/* Vertically top-align Space-wrapped cell content (thumbnails + text) inside
+   dashboard tables so it matches the top-left alignment of text columns. */
+.dash-recent-box .ant-space {
+  align-items: flex-start;
 }
 
 .feed-modal-head {

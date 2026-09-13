@@ -9,6 +9,7 @@ import { ROUTE_PATHS, STORAGE_KEYS, PASSWORD_VALIDATOR_RULES } from "@/constants
 import { clearResetFlow } from "@/utils/resetFlow";
 import PasswordStrength from "@/components/password-strength";
 import AuthCard from "@/components/AuthCard";
+import PageLoading from "@/components/common/PageLoading";
 import { preventSpaces, emptySubscribe } from "@/utils/input";
 import type { ResetPasswordFormValues } from "@/types/auth";
 
@@ -83,6 +84,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthCard>
+        {loading && <PageLoading />}
         <Title level={3} className="auth-card-title">
           Reset Password
         </Title>

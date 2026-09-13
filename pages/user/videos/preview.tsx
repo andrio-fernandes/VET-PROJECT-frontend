@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Button, Empty, Spin, Typography } from 'antd';
+import { Button, Empty, Typography } from 'antd';
 import { PlayCircleOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { UserLayout } from '@/layouts/UserLayout';
 import { PageHeader } from '@/components/blog/PageHeader';
 import { withAuth } from '@/components/auth/with-auth';
+import PageLoading from '@/components/common/PageLoading';
 import {
   getLibraryVideoById,
   getWatchProgress,
@@ -155,15 +156,7 @@ const UserVideoPreview = () => {
   const thumbnail = contentThumbnail(record?.thumbnailUrl || seed?.thumbnail);
 
   if (loading) {
-    return (
-      <UserLayout activeKey={ROUTE_PATHS.userVideos}>
-        <div className="vp-page">
-          <div className="vp-empty">
-            <Spin size="large" />
-          </div>
-        </div>
-      </UserLayout>
-    );
+    return <PageLoading />;
   }
 
   if (!seed || !src || error) {
