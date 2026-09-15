@@ -33,6 +33,7 @@ const ViewFaqs = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [reloadKey, setReloadKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [viewingFaq, setViewingFaq] = useState<FaqRecord | null>(null);
 
@@ -55,6 +56,7 @@ const ViewFaqs = () => {
           limit: PAGE_SIZE,
           module: moduleFilter,
           category: categoryFilter,
+          q: searchQuery || undefined,
         });
         if (!ignore) {
           setFaqs(data?.faqs ?? []);
@@ -73,7 +75,7 @@ const ViewFaqs = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, reloadKey, setPage]);
+  }, [page, moduleFilter, categoryFilter, searchQuery, message, reloadKey, setPage]);
 
   const { confirmDelete } = useDeleteConfirm<FaqRecord>({
     modal,
@@ -163,6 +165,11 @@ const ViewFaqs = () => {
         onModuleChange={onModuleChange}
         onCategoryChange={onCategoryChange}
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setLoading(true);
+        }}
         extra={
           <ViewFAQModal
             open={Boolean(viewingFaq)}

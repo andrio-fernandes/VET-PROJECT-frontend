@@ -15,7 +15,9 @@ import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
 import { buildContentColumns } from '@/components/common/contentColumns';
 import ViewedBadge from '@/components/common/ViewedBadge';
+import NewBadge from '@/components/common/NewBadge';
 import useViewedFlash from '@/hooks/useViewedFlash';
+import useNewBadge from '@/hooks/useNewBadge';
 import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
@@ -26,8 +28,10 @@ const UserFaqs = () => {
   const [faqs, setFaqs] = useState<FaqRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const faqClamp = useClampedRows();
+  const { isNew } = useNewBadge('faq', faqs);
 
   const [viewingFaq, setViewingFaq] = useState<FaqRecord | null>(null);
 
@@ -67,6 +71,7 @@ const UserFaqs = () => {
           limit: PAGE_SIZE,
           module: moduleFilter === 'All' ? undefined : moduleFilter,
           category: categoryFilter === 'All' ? undefined : categoryFilter,
+          q: searchQuery || undefined,
         });
         if (!ignore) applyFaqsFromData(data);
       } catch (error: any) {
@@ -81,20 +86,23 @@ const UserFaqs = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, applyFaqsFromData]);
+  }, [page, moduleFilter, categoryFilter, searchQuery, message, applyFaqsFromData]);
 
   const columns = buildContentColumns<FaqRecord>({
     ns: 'faqs',
     titleKey: 'question',
     renderTitle: (text, record) => (
-      <span className="faqs-cell-question-wrap">
-        <ClampedCellText
-          text={text}
-          expanded={faqClamp.isExpanded(String(record._id))}
-          onToggle={() => faqClamp.toggle(String(record._id))}
-        />
-        {flashIds.has(String(record._id)) && <ViewedBadge />}
-      </span>
+      <div>
+        <span className="faqs-cell-question-wrap">
+          <ClampedCellText
+            text={text}
+            expanded={faqClamp.isExpanded(String(record._id))}
+            onToggle={() => faqClamp.toggle(String(record._id))}
+          />
+          {flashIds.has(String(record._id)) && <ViewedBadge />}
+        </span>
+        {isNew(String(record._id)) && <NewBadge />}
+      </div>
     ),
     categoryEllipsis: true,
     createdByEllipsis: true,
@@ -141,6 +149,11 @@ const UserFaqs = () => {
         onModuleChange={onModuleChange}
         onCategoryChange={onCategoryChange}
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setLoading(true);
+        }}
         extra={
           <ViewFAQModal
             open={Boolean(viewingFaq)}

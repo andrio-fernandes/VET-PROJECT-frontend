@@ -33,6 +33,7 @@ export interface BlogListItem {
   createdAt: string;
   createdBy?: { fullName?: string; username?: string };
   createdById?: string | null;
+  isNew?: boolean;
 }
 
 // Local draft persistence for the Create New Blog form. Files are never

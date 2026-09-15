@@ -13,7 +13,9 @@ import type { VideoRecord, VideoProcessingStatus } from '@/types/video';
 import { ViewAllTable } from '@/components/common/ViewAllTable';
 import { buildContentColumns } from '@/components/common/contentColumns';
 import ViewedBadge from '@/components/common/ViewedBadge';
+import NewBadge from '@/components/common/NewBadge';
 import useViewedFlash from '@/hooks/useViewedFlash';
+import useNewBadge from '@/hooks/useNewBadge';
 import ClampedCellText from '@/components/common/ClampedCellText';
 
 type Video = VideoRecord;
@@ -36,8 +38,10 @@ const UserVideos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const videoClamp = useClampedRows();
+  const { isNew } = useNewBadge('video', videos);
 
   useEffect(() => {
     // Restore the "just viewed" flash across the list → preview navigation.
@@ -74,6 +78,7 @@ const UserVideos = () => {
         thumbnailUrl: v.thumbnailUrl,
         processingStatus: v.processingStatus as VideoProcessingStatus | undefined,
         createdById: v.createdById ?? v.createdBy?._id ?? null,
+        isNew: v.isNew,
       }))
     );
     setTotal(data?.totalVideos ?? 0);
@@ -89,6 +94,7 @@ const UserVideos = () => {
           limit: PAGE_SIZE,
           module: moduleFilter === 'All' ? undefined : moduleFilter,
           category: categoryFilter === 'All' ? undefined : categoryFilter,
+          q: searchQuery || undefined,
         });
         if (!ignore) applyVideosFromData(data);
       } catch (error: any) {
@@ -103,7 +109,7 @@ const UserVideos = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, applyVideosFromData]);
+  }, [page, moduleFilter, categoryFilter, searchQuery, message, applyVideosFromData]);
 
   const handleView = (record: Video) => {
     if (!isReady(record)) {
@@ -135,19 +141,24 @@ const UserVideos = () => {
   const columns = buildContentColumns<Video>({
     ns: 'videos',
     renderTitle: (text, record) => (
-      <div className="videos-cell-title">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={contentThumbnail(record.thumbnailUrl)}
-          alt={text}
-          className="videos-cell-thumb"
-        />
-        <ClampedCellText
-          text={text}
-          expanded={videoClamp.isExpanded(record.key)}
-          onToggle={() => videoClamp.toggle(record.key)}
-        />
-        {(flashIds.has(String(record.key))) && <ViewedBadge />}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={contentThumbnail(record.thumbnailUrl)}
+            alt={text}
+            className="videos-cell-thumb"
+          />
+          {isNew(String(record.key)) && <NewBadge />}
+        </div>
+        <div>
+          <ClampedCellText
+            text={text}
+            expanded={videoClamp.isExpanded(record.key)}
+            onToggle={() => videoClamp.toggle(record.key)}
+          />
+          {(flashIds.has(String(record.key))) && <ViewedBadge />}
+        </div>
       </div>
     ),
     renderActions: (record) => (
@@ -186,6 +197,11 @@ const UserVideos = () => {
         onModuleChange={onModuleChange}
         onCategoryChange={onCategoryChange}
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setLoading(true);
+        }}
       />
     </UserLayout>
   );

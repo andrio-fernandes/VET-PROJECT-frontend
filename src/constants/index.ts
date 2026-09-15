@@ -167,6 +167,7 @@ export const API_ENDPOINTS = {
   libraryViewed: (type: string, id: string) => `/library/viewed/${type}/${id}`,
   libraryContinue: "/library/continue",
   libraryProgress: (id: string) => `/library/videos/${id}/progress`,
+  libraryLastSeen: (type: string) => `/library/last-seen/${type}`,
   // Profile endpoints
   updateProfileAvatar: "/auth/profile/avatar",
   deleteProfileAvatar: "/auth/profile/avatar",

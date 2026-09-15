@@ -33,6 +33,8 @@ export interface VideoRecord {
   height?: number;
   format?: string;
   bytes?: number;
+  // Whether this video is "New" (published after the user's last visit).
+  isNew?: boolean;
 }
 
 // A stale "failed" video that the backend purged on the last GET /videos call.

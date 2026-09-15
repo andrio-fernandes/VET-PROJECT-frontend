@@ -14,7 +14,9 @@ import { getLibraryBlogs } from '@/services/libraryService';
 import type { BlogListItem } from '@/types/blog';
 import { contentThumbnail } from '@/utils/media';
 import ViewedBadge from '@/components/common/ViewedBadge';
+import NewBadge from '@/components/common/NewBadge';
 import useViewedFlash from '@/hooks/useViewedFlash';
+import useNewBadge from '@/hooks/useNewBadge';
 import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
@@ -34,8 +36,10 @@ const UserBlogs = () => {
   const [blogs, setBlogs] = useState<BlogListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const blogClamp = useClampedRows();
+  const { isNew } = useNewBadge('blog', blogs);
 
   useEffect(() => {
     // Restore the "just viewed" flash across the list → preview navigation.
@@ -70,6 +74,7 @@ const UserBlogs = () => {
           limit: PAGE_SIZE,
           module: moduleFilter === 'All' ? undefined : moduleFilter,
           category: categoryFilter === 'All' ? undefined : categoryFilter,
+          q: searchQuery || undefined,
         });
         if (!ignore) applyBlogsFromData(data);
       } catch (error: any) {
@@ -84,24 +89,29 @@ const UserBlogs = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, applyBlogsFromData]);
+  }, [page, moduleFilter, categoryFilter, searchQuery, message, applyBlogsFromData]);
 
   const columns = buildContentColumns<BlogListItem>({
     ns: 'blogs',
     renderTitle: (text, record) => (
-      <div className="blogs-cell-title">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={contentThumbnail(record.thumbnail)}
-          alt={text}
-          className="blogs-cell-thumb"
-        />
-        <ClampedCellText
-          text={text}
-          expanded={blogClamp.isExpanded(String(record._id))}
-          onToggle={() => blogClamp.toggle(String(record._id))}
-        />
-        {flashIds.has(String(record._id)) && <ViewedBadge />}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={contentThumbnail(record.thumbnail)}
+            alt={text}
+            className="blogs-cell-thumb"
+          />
+          {isNew(String(record._id)) && <NewBadge />}
+        </div>
+        <div>
+          <ClampedCellText
+            text={text}
+            expanded={blogClamp.isExpanded(String(record._id))}
+            onToggle={() => blogClamp.toggle(String(record._id))}
+          />
+          {flashIds.has(String(record._id)) && <ViewedBadge />}
+        </div>
       </div>
     ),
     categoryEllipsis: true,
@@ -157,6 +167,11 @@ const UserBlogs = () => {
         onCategoryChange={onCategoryChange}
         showCount
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setLoading(true);
+        }}
       />
     </UserLayout>
   );

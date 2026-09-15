@@ -9,9 +9,9 @@
 // CSS comes from the shared _view-all.scss mixin (@include view-all($ns)).
 // =============================================
 
-import React from 'react';
-import { Button, Col, Row, Select, Table, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Button, Input, Modal, Select, Table, Typography } from 'antd';
+import { FilterOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentCategory, type ContentModule } from '@/constants';
 import type { ColumnsType } from 'antd/es/table';
@@ -45,6 +45,8 @@ interface ViewAllTableProps<T> {
   innerClassName?: string;
   showCount?: boolean;
   extra?: React.ReactNode;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 export function ViewAllTable<T>({
@@ -73,17 +75,43 @@ export function ViewAllTable<T>({
   innerClassName,
   showCount = true,
   extra,
+  searchQuery = '',
+  onSearchChange,
 }: ViewAllTableProps<T>) {
   const router = useRouter();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [tempModule, setTempModule] = useState(moduleFilter);
+  const [tempCategory, setTempCategory] = useState(categoryFilter);
 
   const noun = countNoun ?? title.toLowerCase();
 
-  const categoryOptions = moduleFilter === 'All'
+  const categoryOptions = tempModule === 'All'
     ? []
     : [
         { value: 'All', label: 'All' },
-        ...(MODULE_CATEGORIES[moduleFilter as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
+        ...(MODULE_CATEGORIES[tempModule as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
       ];
+
+  const handleSearch = () => {
+    onSearchChange?.(localSearch.trim());
+  };
+
+  const handleFilterApply = () => {
+    setLocalSearch('');
+    onSearchChange?.('');
+    onModuleChange(tempModule);
+    onCategoryChange(tempCategory);
+    setFilterOpen(false);
+  };
+
+  const handleFilterClear = () => {
+    setTempModule('All');
+    setTempCategory('All');
+    onModuleChange('All');
+    onCategoryChange('All');
+    setFilterOpen(false);
+  };
 
   return (
     <div className={pageClassName ?? `${ns}-page-pad`}>
@@ -98,35 +126,32 @@ export function ViewAllTable<T>({
         </div>
 
         <div className={`${ns}-filters-row`}>
-          <Row gutter={24} className={`${ns}-filters`}>
-            <Col span={12}>
-              <div className={`${ns}-filter-group`}>
-                <Text strong className={`${ns}-filter-label`}>
-                  Module:
-                </Text>
-                <Select
-                  value={moduleFilter}
-                  onChange={onModuleChange}
-                  className={`${ns}-select-module`}
-                  options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((module) => ({ value: module, label: module }))]}
-                />
-              </div>
-            </Col>
-            <Col span={12}>
-              <div className={`${ns}-filter-group`}>
-                <Text strong className={`${ns}-filter-label`}>
-                  Category:
-                </Text>
-                <Select
-                  value={categoryFilter}
-                  onChange={onCategoryChange}
-                  disabled={moduleFilter === 'All'}
-                  options={categoryOptions}
-                  className={`${ns}-select-category`}
-                />
-              </div>
-            </Col>
-          </Row>
+          <div className={`${ns}-search-bar`}>
+            <Input
+              className={`${ns}-search-input`}
+              placeholder="Enter search query"
+              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              onPressEnter={handleSearch}
+              allowClear
+              onClear={() => {
+                setLocalSearch('');
+                onSearchChange?.('');
+              }}
+            />
+            <Button
+              className={`${ns}-filter-btn`}
+              icon={<FilterOutlined />}
+              onClick={() => {
+                setTempModule(moduleFilter);
+                setTempCategory(categoryFilter);
+                setFilterOpen(true);
+              }}
+            >
+              Filter
+            </Button>
+          </div>
 
           <div className={`${ns}-create-wrap`}>
             {!hideCreateButton && (
@@ -168,6 +193,52 @@ export function ViewAllTable<T>({
 
         {extra}
       </div>
+
+      {/* FILTER MODAL */}
+      <Modal
+        title="Filters"
+        open={filterOpen}
+        onCancel={() => setFilterOpen(false)}
+        width={420}
+        centered
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={handleFilterClear}>Cancel</Button>
+            <Button
+              type="primary"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              onClick={handleFilterApply}
+            >
+              Filter
+            </Button>
+          </div>
+        }
+      >
+        <div className={`${ns}-filter-form`}>
+          <div className={`${ns}-filter-field`}>
+            <label className={`${ns}-filter-label`}>Module</label>
+            <Select
+              className={`${ns}-filter-select`}
+              value={tempModule}
+              onChange={(val) => {
+                setTempModule(val);
+                setTempCategory('All');
+              }}
+              options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((m) => ({ value: m, label: m }))]}
+            />
+          </div>
+          <div className={`${ns}-filter-field`}>
+            <label className={`${ns}-filter-label`}>Category</label>
+            <Select
+              className={`${ns}-filter-select`}
+              value={tempCategory}
+              onChange={setTempCategory}
+              disabled={tempModule === 'All'}
+              options={categoryOptions}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

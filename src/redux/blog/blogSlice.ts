@@ -37,13 +37,15 @@ export const fetchBlogsPage = createAsyncThunk(
     limit = 10,
     module,
     category,
+    q,
   }: {
     page: number;
     limit?: number;
     module?: string;
     category?: string;
+    q?: string;
   }) => {
-    const data = await getMyBlogs(page, limit, module, category);
+    const data = await getMyBlogs(page, limit, module, category, q);
     // Use the requested page as the cache key so determinism is preserved
     // even if the server echoes a different page.
     return { page, blogs: data.blogs, totalBlogs: data.totalBlogs };

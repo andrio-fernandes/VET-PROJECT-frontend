@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { App as AntApp, Button, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
@@ -46,6 +46,7 @@ const BlogsPage = () => {
   const loading = useAppSelector(selectBlogLoading);
   const loadError = useAppSelector(selectBlogError);
   const blogClamp = useClampedRows();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadPage = useCallback(
     async (pageNum: number) => {
@@ -56,13 +57,14 @@ const BlogsPage = () => {
             limit: PAGE_SIZE,
             module: moduleFilter === 'All' ? undefined : moduleFilter,
             category: categoryFilter === 'All' ? undefined : categoryFilter,
+            q: searchQuery || undefined,
           })
         ).unwrap();
       } catch (error: any) {
         message.error(error.message || 'Failed to load blogs.');
       }
     },
-    [dispatch, message, moduleFilter, categoryFilter]
+    [dispatch, message, moduleFilter, categoryFilter, searchQuery]
   );
 
   useEffect(() => {
@@ -163,6 +165,10 @@ const BlogsPage = () => {
         onCategoryChange={onCategoryChange}
         showCount={!loadError}
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+        }}
       />
     </AdminLayout>
   );

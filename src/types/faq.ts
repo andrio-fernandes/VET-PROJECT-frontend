@@ -14,6 +14,7 @@ export interface FaqRecord {
   updatedAt: string;
   module?: string;
   category?: string;
+  isNew?: boolean;
 }
 
 export interface CreateFaqPayload {

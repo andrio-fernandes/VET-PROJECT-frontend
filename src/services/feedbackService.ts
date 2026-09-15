@@ -36,7 +36,13 @@ interface GetFeedbackParams {
   page: number;
   limit: number;
   status?: FeedbackStatus | "all";
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  reviewedById?: string;
 }
+
+export type { GetFeedbackParams };
 
 // Submit feedback as the current customer. Email is not sent; the server
 // stamps it from the logged-in user's account.
@@ -54,6 +60,18 @@ export const getFeedbacks = async (
   });
   if (params.status && params.status !== "all") {
     query.set("status", params.status);
+  }
+  if (params.search) {
+    query.set("search", params.search);
+  }
+  if (params.dateFrom) {
+    query.set("dateFrom", params.dateFrom);
+  }
+  if (params.dateTo) {
+    query.set("dateTo", params.dateTo);
+  }
+  if (params.reviewedById) {
+    query.set("reviewedById", params.reviewedById);
   }
 
   const data = await get(`${API_ENDPOINTS.feedback}?${query.toString()}`);

@@ -27,6 +27,7 @@ interface GetFaqsParams {
   limit: number;
   module?: string;
   category?: string;
+  q?: string;
 }
 
 export const getMyFaqs = async (params: GetFaqsParams): Promise<PaginatedFaqs> => {
@@ -35,6 +36,7 @@ export const getMyFaqs = async (params: GetFaqsParams): Promise<PaginatedFaqs> =
     limit: params.limit,
     module: params.module,
     category: params.category,
+    q: params.q,
   });
 
   const data = await get(`${API_ENDPOINTS.getMyFaqs}?${query}`);

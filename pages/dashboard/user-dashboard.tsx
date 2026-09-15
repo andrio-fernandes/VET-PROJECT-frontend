@@ -24,6 +24,7 @@ import { withAuth } from '@/components/auth/with-auth';
 import PageLoading from '@/components/common/PageLoading';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useClampedRows } from '@/hooks/useClampedRows';
+import useNewBadge from '@/hooks/useNewBadge';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
 import {
   getContinueLearning,
@@ -35,6 +36,7 @@ import {
 import { submitFeedback } from '@/services/feedbackService';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
 import { ViewFAQModal } from '@/components/common/ViewFAQModal';
+import NewBadge from '@/components/common/NewBadge';
 import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Title, Text, Paragraph } = Typography;
@@ -51,6 +53,7 @@ interface LibraryTableItem {
   description?: string;
   videoUrl?: string;
   processingStatus?: string;
+  isNew?: boolean;
 }
 
 const UserDashboardPage = () => {
@@ -98,9 +101,10 @@ const UserDashboardPage = () => {
 
   const handleSearchSubmit = (value: string) => {
     const query = value.trim();
+    if (!query) return;
     router.push({
       pathname: ROUTE_PATHS.search,
-      query: query ? { q: query } : {},
+      query: { q: query },
     });
   };
 
@@ -133,6 +137,7 @@ const UserDashboardPage = () => {
           description: v.description,
           videoUrl: v.videoUrl,
           processingStatus: v.processingStatus,
+          isNew: v.isNew,
         }))
       );
     } catch (error: any) {
@@ -153,6 +158,7 @@ const UserDashboardPage = () => {
           createdByName: b.createdBy?.fullName || b.createdBy?.username || 'Unknown',
           category: b.category,
           thumbnailUrl: b.thumbnail,
+          isNew: b.isNew,
         }))
       );
     } catch (error: any) {
@@ -174,6 +180,7 @@ const UserDashboardPage = () => {
           category: f.category,
           question: f.question,
           answer: f.answer,
+          isNew: f.isNew,
         }))
       );
     } catch (error: any) {
@@ -208,26 +215,50 @@ const UserDashboardPage = () => {
       ? recentBlogs
       : recentFaqs;
 
+  const contentType = activeTab === 'Video' ? 'video' : activeTab === 'Blog' ? 'blog' : 'faq';
+  const { isNew } = useNewBadge(contentType, activeRecentData.map(d => ({ _id: d.key, isNew: d.isNew })));
+
   const tableColumns = [
     {
-      title: 'Title',
+      title: (
+        <Flex align="center" gap={8}>
+          <span>Title</span>
+          <Button type="link" onClick={() => router.push(libraryViewAll)} className="dash-view-link" style={{ padding: 0, fontSize: 13 }}>
+            (View All)
+          </Button>
+        </Flex>
+      ),
       dataIndex: 'title',
       key: 'title',
       width: '38%',
       render: (text: string, record: LibraryTableItem) => (
         <Space size="middle">
+          {activeTab !== 'FAQs' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <img
+                src={contentThumbnail(record.thumbnailUrl)}
+                alt={text}
+                style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+              />
+              {isNew(record.key) && <NewBadge />}
+            </div>
+          ) : (
+            <div>
+              <ClampedCellText
+                text={text}
+                expanded={libraryClamp.isExpanded(record.key)}
+                onToggle={() => libraryClamp.toggle(record.key)}
+              />
+              {isNew(record.key) && <NewBadge />}
+            </div>
+          )}
           {activeTab !== 'FAQs' && (
-            <img
-              src={contentThumbnail(record.thumbnailUrl)}
-              alt={text}
-              style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
+            <ClampedCellText
+              text={text}
+              expanded={libraryClamp.isExpanded(record.key)}
+              onToggle={() => libraryClamp.toggle(record.key)}
             />
           )}
-          <ClampedCellText
-            text={text}
-            expanded={libraryClamp.isExpanded(record.key)}
-            onToggle={() => libraryClamp.toggle(record.key)}
-          />
         </Space>
       ),
     },
@@ -458,7 +489,7 @@ const UserDashboardPage = () => {
 
             {/* Content Library */}
             <div style={{ marginTop: 40 }}>
-              <div className="dash-section-title" style={{ fontWeight: 700 }}>Content Library</div>
+              <div className="dash-section-title" style={{ fontWeight: 700 }}>Latest Content</div>
               <div className="dash-recent-box">
                 <div className="dash-tabs">
                   {['Video', 'Blog', 'FAQs'].map((tab) => (
@@ -487,11 +518,6 @@ const UserDashboardPage = () => {
                   tableLayout="fixed"
                   locale={{ emptyText: loading ? 'Loading...' : `No ${activeTab === 'FAQs' ? 'FAQs' : activeTab + 's'} available yet.` }}
                 />
-                <Flex justify="flex-end" style={{ marginTop: 12 }}>
-                  <Button type="link" onClick={() => router.push(libraryViewAll)} className="dash-view-link">
-                    View all
-                  </Button>
-                </Flex>
               </div>
             </div>
 

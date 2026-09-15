@@ -31,6 +31,8 @@ interface PaginatedBlogs {
   totalBlogs: number;
 }
 
+export type ContentType = 'video' | 'blog' | 'faq';
+
 interface GetLibraryParams {
   page: number;
   limit: number;
@@ -123,6 +125,7 @@ const normalizeVideo = (v: any): VideoRecord => ({
   height: v.height,
   format: v.format,
   bytes: v.bytes,
+  isNew: v.isNew ?? false,
 });
 
 // ── View history / continue learning ─────────────────────────
@@ -198,4 +201,12 @@ export const saveWatchProgress = async (
   progress: { positionSeconds: number; durationSeconds: number; completed?: boolean }
 ): Promise<void> => {
   await put(API_ENDPOINTS.libraryProgress(videoId), progress);
+};
+
+// ── Last-seen timestamps (New badge tracking) ─────────────────
+
+export const updateLastSeen = async (
+  type: ContentType
+): Promise<void> => {
+  await put(API_ENDPOINTS.libraryLastSeen(type));
 };

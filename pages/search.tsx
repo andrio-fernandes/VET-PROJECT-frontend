@@ -213,13 +213,12 @@ function SearchPage() {
     return () => controller.abort();
   }, [searchContent]);
 
-  // "All" tab: left column shows Videos + Blogs as their own sections (the
-  // server already capped each to sectionLimits[type] rows). FAQs live in the
-  // right column (see visibleFaqs below), so no FAQ group is rendered here.
-  // Empty types are dropped.
+  // "All" tab: Videos, Blogs, and FAQs rendered vertically in the same
+  // section. Empty types are dropped.
   const groupedAllResults: { type: SearchResult["type"]; label: string; items: SearchResult[] }[] = ([
     { type: "video", label: "Videos" },
     { type: "blog", label: "Blogs" },
+    { type: "faq", label: "FAQs" },
   ] as const)
     .map((group) => ({
       ...group,
@@ -361,7 +360,8 @@ function SearchPage() {
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleSearch((e.target as HTMLInputElement).value);
+                    const val = (e.target as HTMLInputElement).value.trim();
+                    if (val) handleSearch(val);
                   }
                 }}
               />
@@ -458,25 +458,6 @@ function SearchPage() {
                 </>
               )}
             </div>
-
-            {/* FAQs (right column, only on the All tab) */}
-            {activeTab === "all" && (
-              <div className="search-questions-sidebar">
-                {visibleFaqs.length > 0 ? (
-                  <>
-                    <div className="search-result-group-title">FAQs</div>
-                    {visibleFaqs.map(renderFaqCard)}
-                    {hasMoreByType("faq") && (
-                      <div className="see-more-wrapper">
-                        <button className="see-more-btn" onClick={() => handleSeeMoreSection("faq")}>
-                          show more
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : null}
-              </div>
-            )}
           </div>
 
         </div>

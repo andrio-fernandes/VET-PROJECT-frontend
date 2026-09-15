@@ -108,11 +108,13 @@ export const getMyBlogs = async (
   page = 1,
   limit = 10,
   module?: string,
-  category?: string
+  category?: string,
+  q?: string
 ): Promise<PaginatedBlogs> => {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (module) query.set("module", module);
   if (category) query.set("category", category);
+  if (q) query.set("q", q);
   const data = await get(`${API_ENDPOINTS.getMyBlogs}?${query.toString()}`);
   return {
     blogs: data?.blogs ?? [],

@@ -45,6 +45,7 @@ const Videos = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const applyVideosFromData = useCallback((data: any) => {
     setVideos(
@@ -75,6 +76,7 @@ const Videos = () => {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (moduleFilter !== 'All') params.set('module', moduleFilter);
       if (categoryFilter !== 'All') params.set('category', categoryFilter);
+      if (searchQuery) params.set('q', searchQuery);
 
       try {
         const data = await getVideos(params.toString());
@@ -96,7 +98,7 @@ const Videos = () => {
     return () => {
       ignore = true;
     };
-  }, [page, moduleFilter, categoryFilter, message, notification, applyVideosFromData, reloadKey]);
+  }, [page, moduleFilter, categoryFilter, searchQuery, message, notification, applyVideosFromData, reloadKey]);
 
   const handleView = (record: Video) => {
     if (!isReady(record)) {
@@ -213,6 +215,11 @@ const Videos = () => {
         onModuleChange={onModuleChange}
         onCategoryChange={onCategoryChange}
         tableLayout="fixed"
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setLoading(true);
+        }}
       />
     </AdminLayout>
   );

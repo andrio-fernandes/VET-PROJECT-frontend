@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { App as AntApp, Button, Modal, Space, Table, Tag, Typography } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { App as AntApp, Button, DatePicker, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   EyeOutlined,
+  FilterOutlined,
   MessageOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -47,10 +49,61 @@ const AdminFeedbackPage = () => {
   const [viewing, setViewing] = useState<FeedbackRecord | null>(null);
   const feedbackClamp = useClampedRows();
 
+  // Search & filter state
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterDate, setFilterDate] = useState<dayjs.Dayjs | null>(null);
+  const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
+  const [filterReviewedById, setFilterReviewedById] = useState<string | undefined>(undefined);
+
+  // Extract unique reviewers from current feedbacks for the filter dropdown
+  const reviewers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    feedbacks.forEach((f) => {
+      if (f.reviewedBy && f.reviewedById) {
+        const name = f.reviewedBy.fullName || f.reviewedBy.username || 'Admin';
+        if (!map.has(f.reviewedById)) {
+          map.set(f.reviewedById, { id: f.reviewedById, name });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [feedbacks]);
+
+  const handleSearch = () => {
+    setAppliedSearch(searchInput.trim());
+    setPage(1);
+    setLoading(true);
+  };
+
+  const handleFilterApply = () => {
+    setFilterOpen(false);
+    setPage(1);
+    setLoading(true);
+  };
+
+  const handleFilterClear = () => {
+    setFilterDate(null);
+    setFilterStatus('all');
+    setFilterReviewedById(undefined);
+    setFilterOpen(false);
+    setPage(1);
+    setLoading(true);
+  };
+
   useEffect(() => {
     let ignore = false;
 
-    getFeedbacks({ page, limit: PAGE_SIZE, status: activeStatus })
+    getFeedbacks({
+      page,
+      limit: PAGE_SIZE,
+      status: filterStatus !== 'all' ? filterStatus : activeStatus,
+      search: appliedSearch || undefined,
+      dateFrom: filterDate ? filterDate.format('YYYY-MM-DD') : undefined,
+      dateTo: filterDate ? filterDate.format('YYYY-MM-DD') : undefined,
+      reviewedById: filterReviewedById,
+    })
       .then((data) => {
         if (ignore) return;
         setFeedbacks(data.feedbacks);
@@ -66,7 +119,7 @@ const AdminFeedbackPage = () => {
     return () => {
       ignore = true;
     };
-  }, [page, activeStatus, message]);
+  }, [page, activeStatus, appliedSearch, filterStatus, filterDate, filterReviewedById, message]);
 
   const refreshBadge = () => {
     // Tell the sidebar (AdminLayout) to re-fetch its unread count.
@@ -94,8 +147,16 @@ const AdminFeedbackPage = () => {
     }
   };
 
-  // Opening feedback marks it read (unless already resolved), which also stamps
-  // the acting admin as its reviewer server-side.
+  const handleTabChange = (tab: FeedbackStatus | 'all') => {
+    setPage(1);
+    setActiveStatus(tab);
+    setAppliedSearch('');
+    setSearchInput('');
+    setFilterDate(null);
+    setFilterStatus('all');
+    setFilterReviewedById(undefined);
+    setLoading(true);
+  };
   const handleView = async (record: FeedbackRecord) => {
     setViewing(record);
     if (record.status === 'resolved') return;
@@ -142,7 +203,7 @@ const AdminFeedbackPage = () => {
       title: 'Message',
       dataIndex: 'message',
       key: 'message',
-      width: '34%',
+      width: '32%',
       render: (text: string, record: FeedbackRecord) => (
         <ClampedCellText
           text={text}
@@ -189,7 +250,7 @@ const AdminFeedbackPage = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: '5%',
+      width: '7%',
       render: (_: unknown, record: FeedbackRecord) => (
         <Space size="middle">
           <Button
@@ -226,15 +287,38 @@ const AdminFeedbackPage = () => {
         </div>
 
         <div className="dash-recent-box" style={{ marginTop: 24 }}>
+          {/* Search & Filter Bar */}
+          <div className="feed-search-bar">
+            <Input
+              className="feed-search-input"
+              placeholder="Enter search query"
+              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onPressEnter={handleSearch}
+              allowClear
+              onClear={() => {
+                setSearchInput('');
+                setAppliedSearch('');
+                setPage(1);
+                setLoading(true);
+              }}
+            />
+            <Button
+              className="feed-filter-btn"
+              icon={<FilterOutlined />}
+              onClick={() => setFilterOpen(true)}
+            >
+              Filter
+            </Button>
+          </div>
+
+          {/* Tabs */}
           <div className="dash-tabs">
             {STATUS_TABS.map((tab) => (
               <div
                 key={tab.key}
-                onClick={() => {
-                  setPage(1);
-                  setActiveStatus(tab.key);
-                  setLoading(true);
-                }}
+                onClick={() => handleTabChange(tab.key)}
                 className={`dash-tab${activeStatus === tab.key ? ' dash-tab-active' : ''}`}
               >
                 {tab.label}
@@ -313,6 +397,60 @@ const AdminFeedbackPage = () => {
             <div className="feed-modal-message">{viewing.message}</div>
           </div>
         )}
+      </Modal>
+
+      {/* FILTER MODAL */}
+      <Modal
+        title="Filters"
+        open={filterOpen}
+        onCancel={() => setFilterOpen(false)}
+        width={520}
+        centered
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={handleFilterClear}>Cancel</Button>
+            <Button
+              type="primary"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              onClick={handleFilterApply}
+            >
+              Filter
+            </Button>
+          </div>
+        }
+      >
+        <div className="feed-filter-form">
+          <div className="feed-filter-field">
+            <label className="feed-filter-label">Received Date</label>
+            <DatePicker
+              className="feed-filter-date"
+              format="DD/MM/YYYY"
+              value={filterDate}
+              onChange={(date) => setFilterDate(date)}
+              placeholder="Select date"
+            />
+          </div>
+          <div className="feed-filter-field">
+            <label className="feed-filter-label">Status</label>
+            <Select
+              className="feed-filter-select"
+              value={filterStatus}
+              onChange={setFilterStatus}
+              options={STATUS_TABS.map((t) => ({ label: t.label, value: t.key }))}
+            />
+          </div>
+          <div className="feed-filter-field">
+            <label className="feed-filter-label">Reviewed By</label>
+            <Select
+              className="feed-filter-select"
+              value={filterReviewedById}
+              onChange={setFilterReviewedById}
+              placeholder="Select reviewer"
+              allowClear
+              options={reviewers.map((r) => ({ label: r.name, value: r.id }))}
+            />
+          </div>
+        </div>
       </Modal>
     </AdminLayout>
   );
