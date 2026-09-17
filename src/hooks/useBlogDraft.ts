@@ -234,6 +234,7 @@ export const useBlogDraft = ({
     resetBlogForm,
     restoreEditRoundTrip,
     performNavigation: navigation.performNavigation,
+    preparePreviewData: navigation.preparePreviewData,
     handlePreview: navigation.handlePreview,
     requestNavigation: navigation.requestNavigation,
     draftPromptVisible: navigation.draftPromptVisible,

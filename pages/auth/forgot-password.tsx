@@ -125,7 +125,7 @@ useEffect(() => {
           Enter your registered email address, and we&apos;ll send you an OTP to reset your password.
         </Text>
 
-        <Form layout="vertical" onFinish={onFinish}>
+        <Form layout="vertical" onFinish={onFinish} validateTrigger="onSubmit">
           <Form.Item label="Email" name="email" required rules={emailRules}>
             <Input placeholder="Enter your email" allowClear size="large" />
           </Form.Item>

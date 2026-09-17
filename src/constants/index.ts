@@ -6,19 +6,6 @@
 
 import type { Rule } from "antd/es/form";
 
-// Content module and category values (must mirror server-side enums)
-export const CONTENT_MODULES = ["Sales"] as const;
-export type ContentModule = (typeof CONTENT_MODULES)[number];
-
-// Categories available per module (must mirror server-side enums).
-export type ContentCategory = "Customer Order" | "Inquiry" | "Quotation";
-
-// Categories available per module. Add a new entry here when a new module
-// is introduced so its categories become selectable on the create forms.
-export const MODULE_CATEGORIES: Record<ContentModule, readonly ContentCategory[]> = {
-  Sales: ["Customer Order", "Inquiry", "Quotation"],
-};
-
 // Commonly used weak passwords to reject during registration / reset
 export const COMMON_PASSWORDS: string[] = [
   "password",
@@ -175,6 +162,8 @@ export const API_ENDPOINTS = {
   feedback: "/feedback",
   feedbackCount: "/feedback/count",
   feedbackStatus: (id: string) => `/feedback/${id}/status`,
+  // Module categories endpoint
+  moduleCategories: "/module-categories",
 } as const;
 
 // Session storage keys for password reset flow

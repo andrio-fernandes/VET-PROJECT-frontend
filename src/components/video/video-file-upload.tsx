@@ -2,9 +2,9 @@
    VIDEO FILE UPLOAD
 
    Video dropzone for the Create/Edit Video form. Validates type and size,
-   then hands a valid file to the caller's onFileChange (the caller owns the
-   state). Shows the newly picked file, the current server video in edit mode
-   (with a "Preview" link), or the empty upload prompt.
+   then hands a valid file to the caller's onFileChange (the caller owns
+   the state). Shows the newly picked file, the current server video in
+   edit mode, or the empty upload prompt.
    ============================================= */
 
 import React from "react";
@@ -82,18 +82,10 @@ export const VideoFileUpload: React.FC<VideoFileUploadProps> = ({
             </>
           ) : editMode && existingVideoUrl ? (
             <>
-              <span className="vc-file-name">Current video</span>
-              <Button
-                type="link"
-                className="vc-file-preview-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(existingVideoUrl, "_blank");
-                }}
-              >
-                Preview
-              </Button>
-              <span className="vc-file-replace-hint">Click to replace</span>
+              <div className="vc-edit-info">
+                <span className="vc-file-name">Current video</span>
+                <span className="vc-file-replace-hint">Click to replace</span>
+              </div>
             </>
           ) : (
             <Button

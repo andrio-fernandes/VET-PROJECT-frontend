@@ -10,12 +10,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
 import { Divider, Select, Typography } from 'antd';
 
-import {
-  CONTENT_MODULES,
-  MODULE_CATEGORIES,
-  type ContentCategory,
-  type ContentModule,
-} from '@/constants';
+import { useModuleCategories } from '@/hooks/useModuleCategories';
 import { RequiredLabel } from '@/components/blog/RequiredLabel';
 import type { BlogFormValues } from '@/hooks/useBlogDraft';
 
@@ -33,6 +28,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
   setValue,
 }) => {
   const selectedModule = useWatch({ control, name: 'module' });
+  const { modules, categories } = useModuleCategories();
 
   // On module change, clear the previously selected category (same as FAQ page).
   const moduleChange = (setter: (value: unknown) => void) => (value: unknown) => {
@@ -63,7 +59,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
                 {...field}
                 value={field.value || undefined}
                 onChange={trackChange(moduleChange(field.onChange))}
-                options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
+                options={modules.map((m) => ({ value: m, label: m }))}
                 placeholder="Select module"
                 size="large"
                 status={fieldState.error ? 'error' : undefined}
@@ -91,7 +87,7 @@ export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
                 {...field}
                 value={field.value || undefined}
                 onChange={trackChange(field.onChange)}
-                options={(selectedModule ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? []) : []).map((c: ContentCategory) => ({
+                options={(selectedModule ? (categories[selectedModule] ?? []) : []).map((c: string) => ({
                   value: c,
                   label: c,
                 }))}

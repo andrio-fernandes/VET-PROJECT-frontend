@@ -40,6 +40,13 @@
   padding: 12px 0;
 }
 
+.vc-edit-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .vc-upload-failed {
   display: flex;
   align-items: center;
@@ -63,13 +70,9 @@
   flex-shrink: 0;
 }
 
-.vc-file-preview-btn {
-  color: #52c41a;
-}
-
 .vc-file-replace-hint,
 .thumbnail-replace-hint {
-  color: #bfbfbf;
+  color: #52c41a;
   font-size: 12px;
   margin-left: 4px;
 }

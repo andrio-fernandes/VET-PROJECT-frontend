@@ -218,6 +218,13 @@ const UserDashboardPage = () => {
   const contentType = activeTab === 'Video' ? 'video' : activeTab === 'Blog' ? 'blog' : 'faq';
   const { isNew } = useNewBadge(contentType, activeRecentData.map(d => ({ _id: d.key, isNew: d.isNew })));
 
+  const libraryViewAll =
+    activeTab === 'Video'
+      ? ROUTE_PATHS.userVideos
+      : activeTab === 'Blog'
+      ? ROUTE_PATHS.userBlogs
+      : ROUTE_PATHS.userFaqs;
+
   const tableColumns = [
     {
       title: (
@@ -322,13 +329,6 @@ const UserDashboardPage = () => {
     },
   ];
 
-  const libraryViewAll =
-    activeTab === 'Video'
-      ? ROUTE_PATHS.userVideos
-      : activeTab === 'Blog'
-      ? ROUTE_PATHS.userBlogs
-      : ROUTE_PATHS.userFaqs;
-
   return (
     <UserLayout activeKey={ROUTE_PATHS.userDashboard}>
       <div className="user-dashboard-page">
@@ -411,7 +411,7 @@ const UserDashboardPage = () => {
               <div style={{ marginTop: 24 }}>
                 <div className="dash-section-title" style={{ fontWeight: 700 }}>Recently Viewed</div>
                 <div className="dash-recent-box">
-                  <Spin spinning={false}>
+                  <Spin spinning={loading}>
                     <Table
                       columns={[
                         {

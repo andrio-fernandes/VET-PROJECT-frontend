@@ -14,7 +14,7 @@ import { useContentFilters } from '@/hooks/useContentFilters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 import { useClampedRows } from '@/hooks/useClampedRows';
 import { deleteVideo, getVideos } from '@/services/videoService';
-import { CONTENT_MODULES, MODULE_CATEGORIES, PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY, type ContentModule, type ContentCategory } from '@/constants';
+import { PAGE_SIZE, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
 import type { VideoRecord, VideoProcessingStatus } from '@/types/video';
 import { ViewAllTable } from '@/components/common/ViewAllTable';

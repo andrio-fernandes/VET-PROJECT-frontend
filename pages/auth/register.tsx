@@ -7,7 +7,7 @@ import { register } from '@/services/authService';
 import PasswordStrength from '@/components/password-strength';
 import PageLoading from '@/components/common/PageLoading';
 import { COMMON_PASSWORDS, PASSWORD_VALIDATOR_RULES, ROUTE_PATHS } from '@/constants';
-import { preventSpaces } from '@/utils/input';
+import { preventSpaces, preventPaste } from '@/utils/input';
 const { Title, Paragraph } = Typography;
 
 export default function RegisterPage() {
@@ -247,6 +247,7 @@ export default function RegisterPage() {
                 placeholder="Confirm your password"
                 className="pill-input"
                 onKeyDown={preventSpaces}
+                onPaste={preventPaste}
               />
             </Form.Item>
 

@@ -82,7 +82,12 @@ export const getFeedbacks = async (
   };
 };
 
-// Admin: number of unread (new) submissions, for the sidebar badge.
+// Admin: all feedbacks (no pagination) used to extract the full reviewer
+// list for the filter dropdown so it never shrinks to match the current page.
+export const getAllFeedbacksForReviewers = async (): Promise<FeedbackRecord[]> => {
+  const data = await get(`${API_ENDPOINTS.feedback}?page=1&limit=10000`);
+  return data?.feedbacks ?? [];
+};
 export const getFeedbackCount = async (): Promise<number> => {
   const data = await get(API_ENDPOINTS.feedbackCount);
   return data?.count ?? 0;

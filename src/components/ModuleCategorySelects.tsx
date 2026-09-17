@@ -1,10 +1,5 @@
 import { Col, Form, Row, Select } from "antd";
-import {
-  CONTENT_MODULES,
-  MODULE_CATEGORIES,
-  type ContentModule,
-  type ContentCategory,
-} from "@/constants";
+import { useModuleCategories } from "@/hooks/useModuleCategories";
 
 interface ModuleCategorySelectsProps {
   // FAQ and Video create forms style these selects differently, so each item
@@ -33,6 +28,7 @@ export default function ModuleCategorySelects({
   showFieldLabels = false,
 }: ModuleCategorySelectsProps) {
   const selectedModule = Form.useWatch("module");
+  const { modules, categories } = useModuleCategories();
 
   return (
     <Row gutter={16}>
@@ -48,7 +44,7 @@ export default function ModuleCategorySelects({
             size="large"
             allowClear
             className={moduleSelectClassName}
-            options={CONTENT_MODULES.map((m) => ({ value: m, label: m }))}
+            options={modules.map((m) => ({ value: m, label: m }))}
           />
         </Form.Item>
       </Col>
@@ -65,9 +61,9 @@ export default function ModuleCategorySelects({
             disabled={!selectedModule}
             className={categorySelectClassName}
             options={(selectedModule
-              ? (MODULE_CATEGORIES[selectedModule as ContentModule] ?? [])
+              ? (categories[selectedModule] ?? [])
               : []
-            ).map((c: ContentCategory) => ({ value: c, label: c }))}
+            ).map((c: string) => ({ value: c, label: c }))}
           />
         </Form.Item>
       </Col>

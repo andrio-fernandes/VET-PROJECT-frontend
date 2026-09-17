@@ -147,13 +147,29 @@ export const useBlogDraftPersistence = ({
     try {
       localStorage.setItem(BLOG_DRAFT_STORAGE_KEY, JSON.stringify(draft));
     } catch {
-      // Storage quota exceeded - retry without the heavy thumbnail data URL
-      // so at least the entered text is preserved.
-      try {
-        localStorage.setItem(BLOG_DRAFT_STORAGE_KEY, JSON.stringify({ ...draft, thumbnail: null }));
-      } catch {
-        /* draft cannot be persisted */
+      // Storage quota exceeded - progressively trim heavy payload to preserve
+      // as much of the draft as possible: first drop the thumbnail, then drop
+      // attachments one-by-one (largest data URLs first) until the write fits.
+      const sortedAttachments = [...draft.attachments].sort(
+        (a, b) => (b.dataUrl?.length ?? 0) - (a.dataUrl?.length ?? 0),
+      );
+      const fallbacks = [
+        { ...draft, thumbnail: null },
+        ...sortedAttachments.map((_, i) => ({
+          ...draft,
+          thumbnail: null,
+          attachments: sortedAttachments.slice(i + 1),
+        })),
+      ];
+      for (const fallback of fallbacks) {
+        try {
+          localStorage.setItem(BLOG_DRAFT_STORAGE_KEY, JSON.stringify(fallback));
+          return;
+        } catch {
+          /* try next smaller variant */
+        }
       }
+      /* draft cannot be persisted at all */
     }
   };
 
@@ -255,6 +271,11 @@ export const useBlogDraftPersistence = ({
       const valid = restored.filter(Boolean) as { file: File; name: string }[];
       if (valid.length) {
         restoreAttachments(valid);
+      }
+      if (valid.length < draft.attachments.length) {
+        message.warning(
+          `${draft.attachments.length - valid.length} attachment(s) could not be restored from the draft.`,
+        );
       }
     }
   };

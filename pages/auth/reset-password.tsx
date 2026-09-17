@@ -10,7 +10,7 @@ import { clearResetFlow } from "@/utils/resetFlow";
 import PasswordStrength from "@/components/password-strength";
 import AuthCard from "@/components/AuthCard";
 import PageLoading from "@/components/common/PageLoading";
-import { preventSpaces, emptySubscribe } from "@/utils/input";
+import { preventSpaces, preventPaste, emptySubscribe } from "@/utils/input";
 import type { ResetPasswordFormValues } from "@/types/auth";
 
 const { Title, Text } = Typography;
@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
               }),
             ]}
           >
-            <Input.Password size="large" placeholder="Confirm password" onKeyDown={preventSpaces} />
+            <Input.Password size="large" placeholder="Confirm password" onKeyDown={preventSpaces} onPaste={preventPaste} />
           </Form.Item>
 
           <Form.Item className="reset-confirm-form-item">

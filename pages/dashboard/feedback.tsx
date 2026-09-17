@@ -17,6 +17,7 @@ import { useClampedRows } from '@/hooks/useClampedRows';
 import { PAGE_SIZE } from '@/constants';
 import {
   getFeedbacks,
+  getAllFeedbacksForReviewers,
   updateFeedbackStatus,
   type FeedbackRecord,
   type FeedbackStatus,
@@ -48,19 +49,29 @@ const AdminFeedbackPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<FeedbackRecord | null>(null);
   const feedbackClamp = useClampedRows();
+  const [allFeedbacks, setAllFeedbacks] = useState<FeedbackRecord[]>([]);
 
   // Search & filter state
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDate, setFilterDate] = useState<dayjs.Dayjs | null>(null);
-  const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
-  const [filterReviewedById, setFilterReviewedById] = useState<string | undefined>(undefined);
 
-  // Extract unique reviewers from current feedbacks for the filter dropdown
+  // Draft filter values (edited inside the modal, not applied until the user
+  // clicks the Filter button).  This prevents intermediate state changes from
+  // firing the data-fetch useEffect while the modal is still open.
+  const [draftDate, setDraftDate] = useState<dayjs.Dayjs | null>(null);
+  const [draftStatus, setDraftStatus] = useState<FeedbackStatus | 'all'>('all');
+  const [draftReviewedById, setDraftReviewedById] = useState<string | undefined>(undefined);
+
+  // Applied filter values – only updated when the user confirms the modal.
+  const [appliedFilterDate, setAppliedFilterDate] = useState<dayjs.Dayjs | null>(null);
+  const [appliedFilterStatus, setAppliedFilterStatus] = useState<FeedbackStatus | 'all'>('all');
+  const [appliedFilterReviewedById, setAppliedFilterReviewedById] = useState<string | undefined>(undefined);
+
+  // Extract unique reviewers from ALL feedbacks for the filter dropdown
   const reviewers = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
-    feedbacks.forEach((f) => {
+    allFeedbacks.forEach((f) => {
       if (f.reviewedBy && f.reviewedById) {
         const name = f.reviewedBy.fullName || f.reviewedBy.username || 'Admin';
         if (!map.has(f.reviewedById)) {
@@ -69,7 +80,19 @@ const AdminFeedbackPage = () => {
       }
     });
     return Array.from(map.values());
-  }, [feedbacks]);
+  }, [allFeedbacks]);
+
+  // Fetch all feedbacks once on mount so the reviewer filter dropdown always
+  // shows every reviewer regardless of the current page/filter state.
+  useEffect(() => {
+    let ignore = false;
+    getAllFeedbacksForReviewers()
+      .then((all) => {
+        if (!ignore) setAllFeedbacks(all);
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
 
   const handleSearch = () => {
     setAppliedSearch(searchInput.trim());
@@ -78,15 +101,9 @@ const AdminFeedbackPage = () => {
   };
 
   const handleFilterApply = () => {
-    setFilterOpen(false);
-    setPage(1);
-    setLoading(true);
-  };
-
-  const handleFilterClear = () => {
-    setFilterDate(null);
-    setFilterStatus('all');
-    setFilterReviewedById(undefined);
+    setAppliedFilterDate(draftDate);
+    setAppliedFilterStatus(draftStatus);
+    setAppliedFilterReviewedById(draftReviewedById);
     setFilterOpen(false);
     setPage(1);
     setLoading(true);
@@ -98,11 +115,11 @@ const AdminFeedbackPage = () => {
     getFeedbacks({
       page,
       limit: PAGE_SIZE,
-      status: filterStatus !== 'all' ? filterStatus : activeStatus,
+      status: appliedFilterStatus !== 'all' ? appliedFilterStatus : activeStatus,
       search: appliedSearch || undefined,
-      dateFrom: filterDate ? filterDate.format('YYYY-MM-DD') : undefined,
-      dateTo: filterDate ? filterDate.format('YYYY-MM-DD') : undefined,
-      reviewedById: filterReviewedById,
+      dateFrom: appliedFilterDate ? appliedFilterDate.format('YYYY-MM-DD') : undefined,
+      dateTo: appliedFilterDate ? appliedFilterDate.format('YYYY-MM-DD') : undefined,
+      reviewedById: appliedFilterReviewedById,
     })
       .then((data) => {
         if (ignore) return;
@@ -119,7 +136,7 @@ const AdminFeedbackPage = () => {
     return () => {
       ignore = true;
     };
-  }, [page, activeStatus, appliedSearch, filterStatus, filterDate, filterReviewedById, message]);
+  }, [page, activeStatus, appliedSearch, appliedFilterStatus, appliedFilterDate, appliedFilterReviewedById, message]);
 
   const refreshBadge = () => {
     // Tell the sidebar (AdminLayout) to re-fetch its unread count.
@@ -152,9 +169,12 @@ const AdminFeedbackPage = () => {
     setActiveStatus(tab);
     setAppliedSearch('');
     setSearchInput('');
-    setFilterDate(null);
-    setFilterStatus('all');
-    setFilterReviewedById(undefined);
+    setDraftDate(null);
+    setDraftStatus('all');
+    setDraftReviewedById(undefined);
+    setAppliedFilterDate(null);
+    setAppliedFilterStatus('all');
+    setAppliedFilterReviewedById(undefined);
     setLoading(true);
   };
   const handleView = async (record: FeedbackRecord) => {
@@ -213,6 +233,18 @@ const AdminFeedbackPage = () => {
       ),
     },
     {
+      title: 'Received',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: '12%',
+      render: (text: string) => (
+        <>
+          <Text style={{ color: '#000', display: 'block' }}>{dayjs(text).format('DD/MM/YY')}</Text>
+          <Text style={{ color: '#000' }}>{dayjs(text).format('h:mm a')}</Text>
+        </>
+      ),
+    },
+    {
       title: 'Reviewed By',
       dataIndex: 'reviewedBy',
       key: 'reviewedBy',
@@ -234,18 +266,6 @@ const AdminFeedbackPage = () => {
           </>
         );
       },
-    },
-    {
-      title: 'Received',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: '12%',
-      render: (text: string) => (
-        <>
-          <Text style={{ color: '#000', display: 'block' }}>{dayjs(text).format('DD/MM/YY')}</Text>
-          <Text style={{ color: '#000' }}>{dayjs(text).format('h:mm a')}</Text>
-        </>
-      ),
     },
     {
       title: 'Actions',
@@ -307,7 +327,12 @@ const AdminFeedbackPage = () => {
             <Button
               className="feed-filter-btn"
               icon={<FilterOutlined />}
-              onClick={() => setFilterOpen(true)}
+              onClick={() => {
+                setDraftDate(appliedFilterDate);
+                setDraftStatus(appliedFilterStatus);
+                setDraftReviewedById(appliedFilterReviewedById);
+                setFilterOpen(true);
+              }}
             >
               Filter
             </Button>
@@ -408,7 +433,7 @@ const AdminFeedbackPage = () => {
         centered
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={handleFilterClear}>Cancel</Button>
+            <Button onClick={() => setFilterOpen(false)}>Cancel</Button>
             <Button
               type="primary"
               style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
@@ -425,8 +450,8 @@ const AdminFeedbackPage = () => {
             <DatePicker
               className="feed-filter-date"
               format="DD/MM/YYYY"
-              value={filterDate}
-              onChange={(date) => setFilterDate(date)}
+              value={draftDate}
+              onChange={(date) => setDraftDate(date)}
               placeholder="Select date"
             />
           </div>
@@ -434,8 +459,8 @@ const AdminFeedbackPage = () => {
             <label className="feed-filter-label">Status</label>
             <Select
               className="feed-filter-select"
-              value={filterStatus}
-              onChange={setFilterStatus}
+              value={draftStatus}
+              onChange={setDraftStatus}
               options={STATUS_TABS.map((t) => ({ label: t.label, value: t.key }))}
             />
           </div>
@@ -443,8 +468,8 @@ const AdminFeedbackPage = () => {
             <label className="feed-filter-label">Reviewed By</label>
             <Select
               className="feed-filter-select"
-              value={filterReviewedById}
-              onChange={setFilterReviewedById}
+              value={draftReviewedById}
+              onChange={setDraftReviewedById}
               placeholder="Select reviewer"
               allowClear
               options={reviewers.map((r) => ({ label: r.name, value: r.id }))}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { App as AntApp, Button, Divider, Modal, Typography } from 'antd';
@@ -14,6 +14,7 @@ import { AttachmentUpload } from '@/components/blog/AttachmentUpload';
 import { BlogDetailsFields } from '@/components/blog/BlogDetailsFields';
 import { BlogCategoryFields } from '@/components/blog/BlogCategoryFields';
 import { BlogContentField } from '@/components/blog/BlogContentField';
+import { BlogPreviewModal, type BlogPreviewData } from '@/components/blog/BlogPreviewModal';
 
 import { GREEN } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
@@ -47,6 +48,8 @@ const UploadBlog = () => {
     // stale draft) is never flashed before the real data is seeded.
     return editMode || !router.isReady;
   });
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<BlogPreviewData | null>(null);
 
   // Once the route is resolved and this is a fresh create (not an edit), hide
   // the spinner; the draft restore effect will populate the form if needed.
@@ -58,7 +61,7 @@ const UploadBlog = () => {
     }
   }, [router.isReady, editMode]);
 
-  const { control, handleSubmit, getValues, reset, setValue } = useForm<BlogFormValues>({
+  const { control, handleSubmit, getValues, reset, setValue, trigger, formState } = useForm<BlogFormValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     defaultValues: DEFAULT_FORM_VALUES,
@@ -98,6 +101,7 @@ const UploadBlog = () => {
     confirmRestoreDraft,
     confirmDiscardDraft,
     performNavigation,
+    preparePreviewData,
     handlePreview,
     requestNavigation,
     restoreEditRoundTrip,
@@ -167,6 +171,19 @@ const UploadBlog = () => {
     scheduleDraftSave();
   };
 
+  const handlePreviewModal = async () => {
+    const valid = await trigger();
+    if (!valid) {
+      scrollToFirstInvalid();
+      return;
+    }
+    const data = await preparePreviewData();
+    if (data) {
+      setPreviewData(data);
+      setPreviewVisible(true);
+    }
+  };
+
   const onFinish = async (values: BlogFormValues) => {
     setLoading(true);
     try {
@@ -212,17 +229,25 @@ const UploadBlog = () => {
     }
   };
 
+  const BLOG_FIELD_ORDER: (keyof BlogFormValues)[] = [
+    'title',
+    'description',
+    'module',
+    'category',
+    'content',
+  ];
+
   // RHF passes the errors object when submit validation fails. Scroll to the
   // first invalid field, in document order.
   const onInvalid = (errors: FieldErrors<BlogFormValues>) => {
-    const order: (keyof BlogFormValues)[] = [
-      'title',
-      'description',
-      'module',
-      'category',
-      'content',
-    ];
-    const firstKey = order.find((key) => errors[key]);
+    const firstKey = BLOG_FIELD_ORDER.find((key) => errors[key]);
+    if (firstKey) {
+      scrollToField(`blog-${firstKey}`);
+    }
+  };
+
+  const scrollToFirstInvalid = () => {
+    const firstKey = BLOG_FIELD_ORDER.find((key) => formState.errors[key]);
     if (firstKey) {
       scrollToField(`blog-${firstKey}`);
     }
@@ -304,7 +329,7 @@ const UploadBlog = () => {
                 <Divider className="create-divider" />
 
                 <CreateFormActions
-                  onPreview={handlePreview}
+                  onPreview={handlePreviewModal}
                   onCancel={() => requestNavigation(editMode ? ROUTE_PATHS.blogs : ROUTE_PATHS.adminDashboard)}
                   loading={loading}
                   submitLabel={editMode ? 'Save Changes' : 'Create'}
@@ -342,6 +367,16 @@ const UploadBlog = () => {
       >
         <Text>Do you want to save this blog as a draft?</Text>
       </Modal>
+
+      {/* BLOG PREVIEW MODAL */}
+      <BlogPreviewModal
+        open={previewVisible}
+        data={previewData}
+        onClose={() => {
+          setPreviewVisible(false);
+          setPreviewData(null);
+        }}
+      />
     </CreateContentLayout>
   );
 };

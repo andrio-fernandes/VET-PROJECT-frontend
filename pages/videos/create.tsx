@@ -364,6 +364,7 @@ const UploadVideo = () => {
             <Form
               form={form}
               layout="vertical"
+              disabled={loading}
               validateTrigger={submitted ? 'onChange' : 'onSubmit'}
               onFinish={onFinish}
               onValuesChange={(changedValues: any) => {
@@ -411,12 +412,17 @@ const UploadVideo = () => {
 
               {/* Footer */}
               <CreateFormActions
-                onPreview={() =>
-                  upload.openPreview(
-                    form.getFieldValue("title") || "",
-                    form.getFieldValue("description") || ""
-                  )
-                }
+                onPreview={async () => {
+                  try {
+                    await form.validateFields();
+                    upload.openPreview(
+                      form.getFieldValue("title") || "",
+                      form.getFieldValue("description") || ""
+                    );
+                  } catch {
+                    setSubmitted(true);
+                  }
+                }}
                 onCancel={handleCancel}
                 loading={loading}
                 submitLabel={editMode ? "Save Changes" : "Create"}

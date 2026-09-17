@@ -120,11 +120,10 @@ const BlogPreview = () => {
   const openAttachment = (att: ParsedAttachment) => {
     // att.url is already resolved via mediaUrl() in attachmentUrls above, so
     // any relative /uploads path, Cloudinary HTTPS URL and data: URL are ready.
+    const ext = getAttachmentExtension(att.name);
 
-    // PDFs open directly in the browser's native viewer: third-party viewers
-    // (Google Docs Viewer) cannot fetch localhost, Cloudinary raw files or
-    // data: URLs, which produced a Google error page.
-    if (getAttachmentExtension(att.name) === 'pdf') {
+    // PDFs: fetch into a blob so the browser's native PDF viewer handles it.
+    if (ext === 'pdf') {
       fetch(att.url)
         .then((res) => res.arrayBuffer())
         .then((buf) => {
@@ -138,19 +137,8 @@ const BlogPreview = () => {
       return;
     }
 
-    // Office formats try the Microsoft Office Viewer in a new tab, but only
-    // for public URLs — third-party viewers can never reach data: URLs.
-    if (!att.url.startsWith('data:')) {
-      const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
-      if (viewerUrl) {
-        window.open(viewerUrl, '_blank');
-        return;
-      }
-    }
-
-    // Unsupported formats (and data: URLs that viewers cannot reach) keep the
-    // existing download behavior: data URLs fetched into a blob then opened,
-    // everything else opened directly.
+    // Data URLs (draft preview): convert to blob URL so the browser can open
+    // them without relying on external viewers.
     if (att.url.startsWith('data:')) {
       fetch(att.url)
         .then((res) => res.blob())
@@ -162,9 +150,42 @@ const BlogPreview = () => {
         .catch(() => {
           window.open(att.url, '_blank');
         });
-    } else {
-      window.open(att.url, '_blank');
+      return;
     }
+
+    // Server-stored Office files: try the Microsoft Office Online Viewer first.
+    // If the viewer cannot reach the URL (localhost, auth-required), fetch the
+    // file as a blob instead so it opens directly in the browser.
+    const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
+    if (viewerUrl) {
+      fetch(att.url)
+        .then((res) => {
+          if (!res.ok) throw new Error('fetch failed');
+          return res.arrayBuffer();
+        })
+        .then((buf) => {
+          const mimeMap: Record<string, string> = {
+            doc: 'application/msword',
+            docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            xls: 'application/vnd.ms-excel',
+            xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ppt: 'application/vnd.ms-powerpoint',
+            pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          };
+          const mime = mimeMap[ext] || 'application/octet-stream';
+          const blobUrl = URL.createObjectURL(new Blob([buf], { type: mime }));
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        })
+        .catch(() => {
+          // Fallback: let the browser handle the URL directly (may download).
+          window.open(att.url, '_blank');
+        });
+      return;
+    }
+
+    // Everything else: open directly.
+    window.open(att.url, '_blank');
   };
 
   return (

@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { Button, Input, Modal, Select, Table, Typography } from 'antd';
 import { FilterOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
-import { CONTENT_MODULES, MODULE_CATEGORIES, type ContentCategory, type ContentModule } from '@/constants';
+import { useModuleCategories } from '@/hooks/useModuleCategories';
 import type { ColumnsType } from 'antd/es/table';
 import PageLoading from '@/components/common/PageLoading';
 
@@ -79,6 +79,7 @@ export function ViewAllTable<T>({
   onSearchChange,
 }: ViewAllTableProps<T>) {
   const router = useRouter();
+  const { modules, categories } = useModuleCategories();
   const [filterOpen, setFilterOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [tempModule, setTempModule] = useState(moduleFilter);
@@ -90,7 +91,7 @@ export function ViewAllTable<T>({
     ? []
     : [
         { value: 'All', label: 'All' },
-        ...(MODULE_CATEGORIES[tempModule as ContentModule] ?? []).map((category: ContentCategory) => ({ value: category, label: category })),
+        ...(categories[tempModule] ?? []).map((category: string) => ({ value: category, label: category })),
       ];
 
   const handleSearch = () => {
@@ -129,11 +130,12 @@ export function ViewAllTable<T>({
           <div className={`${ns}-search-bar`}>
             <Input
               className={`${ns}-search-input`}
-              placeholder="Enter search query"
+              placeholder="Search by title, category..."
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               onPressEnter={handleSearch}
+              maxLength={100}
               allowClear
               onClear={() => {
                 setLocalSearch('');
@@ -224,7 +226,7 @@ export function ViewAllTable<T>({
                 setTempModule(val);
                 setTempCategory('All');
               }}
-              options={[{ value: 'All', label: 'All' }, ...CONTENT_MODULES.map((m) => ({ value: m, label: m }))]}
+              options={[{ value: 'All', label: 'All' }, ...modules.map((m) => ({ value: m, label: m }))]}
             />
           </div>
           <div className={`${ns}-filter-field`}>

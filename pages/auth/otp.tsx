@@ -43,19 +43,10 @@ export default function OtpVerificationPage() {
   const expired = timeLeft <= 0;
   const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
 
-  // Resend becomes available shortly after the OTP is sent (a short cooldown
-  // instead of waiting for the full expiry). The server already supports
-  // resends at any time - it mints a fresh token and resets attempts - so the
-  // previous "wait the full 5 minutes" behaviour was purely a UX limiter. A
-  // user who mistyped or whose first OTP arrived late can now request a new
-  // one without waiting out the whole window.
-  const RESEND_COOLDOWN_SECONDS = 30;
-  const canResend =
-    expired || timeLeft <= OTP_EXPIRY_SECONDS - RESEND_COOLDOWN_SECONDS;
-  const resendInSeconds = Math.max(
-    timeLeft - (OTP_EXPIRY_SECONDS - RESEND_COOLDOWN_SECONDS),
-    0
-  );
+  // Resend is only available once the OTP has fully expired. The server
+  // supports resends at any time, but the UI blocks it until expiry to avoid
+  // confusion from mid-session token rotation.
+  const canResend = expired;
 
   useEffect(() => {
     if (!router.isReady) {
@@ -320,7 +311,7 @@ export default function OtpVerificationPage() {
           )}
 
           {attempts > 0 && !verificationBlocked && (
-            <Text type="warning" className="otp-timer">
+            <Text type="danger" className="otp-timer">
               {MAX_OTP_ATTEMPTS - attempts} attempt{MAX_OTP_ATTEMPTS - attempts === 1 ? "" : "s"} remaining
             </Text>
           )}
@@ -347,13 +338,9 @@ export default function OtpVerificationPage() {
             block
             disabled={isResending || isVerifying || !canResend}
             onClick={handleResend}
-            style={{ marginTop: 18 }}
+            style={{ marginTop: 18, color: "#54b226" }}
           >
-            {isResending
-              ? "Sending..."
-              : canResend
-                ? "Resend OTP"
-                : `Resend OTP in ${formatTime(resendInSeconds)}`}
+            {isResending ? "Sending..." : "Resend OTP"}
           </Button>
 
           <Button
@@ -365,8 +352,9 @@ export default function OtpVerificationPage() {
               clearResetFlow();
               router.push(ROUTE_PATHS.home);
             }}
+            style={{ color: "#54b226" }}
           >
-            ← Back
+            Back
           </Button>
         </Flex>
     </AuthCard>

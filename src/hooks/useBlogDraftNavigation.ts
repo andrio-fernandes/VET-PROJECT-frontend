@@ -7,8 +7,7 @@
 // Preview page. Skipped entirely in edit mode.
 // =============================================
 
-import { useRef, useState } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { NextRouter } from 'next/router';
 import type { MessageInstance } from 'antd/es/message/interface';
 
@@ -18,6 +17,7 @@ import { fileToDataUrl } from '@/utils/file';
 import { writePreviewValue } from '@/utils/blogPreviewStorage';
 import type { PickedAttachment, PickedImage } from '@/types/blog';
 import type { BlogFormValues } from './useBlogDraft';
+import type { BlogPreviewData } from '@/components/blog/BlogPreviewModal';
 
 interface UseBlogDraftNavigationOptions {
   router: NextRouter;
@@ -66,13 +66,7 @@ export const useBlogDraftNavigation = ({
     router.push(path);
   };
 
-  const handlePreview = async () => {
-    cancelPendingDraftSave();
-    // Drafts are only meaningful in create mode; editing blogs are loaded from
-    // the server, so don't write a (partial, asset-only) draft there.
-    if (!editMode) {
-      await writeDraftToStorage();
-    }
+  const preparePreviewData = async (): Promise<BlogPreviewData | null> => {
     const values = getValues();
 
     // Thumbnail: picked file's data URL, falling back to the existing server
@@ -109,7 +103,7 @@ export const useBlogDraftNavigation = ({
       ...pickedDataUrls,
     ];
 
-    const previewDraft = {
+    return {
       title: values.title ?? '',
       description: values.description ?? '',
       module: values.module ?? '',
@@ -118,6 +112,19 @@ export const useBlogDraftNavigation = ({
       thumbnail: previewThumbnail,
       attachments: previewAttachments,
     };
+  };
+
+  const handlePreview = async () => {
+    cancelPendingDraftSave();
+    // Drafts are only meaningful in create mode; editing blogs are loaded from
+    // the server, so don't write a (partial, asset-only) draft there.
+    if (!editMode) {
+      await writeDraftToStorage();
+    }
+
+    const previewDraft = await preparePreviewData();
+    if (!previewDraft) return;
+
     try {
       await writePreviewValue(BLOG_PREVIEW_STORAGE_KEY, previewDraft);
     } catch {
@@ -134,6 +141,30 @@ export const useBlogDraftNavigation = ({
     // leftovers from an earlier session (they must never resurrect a "delete
     // everything" wipe against attachments the server still has).
     if (editMode && blogId) {
+      const values = getValues();
+      let thumbnailDataUrl = getThumbnailDataUrl();
+      const thumbnail = getThumbnail();
+      if (!thumbnailDataUrl && thumbnail) {
+        try {
+          thumbnailDataUrl = await fileToDataUrl(thumbnail.file);
+        } catch {
+          thumbnailDataUrl = '';
+        }
+      }
+      const existingAttachments = getExistingAttachments();
+      const attachments = getAttachments();
+      let pickedDataUrls: { name: string; url: string }[] = [];
+      try {
+        pickedDataUrls = await Promise.all(
+          attachments.map(async (a) => ({
+            name: a.name,
+            url: await fileToDataUrl(a.file),
+          })),
+        );
+      } catch {
+        /* fall back to names */
+      }
+
       const editSnapshot = {
         blogId,
         createdAt: Date.now(),
@@ -163,10 +194,7 @@ export const useBlogDraftNavigation = ({
     }
 
     skipNextRouteGuardRef.current = true;
-    // Preserve the edit context so preview's back button returns to the edit URL.
     const blogQuery = editMode && blogId ? `&id=${blogId}` : '';
-    // Open the preview in a new browser tab: the preview page has no in-app
-    // back navigation, so a fresh tab keeps the user on the form.
     window.open(`${ROUTE_PATHS.blogPreview}?preview=1${blogQuery}`, '_blank');
   };
 
@@ -232,6 +260,7 @@ export const useBlogDraftNavigation = ({
 
   return {
     draftPromptVisible,
+    preparePreviewData,
     handlePreview,
     performNavigation,
     requestNavigation,
