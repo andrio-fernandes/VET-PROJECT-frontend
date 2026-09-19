@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { App as AntApp, Button, Divider, Space, Spin, Tag, Typography } from 'antd';
+import { App as AntApp, Button, Divider, Space, Tag, Typography } from 'antd';
 import { EyeOutlined, FileTextOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '@/components/blog/PageHeader';
+import { AdminLayout } from '@/layouts/admin-layout';
+import { PageHeader } from '@/components/blog/page-header';
+import PageLoading from '@/components/common/page-loading';
 
 import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
 import {
   buildDocumentViewerUrl,
-  fileNameFromUrl,
+  getAttachmentExtension,
   mediaUrl,
+  parseBlogAttachments,
 } from '@/utils/media';
-import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
-import { getBlogById } from '@/services/blogService';
+import { hasVisibleText, sanitizeRichText } from '@/utils/rich-text';
+import { readPreviewValue, removePreviewValue } from '@/utils/blog-preview-storage';
+import { getBlogById } from '@/services/blog-service';
 import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
 
 const { Title, Text } = Typography;
@@ -37,17 +40,21 @@ const BlogPreview = () => {
   useEffect(() => {
     if (!router.isReady) return;
 
-    // Preview mode: load from localStorage instead of API
+    // Preview mode: load from storage instead of API
     if (isPreviewMode) {
-      try {
-        const raw = localStorage.getItem(BLOG_PREVIEW_STORAGE_KEY);
-        if (raw) {
-          const draft: PreviewDraft = JSON.parse(raw);
-          // Tolerate drafts saved before the rename of `feature` -> `category`.
+      (async () => {
+        let draft: PreviewDraft | null = null;
+        try {
+          draft = await readPreviewValue<PreviewDraft>(BLOG_PREVIEW_STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        // Only clean up after reading to avoid removing before read completes.
+        if (draft) {
+          // Handle drafts saved before feature->category rename.
           const category =
             (draft as any).category ?? (draft as any).feature;
-          // Draft restore intentionally seeds state from localStorage on mount.
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+          // Intentionally seed state from storage on mount.
           setBlog({
             title: draft.title,
             description: draft.description,
@@ -58,16 +65,12 @@ const BlogPreview = () => {
             attachment: draft.attachments?.length ? JSON.stringify(draft.attachments) : undefined,
           });
         }
-        // Only clean up the preview draft once it has been read (or confirmed
-        // absent), so it is never removed before the read above completes.
         try {
-          localStorage.removeItem(BLOG_PREVIEW_STORAGE_KEY);
+          await removePreviewValue(BLOG_PREVIEW_STORAGE_KEY);
         } catch {
           /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
+      })();
       return;
     }
 
@@ -105,59 +108,33 @@ const BlogPreview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, blogId, isPreviewMode]);
 
-  const parseAttachments = (raw: string | undefined): ParsedAttachment[] => {
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed
-          .map((item) => {
-            if (typeof item === 'string') {
-              return { name: fileNameFromUrl(item), url: item };
-            }
-            if (item && typeof item === 'object') {
-              // Persisted backend shape: { name, url } (Cloudinary or disk upload)
-              if (typeof item.name === 'string' && typeof item.url === 'string') {
-                return { name: item.name, url: item.url };
-              }
-              // Preview-draft localStorage shape: { name, dataUrl }
-              if (typeof item.name === 'string' && typeof item.dataUrl === 'string') {
-                return { name: item.name, url: item.dataUrl };
-              }
-            }
-            return null;
-          })
-          .filter(Boolean) as ParsedAttachment[];
-      }
-    } catch {}
-    return raw ? [{ name: fileNameFromUrl(raw), url: raw }] : [];
-  };
-
-  // mediaUrl resolves server-relative /uploads paths and passes data: / https:
-  // URLs through unchanged, so it is safe to apply in both preview modes.
-  const attachmentUrls = parseAttachments(blog?.attachment).map((a) => ({
+  // mediaUrl resolves /uploads paths and passes data:/https URLs through.
+  const attachmentUrls = parseBlogAttachments(blog?.attachment).map((a) => ({
     ...a,
     url: mediaUrl(a.url),
   }));
   const contentHtml = sanitizeRichText(blog?.content);
 
   const openAttachment = (att: ParsedAttachment) => {
-    // att.url is already resolved via mediaUrl() in attachmentUrls above, so
-    // both HTTPS and data: URLs are ready to use.
+    // att.url already resolved via mediaUrl() - ready to use.
+    const ext = getAttachmentExtension(att.name);
 
-    // PDF / Office documents open in their third-party viewer in a NEW tab.
-    // Google Docs Viewer handles PDFs; Microsoft Office Viewer handles the
-    // Office formats. A downloadable (non-viewer) URL falls back to the
-    // existing download behavior below.
-    const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
-    if (viewerUrl) {
-      window.open(viewerUrl, '_blank');
+    // PDFs: fetch as blob for native viewer.
+    if (ext === 'pdf') {
+      fetch(att.url)
+        .then((res) => res.arrayBuffer())
+        .then((buf) => {
+          const blobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        })
+        .catch(() => {
+          window.open(att.url, '_blank');
+        });
       return;
     }
 
-    // Unsupported formats (and data: URLs that viewers cannot reach) keep the
-    // existing download behavior: data URLs fetched into a blob then opened,
-    // everything else opened directly.
+    // Data URLs: convert to blob for browser opening.
     if (att.url.startsWith('data:')) {
       fetch(att.url)
         .then((res) => res.blob())
@@ -169,34 +146,62 @@ const BlogPreview = () => {
         .catch(() => {
           window.open(att.url, '_blank');
         });
-    } else {
-      window.open(att.url, '_blank');
+      return;
     }
+
+    // Office files: try Microsoft viewer, fallback to blob fetch.
+    const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
+    if (viewerUrl) {
+      fetch(att.url)
+        .then((res) => {
+          if (!res.ok) throw new Error('fetch failed');
+          return res.arrayBuffer();
+        })
+        .then((buf) => {
+          const mimeMap: Record<string, string> = {
+            doc: 'application/msword',
+            docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            xls: 'application/vnd.ms-excel',
+            xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ppt: 'application/vnd.ms-powerpoint',
+            pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          };
+          const mime = mimeMap[ext] || 'application/octet-stream';
+          const blobUrl = URL.createObjectURL(new Blob([buf], { type: mime }));
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        })
+        .catch(() => {
+          // Fallback: let browser handle URL directly.
+          window.open(att.url, '_blank');
+        });
+      return;
+    }
+
+    // Everything else: open directly.
+    window.open(att.url, '_blank');
   };
+
+  const from = router.query.from as string | undefined;
+  const section = router.query.section as string | undefined;
+  const tab = router.query.tab as string | undefined;
+  const backHref = from === 'dashboard'
+    ? `${ROUTE_PATHS.adminDashboard}?section=${section || 'recently-uploaded'}${tab ? `&tab=${tab}` : ''}`
+    : ROUTE_PATHS.blogs;
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-        <div style={{ width: '100%' }}>
-        <div className="blog-content" style={{ maxWidth: '100%' }}>
-          <PageHeader
-            backHref={
-              isPreviewMode
-                ? blogId
-                  ? `${ROUTE_PATHS.uploadBlog}?id=${blogId}`
-                  : ROUTE_PATHS.uploadBlog
-                : ROUTE_PATHS.adminDashboard
-            }
-            title="Blog preview"
-            icon={<FileTextOutlined />}
-            showBack={false}
-          />
+      <div className="bp-page">
+      <PageHeader
+        backHref={backHref}
+        title="Blog preview"
+        icon={<FileTextOutlined />}
+        showBack={true}
+      />
 
-          <div className="blog-card bp-card">
+      <div className="bp-card">
             {loading ? (
-              <div className="bp-loading">
-                <Spin size="large" />
-              </div>
+              <PageLoading />
             ) : loadError && !blog ? (
               <Text type="secondary" className="bp-empty-text">
                 {loadError}
@@ -235,7 +240,7 @@ const BlogPreview = () => {
 
                 {hasVisibleText(contentHtml) && (
                   <>
-                    <Divider className="blog-divider" />
+                    <Divider className="create-divider" />
                     <div
                       className="blog-rich-content bp-rich-content"
                       dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -245,8 +250,8 @@ const BlogPreview = () => {
 
                 {attachmentUrls.length > 0 && (
                   <>
-                    <Divider className="blog-divider" />
-                    <Title level={5} className="bp-attachment-title">
+                    <Divider className="create-divider" />
+                    <Title level={5} className="create-section-label">
                       Attachment
                     </Title>
                     {attachmentUrls.map((att, idx) => (
@@ -273,8 +278,6 @@ const BlogPreview = () => {
               </>
             )}
           </div>
-        </div>
-      </div>
       </div>
     </AdminLayout>
   );

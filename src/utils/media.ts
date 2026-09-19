@@ -1,9 +1,13 @@
-// =============================================
-// MEDIA / URL HELPERS
-// =============================================
+// Media and URL helper functions.
 
-// Uploaded binaries live on the API server (served from /uploads at the
-// server root, NOT under /api), so strip any /api suffix before prefixing.
+import defaultThumbnail from '@/assets/default.svg';
+import { getFileExtension } from '@/utils/file';
+
+// Resolve thumbnail: use record's image if present, else default.
+export const contentThumbnail = (url?: string): string =>
+  url ? mediaUrl(url) : defaultThumbnail.src;
+
+// Build media URL, stripping /api suffix since uploads are served from root.
 export const mediaUrl = (path?: string): string => {
   if (!path) return '';
   if (/^(https?:\/\/|data:)/i.test(path)) return path;
@@ -20,22 +24,15 @@ export const fileNameFromUrl = (url: string): string => {
   }
 };
 
-// Extensions that can be previewed via Google Docs Viewer / Microsoft Office
-// Viewer in a new browser tab.
+// Extensions viewable via Google/Microsoft Office viewers.
 const PDF_EXTENSION = 'pdf';
 const OFFICE_VIEWER_EXTENSIONS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
-export const getAttachmentExtension = (fileName: string): string => {
-  const clean = fileName.split('?')[0].split('#')[0];
-  const idx = clean.lastIndexOf('.');
-  return idx === -1 ? '' : clean.slice(idx + 1).toLowerCase();
-};
+// Get file extension without dot, stripping query/hash suffix.
+export const getAttachmentExtension = (fileName: string): string =>
+  getFileExtension(fileName.split('?')[0].split('#')[0]).replace(/^\./, '');
 
-// Builds the third-party viewer URL for a document attachment, following the
-// senior's logic:
-//   PDF            -> Google Docs Viewer
-//   Office files   -> Microsoft Office Viewer
-// Returns an empty string when the format is not viewer-supported.
+// Build third-party viewer URL (PDF -> Google, Office -> Microsoft).
 export const buildDocumentViewerUrl = (fileName: string, actualUrl: string): string => {
   const ext = getAttachmentExtension(fileName);
   if (ext === PDF_EXTENSION) {
@@ -51,13 +48,7 @@ export const buildDocumentViewerUrl = (fileName: string, actualUrl: string): str
   return '';
 };
 
-// True when the given file can be shown in a third-party document viewer.
-export const isDocumentViewable = (fileName: string): boolean =>
-  buildDocumentViewerUrl(fileName, '') !== '';
-
-// Parses a BlogRecord.attachment JSON string into attachment references that
-// carry a stable display name and a URL. Supports the persisted backend shape
-// [{ name, url }] as well as legacy arrays of plain URL strings.
+// Parse blog attachments JSON (supports {name,url}, {name,dataUrl}, and string arrays).
 export const parseBlogAttachments = (
   raw: string | undefined
 ): { name: string; url: string }[] => {
@@ -70,12 +61,22 @@ export const parseBlogAttachments = (
           if (typeof item === 'string') {
             return { name: fileNameFromUrl(item), url: item };
           }
-          if (item && typeof item === 'object' && typeof item.url === 'string') {
-            return {
-              name:
-                typeof item.name === 'string' ? item.name : fileNameFromUrl(item.url),
-              url: item.url,
-            };
+          if (item && typeof item === 'object') {
+            if (typeof item.url === 'string') {
+              return {
+                name:
+                  typeof item.name === 'string' ? item.name : fileNameFromUrl(item.url),
+                url: item.url,
+              };
+            }
+            // Preview draft shape.
+            if (typeof item.dataUrl === 'string') {
+              return {
+                name:
+                  typeof item.name === 'string' ? item.name : fileNameFromUrl(item.dataUrl),
+                url: item.dataUrl,
+              };
+            }
           }
           return null;
         })

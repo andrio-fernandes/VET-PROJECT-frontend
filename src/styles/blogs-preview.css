@@ -7,17 +7,16 @@
 
 .bp-page {
   padding: 32px 40px 48px;
+  background-color: #f6f6f6;
 }
 
 .bp-card {
+  max-width: 1100px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   padding: 32px 36px;
-  min-height: 320px;
-}
-
-.bp-loading {
-  display: flex;
-  justify-content: center;
-  padding: 80px 0;
 }
 
 .bp-empty-text {
@@ -54,12 +53,6 @@
   font-size: 15px;
   line-height: 1.7;
   color: #333333;
-}
-
-.bp-attachment-title {
-  margin: 0 0 12px 0;
-  font-weight: 700;
-  color: #262626;
 }
 
 .bp-attachment-item {

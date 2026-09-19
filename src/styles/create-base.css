@@ -1,0 +1,131 @@
+/* =============================================
+   CREATE BASE STYLES
+   Shared base classes for the FAQ / Video / Blog create (and edit) pages.
+   Extracted from faqs-create.css + videos-create.css (identical rules under
+   the faqs-create-* and vc-* prefixes).
+   Values preserved exactly - do not change colors, sizes or geometry.
+   ============================================= */
+
+.create-page {
+  padding: 32px;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.create-inner {
+  width: 100%;
+}
+
+.create-header {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+
+.create-header-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.create-header-title {
+  margin: 0;
+  font-weight: 600;
+  color: #262626;
+  line-height: 34px;
+}
+
+.create-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  border: 1px solid #e8e8e8;
+}
+
+.create-card-title {
+  margin: 0 0 24px 0;
+}
+
+.create-label {
+  font-weight: 600;
+}
+
+.create-required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.create-input {
+  border-radius: 6px;
+}
+
+.create-textarea {
+  border-radius: 6px;
+  resize: none;
+}
+
+.create-select {
+  border-radius: 6px;
+}
+
+.create-select-block {
+  margin-bottom: 24px;
+}
+
+.create-section-label {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.create-select-item {
+  margin-bottom: 0;
+}
+
+.create-hint {
+  display: block;
+  margin: 4px 0 10px;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.create-divider {
+  height: 1px;
+  background-color: #f0f0f0;
+  margin: 32px 0 24px 0;
+}
+
+/* antd <Divider> variant (Blog create): keep antd's own line rendering but
+   match the shared 32px/24px section spacing. */
+.create-divider.ant-divider {
+  height: auto;
+  margin: 32px 0 24px 0;
+}
+
+.create-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.create-btn-preview {
+  border-color: #52c41a;
+  color: #52c41a;
+  border-radius: 6px;
+  padding: 0 32px;
+}
+
+.create-btn-cancel {
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+  border-radius: 6px;
+  padding: 0 24px;
+}
+
+.create-btn-create {
+  background-color: #52c41a;
+  border-radius: 6px;
+  padding: 0 32px;
+}

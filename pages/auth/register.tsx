@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Button, Flex, Form, Input, Typography, App as AntApp } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { register } from '@/services/authService';
+import { register } from '@/services/auth-service';
 import PasswordStrength from '@/components/password-strength';
-import { COMMON_PASSWORDS, ROUTE_PATHS } from '@/constants';
-import { preventSpaces } from '@/utils/input';
+import PageLoading from '@/components/common/page-loading';
+import { COMMON_PASSWORDS, PASSWORD_VALIDATOR_RULES, ROUTE_PATHS } from '@/constants';
+import { preventSpaces, preventPaste } from '@/utils/input';
 const { Title, Paragraph } = Typography;
 
 export default function RegisterPage() {
@@ -60,11 +61,6 @@ export default function RegisterPage() {
     }
   };
 
-  const preventCopyPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    message.warning('Copying and pasting passwords is not allowed for security reasons.');
-  };
-
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
@@ -88,6 +84,7 @@ export default function RegisterPage() {
 
   return (
     <div className="register-page">
+      {loading && <PageLoading />}
       <div className="register-left-panel">
         <div className="register-left-content">
           <Title level={2} className="register-title">
@@ -217,14 +214,13 @@ export default function RegisterPage() {
                     return Promise.resolve();
                   },
                 }),
+                ...PASSWORD_VALIDATOR_RULES,
               ]}
             >
               <Input.Password
                 placeholder="Enter your password"
                 className="pill-input"
                 onKeyDown={preventSpaces}
-                onPaste={preventCopyPaste}
-                onCopy={preventCopyPaste}
               />
             </Form.Item>
 
@@ -251,8 +247,7 @@ export default function RegisterPage() {
                 placeholder="Confirm your password"
                 className="pill-input"
                 onKeyDown={preventSpaces}
-                onPaste={preventCopyPaste}
-                onCopy={preventCopyPaste}
+                onPaste={preventPaste}
               />
             </Form.Item>
 

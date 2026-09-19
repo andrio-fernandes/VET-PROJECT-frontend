@@ -6,7 +6,7 @@ import {
   TITLE_MAX_WORDS,
   TITLE_MIN_WORDS,
 } from "@/constants";
-import { stripHtmlTags } from "@/utils/richText";
+import { stripHtmlTags } from "@/utils/rich-text";
 
 export const emailRules: Rule[] = [
   {

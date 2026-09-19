@@ -11,10 +11,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Alert, Button, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Space, Typography } from 'antd';
 import { ArrowLeftOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import { buildDocumentViewerUrl } from '@/utils/media';
+import PageLoading from '@/components/common/page-loading';
 
 const { Text } = Typography;
 
@@ -74,12 +75,7 @@ const AttachmentPreviewPage = () => {
 
   return (
     <div style={{ padding: 40, textAlign: 'center' }}>
-      {status === 'loading' && (
-        <Space direction="vertical" size="middle" style={{ marginTop: 80 }}>
-          <Spin size="large" />
-          <Text type="secondary">Opening document viewer…</Text>
-        </Space>
-      )}
+      {status === 'loading' && <PageLoading />}
 
       {status === 'error' && (
         <Space direction="vertical" size="middle" style={{ marginTop: 80, maxWidth: 480, margin: '80px auto 0' }}>

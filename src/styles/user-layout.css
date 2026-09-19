@@ -1,0 +1,33 @@
+/* =========================
+   USER DASHBOARD / SIDEBAR
+   ========================= */
+
+/* Sider that matches the admin shell layout */
+.user-shell {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.user-sider {
+  background-color: #fefefe !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+.user-content-layout {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Menu hover animation - user variant of the admin sidebar */
+.user-lively-sidebar .ant-menu-item {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.user-lively-sidebar .ant-menu-item:hover {
+  transform: translateX(6px);
+  background-color: #54b325 !important;
+}

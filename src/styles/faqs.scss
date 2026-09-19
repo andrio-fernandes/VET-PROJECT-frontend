@@ -9,10 +9,6 @@
 
 @include view-all.view-all('faqs');
 
-.faqs-page-inner {
-  width: 100%;
-}
-
 .faqs-select-module {
   width: 303px;
 }
@@ -25,11 +21,10 @@
   color: #000;
 }
 
-.faqs-cell-question {
-  display: block;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.4;
+.faqs-cell-question-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .faqs-action-icon {
@@ -45,30 +40,4 @@
 .faqs-action-col {
   display: inline-flex;
   margin-left: -8px;
-}
-
-.faqs-view-block {
-  margin-bottom: 20px;
-}
-
-.faqs-view-label {
-  color: #52c41a;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.faqs-view-question {
-  font-size: 16px;
-  color: #262626;
-}
-
-.faqs-view-answer {
-  font-size: 15px;
-  color: #595959;
-  display: block;
-  white-space: pre-wrap;
 }

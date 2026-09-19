@@ -6,7 +6,8 @@ export const GREEN = '#52c41a';
 
 export const THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
-export const EDITOR_IMAGE_MAX_BYTES = 1024 * 1024;
+export const EDITOR_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+export const BLOG_CONTENT_MAX_BYTES = 5 * 1024 * 1024;
 
 export const THUMBNAIL_EXTENSIONS = ['.png', '.jpg', '.jpeg'];
 export const ATTACHMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.png'];

@@ -1,142 +1,50 @@
 /* =============================================
-   FAQS CREATE PAGE
-   Styles extracted from faqs/create.tsx inline styles.
-   Values preserved exactly - do not change
-   colors, sizes or geometry.
+   FAQS CREATE PAGE - PAGE-LOCAL STYLES
+   The shared shell (page/header/card/labels/buttons/divider) lives in
+   create-base.css. This file keeps only FAQ-specific rules.
+   Values preserved exactly - do not change colors, sizes or geometry.
    ============================================= */
 
-.faqs-create-page {
-  padding: 32px;
-  background-color: #f0f2f5;
-  min-height: calc(100vh - 64px);
-}
-
-.faqs-create-inner {
-  width: 100%;
-}
-
-.faqs-create-header {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.faqs-create-header-body {
-  display: flex;
-  flex-direction: column;
-}
-
-.faqs-create-header-title {
-  margin: 0;
-  font-weight: 600;
-  color: #262626;
-}
-
-.faqs-create-card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 32px;
-  border: 1px solid #e8e8e8;
-}
-
-.faqs-create-card-title {
-  margin: 0 0 24px 0;
-}
-
-.faqs-create-loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 48px 0;
-}
-
-.faqs-create-label {
-  font-weight: 600;
-}
-
-.faqs-create-input {
-  border-radius: 6px;
-}
-
-.faqs-create-textarea {
-  border-radius: 6px;
-  resize: none;
-}
-
-.faqs-create-select {
-  border-radius: 6px;
-}
-
-.faqs-create-select-block {
-  margin-bottom: 24px;
-}
-
-.faqs-create-select-item {
-  margin-bottom: 0;
-}
-
-.faqs-create-divider {
-  height: 1px;
-  background-color: #f0f0f0;
-  margin: 32px 0 24px 0;
-}
-
-.faqs-create-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.faqs-create-btn-preview {
-  border-color: #52c41a;
-  color: #52c41a;
-  border-radius: 6px;
-  padding: 0 32px;
-}
-
-.faqs-create-btn-cancel {
-  border-color: #ff4d4f;
-  color: #ff4d4f;
-  border-radius: 6px;
-  padding: 0 24px;
-}
-
-.faqs-create-btn-create {
-  background-color: #52c41a;
-  border-radius: 6px;
-  padding: 0 32px;
-}
-
 .faqs-create-block {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .faqs-create-preview-label {
   color: #52c41a;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
   display: block;
+  margin-bottom: 8px;
 }
 
 .faqs-create-preview-label-q {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .faqs-create-preview-question {
-  font-size: 18px;
+  font-size: 17px;
   color: #262626;
   line-height: 1.7;
   display: block;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f6ffed 0%, #f9fbe7 100%);
+  border-left: 3px solid #52c41a;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.08);
 }
 
 .faqs-create-preview-answer-block {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .faqs-create-preview-answer-box {
-  padding: 0;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  border-left: 3px solid #d9d9d9;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .faq-view-modal .ant-modal-title {
@@ -146,9 +54,15 @@
 }
 
 .faqs-create-preview-answer {
-  font-size: 16px;
-  color: #262626;
-  font-weight: 600;
-  line-height: 1.7;
+  font-size: 15px;
+  color: #434343;
+  font-weight: 400;
+  line-height: 1.8;
   display: block;
+}
+
+.faq-preview-divider {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 4px 0 20px;
 }

@@ -2,13 +2,24 @@ import { App, Button, Flex, Typography } from "antd";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { forgotPassword, verifyOtp } from "@/services/authService";
+import { forgotPassword, verifyOtp } from "@/services/auth-service";
 import { MAX_OTP_ATTEMPTS, OTP_EXPIRY_SECONDS, OTP_LENGTH, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
-import AuthCard from "@/components/AuthCard";
-import OtpInput, { type OtpInputHandle } from "@/components/OtpInput";
+import AuthCard from "@/components/auth-card";
+import PageLoading from "@/components/common/page-loading";
+import OtpInput, { type OtpInputHandle } from "@/components/otp-input";
 import { emptySubscribe } from "@/utils/input";
+import { clearResetFlow } from "@/utils/reset-flow";
 
 const { Text } = Typography;
+
+const readSendAttempts = () => {
+  const storedAttempts = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpAttempts)) || 0;
+  const windowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart)) || 0;
+  const withinRequestWindow =
+    windowStart > 0 && Date.now() - windowStart < OTP_REQUEST_WINDOW_SECONDS * 1000;
+
+  return withinRequestWindow ? storedAttempts : 0;
+};
 
 export default function OtpVerificationPage() {
   const router = useRouter();
@@ -16,27 +27,25 @@ export default function OtpVerificationPage() {
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [timeLeft, setTimeLeft] = useState<number>(OTP_EXPIRY_SECONDS);
-  const [attempts, setAttempts] = useState<number>(() => {
-    if (typeof window === "undefined") {
-      return 0;
-    }
-    return Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpVerifyAttempts)) || 0;
-  });
+  // Hydrated from sessionStorage in an effect (not useState initializer)
+  // to avoid hydration mismatch with server-rendered markup.
+  const [attempts, setAttempts] = useState<number>(0);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isResending, setIsResending] = useState<boolean>(false);
 
-  const queryEmail =
-    typeof router.query.email === "string" ? router.query.email.trim().toLowerCase() : "";
-  const queryToken =
-    typeof router.query.token === "string" ? router.query.token.trim() : "";
-
+  // Only email is required — gating on the token would leak account existence
+  // through navigation (registered → OTP, unregistered → bounced back).
+  // A missing token surfaces through the generic verify/resend error instead.
   const canAccess = useSyncExternalStore(
     emptySubscribe,
-    () =>
-      (queryEmail !== "" && queryToken !== "") ||
-      (Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)) &&
-        Boolean(sessionStorage.getItem(STORAGE_KEYS.resetToken))),
+    () => Boolean(sessionStorage.getItem(STORAGE_KEYS.resetEmail)),
     () => false,
+  );
+
+  const sendAttempts = useSyncExternalStore(
+    emptySubscribe,
+    readSendAttempts,
+    () => 0,
   );
 
   const otpInputRef = useRef<OtpInputHandle>(null);
@@ -45,17 +54,9 @@ export default function OtpVerificationPage() {
   const expired = timeLeft <= 0;
   const verificationBlocked = attempts >= MAX_OTP_ATTEMPTS;
 
-  // Origin from the emailed reset link: seed sessionStorage so the page works
-  // like a normal in-flow visit without leaking the email/token into the URL.
-  useEffect(() => {
-    if (!router.isReady || queryEmail === "" || queryToken === "") {
-      return;
-    }
-
-    sessionStorage.setItem(STORAGE_KEYS.resetEmail, queryEmail);
-    sessionStorage.setItem(STORAGE_KEYS.resetToken, queryToken);
-    router.replace(ROUTE_PATHS.otp, undefined, { shallow: true });
-  }, [queryEmail, queryToken, router, router.isReady]);
+  // Resend only available after OTP expires (server supports it anytime, but
+  // blocking until expiry avoids mid-session token rotation confusion).
+  const canResend = expired && sendAttempts < MAX_OTP_ATTEMPTS;
 
   useEffect(() => {
     if (!router.isReady) {
@@ -70,13 +71,33 @@ export default function OtpVerificationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
-  // The countdown targets an absolute deadline timestamp so a single
-  // interval computes the remaining seconds instead of being torn down and
-  // recreated every second. Initialized to 0 and set inside an effect (NOT
-  // during render) so no impure Date.now() call happens while rendering.
+  // If attempts are exhausted from a previous visit, the user stays here —
+  // Resend lets them request a fresh OTP (resets server-side counter).
+
+  // Restore exhausted attempt count after refresh. Deferred via microtask to
+  // avoid calling setState synchronously in the effect body.
+  useEffect(() => {
+    const stored =
+      Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpVerifyAttempts)) || 0;
+    if (stored > 0) {
+      queueMicrotask(() => {
+        setAttempts(stored);
+      });
+    }
+  }, []);
+
+  // Countdown targets an absolute deadline so a single interval computes
+  // remaining seconds. Deadline aligns with actual send time so page refresh
+  // doesn't restart the timer while server OTP is older.
   const deadlineRef = useRef<number>(0);
 
   useEffect(() => {
+    const sentAt = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpSentAt));
+    deadlineRef.current = (sentAt || Date.now()) + OTP_EXPIRY_SECONDS * 1000;
+    setTimeLeft(
+      Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
+    );
+
     const timer = setInterval(() => {
       setTimeLeft(
         Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
@@ -84,17 +105,6 @@ export default function OtpVerificationPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  // Align the countdown with the actual send time so refreshing the page does
-  // not restart the timer while the server-side OTP is already older. When no
-  // stored send time exists, fall back to now so the timer still starts fresh.
-  useEffect(() => {
-    const sentAt = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpSentAt));
-    deadlineRef.current = (sentAt || Date.now()) + OTP_EXPIRY_SECONDS * 1000;
-    setTimeLeft(
-      Math.max(Math.ceil((deadlineRef.current - Date.now()) / 1000), 0)
-    );
   }, []);
 
   const formatTime = (seconds: number): string => {
@@ -140,9 +150,11 @@ export default function OtpVerificationPage() {
     }
 
     const email = sessionStorage.getItem(STORAGE_KEYS.resetEmail);
-    const token = sessionStorage.getItem(STORAGE_KEYS.resetToken);
 
-    if (!email || !token) {
+    // Missing token happens for unregistered emails (server never issued one).
+    // Do NOT special-case a redirect — that would leak account existence.
+    // Let the API respond through the ordinary error path instead.
+    if (!email) {
       message.error("Session expired. Please start over from Forgot Password.");
       router.push(ROUTE_PATHS.forgotPassword);
       return;
@@ -151,16 +163,16 @@ export default function OtpVerificationPage() {
     setIsVerifying(true);
 
     try {
-      await verifyOtp(email, otpValue, token);
+      await verifyOtp(email, otpValue, sessionStorage.getItem(STORAGE_KEYS.resetToken) || "");
 
       sessionStorage.setItem(STORAGE_KEYS.resetOtpVerified, "true");
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       // The reset token is kept: it must be presented again at reset-password.
       message.success("OTP verified successfully.");
-      router.push(ROUTE_PATHS.resetPassword);
+      router.replace(ROUTE_PATHS.resetPassword);
     } catch (error: any) {
-      // Only the server knows the real attempt count, so sync from its
-      // "remaining" value and never guess locally when it is absent.
+      // Only the server knows the real attempt count — sync from its
+      // "remaining" value; never guess locally when absent.
       let currentAttempts = attempts;
       if (typeof error?.remaining === "number") {
         currentAttempts = Math.max(MAX_OTP_ATTEMPTS - error.remaining, 0);
@@ -173,8 +185,21 @@ export default function OtpVerificationPage() {
       setOtp(Array(OTP_LENGTH).fill(""));
       otpInputRef.current?.focusFirst();
 
+      // RATE_LIMITED is abuse-level traffic, not normal per-user exhaustion.
+      // End the flow cleanly and redirect to login.
+      if (error?.code === "RATE_LIMITED") {
+        message.error(error.message || "Too many requests. Please try again later.");
+        clearResetFlow();
+        setTimeout(() => {
+          router.replace(ROUTE_PATHS.login);
+        }, 1000);
+        return;
+      }
+
       if (currentAttempts >= MAX_OTP_ATTEMPTS) {
-        message.error("Maximum attempts reached. Verification is blocked.");
+        // Normal exhaustion: keep user here. Resend stays reachable and the
+        // server resets the counter on a fresh send.
+        message.error("Too many incorrect attempts. Please request a new OTP.");
       } else {
         const remaining = MAX_OTP_ATTEMPTS - currentAttempts;
         message.error(error.message || `Incorrect OTP. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`);
@@ -202,16 +227,17 @@ export default function OtpVerificationPage() {
     try {
       const data = await forgotPassword(email);
 
-      // A re-send mints a brand new OTP and reset token that are only
-      // delivered through the new email link, so the current link is
-      // invalidated. Clear local state and send the user back so they use
-      // the freshly emailed link.
-      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
+      // Re-send mints a new single-use reset token (returned directly, no
+      // emailed link). Store it and reset local verification state.
+      if (typeof data?.token === "string" && data.token) {
+        sessionStorage.setItem(STORAGE_KEYS.resetToken, data.token);
+      }
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
+      setAttempts(0);
 
-      // The server is the source of truth for how many send requests were
-      // consumed. Fall back to the local mirror only when it does not report.
+      // Server is source of truth for send request count; fall back to local
+      // mirror only when it doesn't report.
       const now = Date.now();
       const windowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart));
       const withinRequestWindow =
@@ -227,12 +253,22 @@ export default function OtpVerificationPage() {
         sessionStorage.setItem(STORAGE_KEYS.resetOtpWindowStart, String(now));
       }
       sessionStorage.setItem(STORAGE_KEYS.resetOtpSentAt, String(now));
+      // Restart the countdown to match the fresh OTP that was just sent.
+      deadlineRef.current = now + OTP_EXPIRY_SECONDS * 1000;
+      setTimeLeft(OTP_EXPIRY_SECONDS);
+      setOtp(Array(OTP_LENGTH).fill(""));
+      otpInputRef.current?.focusFirst();
 
-      message.success(
-        "A new OTP has been sent. Please use the new link from your email."
-      );
-      setTimeout(() => router.replace(ROUTE_PATHS.forgotPassword), 600);
+      message.success("A new OTP has been sent to your email.");
     } catch (error: any) {
+      if (error?.code === "RATE_LIMITED") {
+        message.error(error.message || "Too many requests. Please try again later.");
+        clearResetFlow();
+        setTimeout(() => {
+          router.replace(ROUTE_PATHS.login);
+        }, 1000);
+        return;
+      }
       message.error(error.message || "Failed to resend OTP. Please try again.");
     } finally {
       setIsResending(false);
@@ -245,6 +281,7 @@ export default function OtpVerificationPage() {
 
   return (
     <AuthCard>
+        {isVerifying && <PageLoading />}
         <Flex vertical align="center">
           <Text strong className="auth-card-title">
             Enter Your OTP
@@ -265,6 +302,10 @@ export default function OtpVerificationPage() {
             <Text className="otp-timer">
               OTP expires in <Text strong type="success">{formatTime(timeLeft)}</Text>
             </Text>
+          ) : sendAttempts >= MAX_OTP_ATTEMPTS ? (
+            <Text type="danger" className="otp-timer">
+              Maximum OTP requests reached. Please try again later.
+            </Text>
           ) : (
             <Text type="danger" className="otp-timer">
               OTP has expired.
@@ -272,7 +313,7 @@ export default function OtpVerificationPage() {
           )}
 
           {attempts > 0 && !verificationBlocked && (
-            <Text type="warning" className="otp-timer">
+            <Text type="danger" className="otp-timer">
               {MAX_OTP_ATTEMPTS - attempts} attempt{MAX_OTP_ATTEMPTS - attempts === 1 ? "" : "s"} remaining
             </Text>
           )}
@@ -297,15 +338,24 @@ export default function OtpVerificationPage() {
           <Button
             type="link"
             block
-            disabled={isResending || isVerifying || !expired}
+            disabled={isResending || isVerifying || !canResend}
             onClick={handleResend}
-            style={{ marginTop: 18 }}
+            style={{ marginTop: 18, color: (isResending || isVerifying || !canResend) ? "#b0b0b0" : "#54b226" }}
           >
-            {isResending ? "Sending..." : expired ? "Resend OTP" : `Resend OTP in ${formatTime(timeLeft)}`}
+            {isResending ? "Sending..." : "Resend OTP"}
           </Button>
 
-          <Button type="link" block onClick={() => router.push(ROUTE_PATHS.forgotPassword)}>
-            ← Back
+          <Button
+            type="link"
+            block
+            onClick={() => {
+              // Leaving the flow for a non-auth page ends it.
+              clearResetFlow();
+              router.push(ROUTE_PATHS.home);
+            }}
+            style={{ color: "#54b226" }}
+          >
+            Back
           </Button>
         </Flex>
     </AuthCard>

@@ -1,10 +1,15 @@
-import type { KeyboardEvent } from "react";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 
 // Prevents spaces being typed into text/password inputs.
 export const preventSpaces = (
   e: KeyboardEvent<HTMLInputElement>
 ): void => {
   if (e.key === " ") e.preventDefault();
+};
+
+// Prevents pasting into text/password inputs.
+export const preventPaste = (e: ClipboardEvent<HTMLInputElement>): void => {
+  e.preventDefault();
 };
 
 // No-op subscribe helper for `useSyncExternalStore` when only the snapshot

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
-import { Typography, Card, Space, Table, Button, Spin, Modal, App as AntApp } from 'antd';
+import { Typography, Card, Space, Table, Button, App as AntApp } from 'antd';
 import dayjs from 'dayjs';
 import {
   PlayCircleOutlined,
@@ -9,22 +9,25 @@ import {
   FileTextOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminLayout } from '@/layouts/admin-layout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import PageLoading from '@/components/common/page-loading';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { selectVideoUploads } from '@/redux/videoUpload/selectors';
-import VideoStatusTag from '@/components/video/VideoStatusTag';
+import VideoStatusTag from '@/components/video/video-status-tag';
 import {
   fetchDashboardStats,
   fetchRecentBlogs,
   fetchRecentFaqs,
   fetchRecentVideos,
-} from '@/redux/dashboard/dashboardSlice';
+} from '@/redux/dashboard/dashboard-slice';
 import { selectDashboard, selectDashboardError } from '@/redux/dashboard/selectors';
-import { useCurrentUser } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/use-auth';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
-import { mediaUrl } from '@/utils/media';
-import defaultThumbnail from '@/assets/default.jpg';
+import { notifyFailedVideos } from '@/utils/video-failure';
+import { mediaUrl, contentThumbnail } from '@/utils/media';
+import { ViewFAQModal } from '@/components/common/view-faq-modal';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 
@@ -41,22 +44,24 @@ interface TableItem {
   videoUrl?: string;
 }
 
+const validTabs = ['Video', 'Blog', 'FAQs'] as const;
+
 const Dashboard = () => {
   const router = useRouter();
-  const { message } = AntApp.useApp();
+  const { message, notification } = AntApp.useApp();
   const dispatch = useAppDispatch();
   const storedUser = useCurrentUser();
   const rawAdminName = storedUser?.fullName || storedUser?.username || 'Admin';
   const adminDisplayName = rawAdminName.charAt(0).toUpperCase() + rawAdminName.slice(1);
   const [activeTab, setActiveTab] = useState('Video');
   const [viewingFaq, setViewingFaq] = useState<TableItem | null>(null);
+  const dashboardClamp = useClampedRows();
 
-  const { stats, recentVideos, recentBlogs, recentFaqs, loading, faqsLoading } =
+  const { stats, recentVideos, recentBlogs, recentFaqs, purgedVideos, loading, faqsLoading } =
     useAppSelector(selectDashboard);
   const dashboardError = useAppSelector(selectDashboardError);
 
   const shownErrorRef = React.useRef<string | null>(null);
-  const uploads = useAppSelector(selectVideoUploads);
 
   useEffect(() => {
     if (dashboardError && dashboardError !== shownErrorRef.current) {
@@ -64,6 +69,41 @@ const Dashboard = () => {
       message.error('Could not load dashboard data.');
     }
   }, [dashboardError, message]);
+
+  // Failed videos that the backend purged on the last recent-videos fetch.
+  // Pop once per entry; the row itself is already deleted server-side.
+  useEffect(() => {
+    if (purgedVideos.length) {
+      notifyFailedVideos(notification, purgedVideos);
+    }
+  }, [purgedVideos, notification]);
+
+  const sectionScrolledRef = React.useRef(false);
+
+  useEffect(() => {
+    if (sectionScrolledRef.current) return;
+    const section = router.query.section as string | undefined;
+    if (section && router.isReady) {
+      sectionScrolledRef.current = true;
+      requestAnimationFrame(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [router.query.section, router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query.tab;
+    if (typeof q === 'string') {
+      const match = validTabs.find(t => t.toLowerCase() === q.toLowerCase());
+      if (match) {
+        // Deferred so the state update does not cascade synchronously from an
+        // effect; manual tab clicks always win until the query changes.
+        const frame = requestAnimationFrame(() => setActiveTab(match));
+        return () => cancelAnimationFrame(frame);
+      }
+    }
+  }, [router.query.tab, router.isReady]);
 
   useEffect(() => {
     if (activeTab === 'Video') {
@@ -92,10 +132,9 @@ const Dashboard = () => {
     if (activeTab === 'Video') {
       // Show recently uploaded videos, but drop entries that failed so they
       // don't linger as failures in the "recently uploaded" list.
-      return recentVideos.filter((record) => {
-        const status = uploads[record.key]?.status || record.processingStatus;
-        return status !== 'failed';
-      });
+      return recentVideos.filter(
+        (record) => record.processingStatus !== 'failed'
+      );
     }
     if (activeTab === 'Blog') return recentBlogs;
     return recentFaqs.map((faq) => ({
@@ -108,7 +147,7 @@ const Dashboard = () => {
       question: faq.question,
       answer: faq.answer,
     }));
-  }, [activeTab, recentVideos, recentBlogs, recentFaqs, uploads]);
+  }, [activeTab, recentVideos, recentBlogs, recentFaqs]);
 
   const tableColumns = [
     {
@@ -117,26 +156,21 @@ const Dashboard = () => {
       key: 'title',
       width: '38%',
       render: (text: string, record: TableItem) => {
-        const status =
-          uploads[record.key]?.status ||
-          (record as TableItem & { processingStatus?: string }).processingStatus;
+        const status = (record as TableItem & { processingStatus?: string }).processingStatus;
         return (
-          <Space>
-            {activeTab !== 'FAQs' &&
-              (record.thumbnailUrl ? (
+          <Space size="middle">
+            {activeTab !== 'FAQs' && (
                 <img
-                  src={mediaUrl(record.thumbnailUrl)}
+                  src={contentThumbnail(record.thumbnailUrl)}
                   alt={text}
                   style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
                 />
-              ) : (
-                <img
-                  src={defaultThumbnail.src}
-                  alt={text}
-                  style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
-                />
-              ))}
-            <Text strong style={{ color: '#000' }}>{text}</Text>
+              )}
+            <ClampedCellText
+              text={text}
+              expanded={dashboardClamp.isExpanded(record.key)}
+              onToggle={() => dashboardClamp.toggle(record.key)}
+            />
             {activeTab === 'Video' && status && status !== 'ready' && (
               <VideoStatusTag status={status as any} />
             )}
@@ -156,7 +190,7 @@ const Dashboard = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: '18%',
-      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD MMM YYYY')}</Text>
+      render: (text: string) => <Text style={{ color: '#000' }}>{dayjs(text).format('DD/MM/YY')}</Text>
     },
     {
       title: 'Created By',
@@ -172,8 +206,7 @@ const Dashboard = () => {
       render: (_: unknown, record: TableItem) => {
         const status =
           activeTab === 'Video'
-            ? uploads[record.key]?.status ||
-              (record as TableItem & { processingStatus?: string })
+            ? (record as TableItem & { processingStatus?: string })
                 .processingStatus
             : undefined;
         const processing = status && status !== 'ready' && status !== 'failed';
@@ -191,14 +224,15 @@ const Dashboard = () => {
                 sessionStorage.setItem(
                   VIDEO_PREVIEW_STORAGE_KEY,
                   JSON.stringify({
+                    id: record.key,
                     title: record.title,
                     description: record.description || '',
                     src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
                   })
                 );
-                router.push(ROUTE_PATHS.videoPreview);
+                router.push(`${ROUTE_PATHS.videoPreview}?from=dashboard&section=recently-uploaded&tab=video`);
               } else {
-                router.push(ROUTE_PATHS.blogs);
+                router.push(`${ROUTE_PATHS.blogPreview}?id=${record.key}&from=dashboard&section=recently-uploaded&tab=blog`);
               }
             }}
           />
@@ -218,8 +252,8 @@ const Dashboard = () => {
       </div>
 
       {/* SUMMARY CARDS */}
-      <Spin spinning={loading}>
-        <div className="dash-summary-row">
+      {loading && <PageLoading />}
+      <div className="dash-summary-row">
           {summaryCards.map((card, index) => (
             <Card
               key={index}
@@ -255,7 +289,6 @@ const Dashboard = () => {
             </Card>
           ))}
         </div>
-      </Spin>
 
       {/* QUICK ACTIONS */}
       <div className="dash-section-title">Quick action</div>
@@ -282,7 +315,7 @@ const Dashboard = () => {
       </div>
 
       {/* RECENTLY UPLOADED CONTENT */}
-      <div className="dash-section-title">Recently uploaded content</div>
+      <div id="recently-uploaded" className="dash-section-title">Recently uploaded content</div>
       <div className="dash-recent-box">
 
         <div className="dash-tabs">
@@ -297,11 +330,13 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {(loading || faqsLoading) && <PageLoading />}
+
         <Table
           columns={tableColumns}
           dataSource={activeRecentData}
           rowKey="key"
-          loading={activeTab === 'FAQs' ? faqsLoading : loading}
+          loading={false}
           pagination={false}
           bordered={false}
           tableLayout="fixed"
@@ -312,43 +347,12 @@ const Dashboard = () => {
       </div>
 
       {/* VIEW FAQ MODAL */}
-      <Modal
-        title="View FAQ"
+      <ViewFAQModal
         open={Boolean(viewingFaq)}
-        onCancel={() => setViewingFaq(null)}
-        footer={null}
-        width={736}
-        centered
-        maskStyle={{
-          backdropFilter: 'blur(6px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.2)',
-        }}
-        styles={{ body: { borderRadius: '12px', padding: '24px' } }}
-      >
-        {viewingFaq && (
-          <div>
-            <div className="faqs-create-block">
-              <Text className="faqs-create-preview-label faqs-create-preview-label-q">
-                Question
-              </Text>
-              <Text strong className="faqs-create-preview-question">
-                {viewingFaq.question}
-              </Text>
-            </div>
-
-            <div className="faqs-create-preview-answer-block">
-              <Text className="faqs-create-preview-label">
-                Answer
-              </Text>
-            </div>
-            <div className="faqs-create-preview-answer-box">
-              <Text className="faqs-create-preview-answer">
-                {viewingFaq.answer}
-              </Text>
-            </div>
-          </div>
-        )}
-      </Modal>
+        question={viewingFaq?.question}
+        answer={viewingFaq?.answer}
+        onClose={() => setViewingFaq(null)}
+      />
     </AdminLayout>
   );
 };

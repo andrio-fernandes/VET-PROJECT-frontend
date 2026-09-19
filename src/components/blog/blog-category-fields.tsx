@@ -1,0 +1,113 @@
+// =============================================
+// BLOG CATEGORY FIELDS
+//
+// "Select module and categories" section of the Create Blog form: the Module
+// and Feature dropdowns, wired to React Hook Form via its Controller.
+// =============================================
+
+import React from 'react';
+import { Controller, useWatch } from 'react-hook-form';
+import type { Control, UseFormSetValue } from 'react-hook-form';
+import { Divider, Select, Typography } from 'antd';
+
+import { useModuleCategories } from '@/hooks/use-module-categories';
+import { RequiredLabel } from '@/components/blog/required-label';
+import type { BlogFormValues } from '@/hooks/use-blog-draft';
+
+const { Title, Text } = Typography;
+
+interface BlogCategoryFieldsProps {
+  control: Control<BlogFormValues>;
+  trackChange: (setter: (value: unknown) => void) => (value: unknown) => void;
+  setValue: UseFormSetValue<BlogFormValues>;
+}
+
+export const BlogCategoryFields: React.FC<BlogCategoryFieldsProps> = ({
+  control,
+  trackChange,
+  setValue,
+}) => {
+  const selectedModule = useWatch({ control, name: 'module' });
+  const { modules, categories } = useModuleCategories();
+
+  // On module change, clear the previously selected category (same as FAQ page).
+  const moduleChange = (setter: (value: unknown) => void) => (value: unknown) => {
+    setter(value);
+    setValue('category', '', { shouldDirty: true });
+  };
+
+  return (
+    <>
+    <Title level={5} className="create-section-label">
+      Select the module and categories <span className="create-required">*</span>
+    </Title>
+    <Text type="secondary" className="create-hint">
+      Select the module where the blog should be placed
+    </Text>
+
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
+        <Controller
+          name="module"
+          control={control}
+          rules={{ required: 'Please select a module' }}
+          render={({ field, fieldState }) => (
+            <>
+              <RequiredLabel label="Module" />
+              <Select
+                id="blog-module"
+                {...field}
+                value={field.value || undefined}
+                onChange={trackChange(moduleChange(field.onChange))}
+                options={modules.map((m) => ({ value: m, label: m }))}
+                placeholder="Select module"
+                size="large"
+                status={fieldState.error ? 'error' : undefined}
+                style={{ width: '100%' }}
+                className="create-select"
+              />
+              {fieldState.error && (
+                <div className="blog-field-error">{fieldState.error.message}</div>
+              )}
+            </>
+          )}
+        />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
+        <Controller
+          name="category"
+          control={control}
+          rules={{ required: 'Please select a category' }}
+          render={({ field, fieldState }) => (
+            <>
+              <RequiredLabel label="Category" />
+              <Select
+                id="blog-category"
+                {...field}
+                value={field.value || undefined}
+                onChange={trackChange(field.onChange)}
+                options={(selectedModule ? (categories[selectedModule] ?? []) : []).map((c: string) => ({
+                  value: c,
+                  label: c,
+                }))}
+                placeholder={selectedModule ? 'Select category' : 'Select a module first'}
+                disabled={!selectedModule}
+                size="large"
+                status={fieldState.error ? 'error' : undefined}
+                style={{ width: '100%' }}
+                className="create-select"
+              />
+              {fieldState.error && (
+                <div className="blog-field-error">{fieldState.error.message}</div>
+              )}
+            </>
+          )}
+        />
+      </div>
+    </div>
+
+    <Divider className="create-divider" />
+  </>
+  );
+};

@@ -16,26 +16,6 @@ $blog-divider: #e8e8e8;
 $blog-bg: #fbfbfb;
 
 // ------------------------------------------------------------
-// Blog page shell (sidebar + main content column)
-// ------------------------------------------------------------
-.blog-page {
-  height: 100vh;
-  overflow: hidden;
-  background-color: $blog-bg;
-}
-
-.blog-main {
-  height: 100vh;
-  overflow-y: auto;
-  padding: 32px 40px 48px 40px;
-}
-
-.blog-content {
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-// ------------------------------------------------------------
 // Page header (back + icon + title)
 // ------------------------------------------------------------
 .blog-page-header {
@@ -71,51 +51,6 @@ $blog-bg: #fbfbfb;
   }
 }
 
-.blog-page-header-subtitle {
-  display: block;
-}
-
-// ------------------------------------------------------------
-// Content card wrapper
-// ------------------------------------------------------------
-.blog-card {
-  background-color: #ffffff;
-  border: 1px solid $blog-divider;
-  border-radius: 12px;
-}
-
-// ------------------------------------------------------------
-// Form sections
-// ------------------------------------------------------------
-.blog-section-label {
-  font-weight: 600;
-  font-size: 17px;
-  color: #262626;
-}
-
-.ant-typography.blog-field-label,
-.ant-typography.blog-section-hint {
-  display: block;
-}
-
-.blog-field-label {
-  font-weight: 600;
-}
-
-.blog-section-hint {
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-
-.blog-required {
-  color: red;
-}
-
-.blog-divider,
-div.blog-divider.ant-divider {
-  margin: 32px 0 24px 0;
-}
-
 // ------------------------------------------------------------
 // Buttons
 // ------------------------------------------------------------
@@ -124,11 +59,6 @@ div.blog-divider.ant-divider {
   color: $blog-green;
   border-radius: 6px;
   padding: 0 32px;
-}
-
-.ant-btn.blog-green-button {
-  background-color: $blog-green;
-  border-radius: 6px;
 }
 
 // ------------------------------------------------------------
@@ -298,118 +228,6 @@ div.blog-divider.ant-divider {
 }
 
 // ------------------------------------------------------------
-// Blog list rows
-// ------------------------------------------------------------
-.blog-list-row-link {
-  display: block;
-  width: 100%;
-  text-decoration: none;
-  color: inherit;
-}
-
-.blog-list-description {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.blog-list-thumb {
-  width: 120px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  flex-shrink: 0;
-  display: block;
-}
-
-.blog-list-thumb-placeholder {
-  width: 120px;
-  height: 80px;
-  background-color: #f6ffed;
-  border-radius: 8px;
-  border: 1px solid #b7eb8f;
-  flex-shrink: 0;
-}
-
-// ------------------------------------------------------------
-// All Blogs table rows
-// ------------------------------------------------------------
-.blogs-table-row {
-  td {
-    border-bottom: 1px solid $blog-divider;
-    padding: 16px !important;
-  }
-
-  &:last-child td {
-    border-bottom: none;
-  }
-
-  &:hover td {
-    background-color: #fbfbfb !important;
-  }
-}
-
-// ------------------------------------------------------------
-// Attachment viewer (dedicated tab opened from the blog preview page)
-// ------------------------------------------------------------
-.blog-attachment-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #ffffff;
-}
-
-.blog-attachment-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1px solid $blog-divider;
-  flex-shrink: 0;
-
-  .blog-attachment-topbar-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    flex: 1;
-  }
-}
-
-.blog-attachment-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.blog-attachment-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  height: 100%;
-  min-height: 240px;
-  flex-grow: 1;
-  padding: 48px 24px;
-  text-align: center;
-}
-
-// The viewer's own container fills the body (the lib renders an internal
-// scroll surface, so overflow is hidden at this level).
-.blog-attachment-body {
-  & > div {
-    flex: 1;
-    min-height: 0;
-  }
-}
-
-// ------------------------------------------------------------
 // Inline image crop + scale modal (BlogImageEditorModal)
 // ------------------------------------------------------------
 .bie-box-wrap {
@@ -455,24 +273,3 @@ div.blog-divider.ant-divider {
 .bie-handle-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
 .bie-handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
 .bie-handle-w  { top: 50%; left: -6px; transform: translateY(-50%); cursor: ew-resize; }
-
-.bie-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.bie-control-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.bie-control-label {
-  width: 96px;
-  flex-shrink: 0;
-}
-
-.bie-fit-btn {
-  margin-left: auto;
-}

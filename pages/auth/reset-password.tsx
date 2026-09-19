@@ -2,13 +2,15 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
-import { resetPassword } from "@/services/authService";
+import { resetPassword } from "@/services/auth-service";
 import { passwordRules } from "@/utils/validation";
-import { clearSession } from "@/hooks/useAuth";
-import { ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
+import { clearSession } from "@/hooks/use-auth";
+import { ROUTE_PATHS, STORAGE_KEYS, PASSWORD_VALIDATOR_RULES } from "@/constants";
+import { clearResetFlow } from "@/utils/reset-flow";
 import PasswordStrength from "@/components/password-strength";
-import AuthCard from "@/components/AuthCard";
-import { preventSpaces, emptySubscribe } from "@/utils/input";
+import AuthCard from "@/components/auth-card";
+import PageLoading from "@/components/common/page-loading";
+import { preventSpaces, preventPaste, emptySubscribe } from "@/utils/input";
 import type { ResetPasswordFormValues } from "@/types/auth";
 
 const { Title, Text } = Typography;
@@ -56,18 +58,21 @@ export default function ResetPasswordPage() {
     try {
       await resetPassword(email, token, values.password);
 
-      sessionStorage.removeItem(STORAGE_KEYS.resetEmail);
-      sessionStorage.removeItem(STORAGE_KEYS.resetToken);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpAttempts);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpWindowStart);
-      sessionStorage.removeItem(STORAGE_KEYS.resetOtpSentAt);
+      // Wipe the flow (email, token, OTP flags) and any active login. After
+      // this the reset token is single-use and consumed, and the fresh
+      // password takes over.
+      clearResetFlow();
       clearSession();
       message.success("Password reset successful!");
       setTimeout(() => router.push(ROUTE_PATHS.login), 600);
     } catch (error: any) {
-      message.error(error.message || "Failed to reset password. Please try again.");
+      if (error?.code === "RATE_LIMITED") {
+        message.error(error.message || "Too many requests. Please try again later.");
+        clearResetFlow();
+        setTimeout(() => router.replace(ROUTE_PATHS.login), 1000);
+      } else {
+        message.error(error.message || "Failed to reset password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +84,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthCard>
+        {loading && <PageLoading />}
         <Title level={3} className="auth-card-title">
           Reset Password
         </Title>
@@ -88,7 +94,7 @@ export default function ResetPasswordPage() {
             label={<Text strong>New Password</Text>}
             name="password"
             required
-            rules={passwordRules}
+            rules={[...passwordRules, ...PASSWORD_VALIDATOR_RULES]}
             extra={<PasswordStrength password={password || ""} />}
           >
             <Input.Password size="large" placeholder="Enter new password" onKeyDown={preventSpaces} />
@@ -114,7 +120,7 @@ export default function ResetPasswordPage() {
               }),
             ]}
           >
-            <Input.Password size="large" placeholder="Confirm password" onKeyDown={preventSpaces} />
+            <Input.Password size="large" placeholder="Confirm password" onKeyDown={preventSpaces} onPaste={preventPaste} />
           </Form.Item>
 
           <Form.Item className="reset-confirm-form-item">

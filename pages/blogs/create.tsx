@@ -1,28 +1,30 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
-import { App as AntApp, Button, Divider, Modal, Spin, Typography } from 'antd';
+import { App as AntApp, Button, Divider, Modal, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '@/components/blog/PageHeader';
-import { ThumbnailUpload } from '@/components/blog/ThumbnailUpload';
-import { AttachmentUpload } from '@/components/blog/AttachmentUpload';
-import { BlogDetailsFields } from '@/components/blog/BlogDetailsFields';
-import { BlogCategoryFields } from '@/components/blog/BlogCategoryFields';
-import { BlogContentField } from '@/components/blog/BlogContentField';
-import { BlogFormActions } from '@/components/blog/BlogFormActions';
+import PageLoading from '@/components/common/page-loading';
+import { CreateContentLayout } from '@/components/common/create/create-content-layout';
+import { CreatePageHeader } from '@/components/common/create/create-page-header';
+import { CreateFormActions } from '@/components/common/create/create-form-actions';
+import { ThumbnailUpload } from '@/components/blog/thumbnail-upload';
+import { AttachmentUpload } from '@/components/blog/attachment-upload';
+import { BlogDetailsFields } from '@/components/blog/blog-details-fields';
+import { BlogCategoryFields } from '@/components/blog/blog-category-fields';
+import { BlogContentField } from '@/components/blog/blog-content-field';
+import { BlogPreviewModal, type BlogPreviewData } from '@/components/blog/blog-preview-modal';
 
 import { GREEN } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
-import { createBlog, getBlogById, updateBlog } from '@/services/blogService';
+import { createBlog, getBlogById, updateBlog } from '@/services/blog-service';
 import { fileNameFromUrl, mediaUrl, parseBlogAttachments } from '@/utils/media';
 import {
   DEFAULT_FORM_VALUES,
   useBlogDraft,
   type BlogFormValues,
-} from '@/hooks/useBlogDraft';
+} from '@/hooks/use-blog-draft';
 
 const { Title, Text } = Typography;
 
@@ -46,6 +48,8 @@ const UploadBlog = () => {
     // stale draft) is never flashed before the real data is seeded.
     return editMode || !router.isReady;
   });
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<BlogPreviewData | null>(null);
 
   // Once the route is resolved and this is a fresh create (not an edit), hide
   // the spinner; the draft restore effect will populate the form if needed.
@@ -57,7 +61,7 @@ const UploadBlog = () => {
     }
   }, [router.isReady, editMode]);
 
-  const { control, handleSubmit, getValues, reset, setValue } = useForm<BlogFormValues>({
+  const { control, handleSubmit, getValues, reset, setValue, trigger, formState } = useForm<BlogFormValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     defaultValues: DEFAULT_FORM_VALUES,
@@ -93,7 +97,11 @@ const UploadBlog = () => {
     resetEditState,
     scheduleDraftSave,
     resetBlogForm,
+    draftAvailable,
+    confirmRestoreDraft,
+    confirmDiscardDraft,
     performNavigation,
+    preparePreviewData,
     handlePreview,
     requestNavigation,
     restoreEditRoundTrip,
@@ -163,6 +171,29 @@ const UploadBlog = () => {
     scheduleDraftSave();
   };
 
+  const handlePreviewModal = async () => {
+    const values = getValues();
+    const hasAnyField = values.title || values.description || values.module || values.category || values.content;
+    if (hasAnyField) {
+      const data = await preparePreviewData();
+      if (data) {
+        setPreviewData(data);
+        setPreviewVisible(true);
+      }
+      return;
+    }
+    const valid = await trigger();
+    if (!valid) {
+      scrollToFirstInvalid();
+      return;
+    }
+    const data = await preparePreviewData();
+    if (data) {
+      setPreviewData(data);
+      setPreviewVisible(true);
+    }
+  };
+
   const onFinish = async (values: BlogFormValues) => {
     setLoading(true);
     try {
@@ -191,7 +222,7 @@ const UploadBlog = () => {
         });
         message.success('Blog created successfully!');
         resetBlogForm();
-        performNavigation(ROUTE_PATHS.blogs);
+        performNavigation(ROUTE_PATHS.adminDashboard);
       }
     } catch (error: any) {
       message.error(error.message || (editMode ? 'Failed to update blog' : 'Failed to create blog'));
@@ -208,17 +239,25 @@ const UploadBlog = () => {
     }
   };
 
+  const BLOG_FIELD_ORDER: (keyof BlogFormValues)[] = [
+    'title',
+    'description',
+    'module',
+    'category',
+    'content',
+  ];
+
   // RHF passes the errors object when submit validation fails. Scroll to the
   // first invalid field, in document order.
   const onInvalid = (errors: FieldErrors<BlogFormValues>) => {
-    const order: (keyof BlogFormValues)[] = [
-      'title',
-      'description',
-      'module',
-      'category',
-      'content',
-    ];
-    const firstKey = order.find((key) => errors[key]);
+    const firstKey = BLOG_FIELD_ORDER.find((key) => errors[key]);
+    if (firstKey) {
+      scrollToField(`blog-${firstKey}`);
+    }
+  };
+
+  const scrollToFirstInvalid = () => {
+    const firstKey = BLOG_FIELD_ORDER.find((key) => formState.errors[key]);
     if (firstKey) {
       scrollToField(`blog-${firstKey}`);
     }
@@ -226,25 +265,33 @@ const UploadBlog = () => {
 
   const submit = handleSubmit(onFinish, onInvalid);
   return (
-    <AdminLayout onNavigate={requestNavigation}>
-      <div style={{ padding: '32px', backgroundColor: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-        <div style={{ width: '100%' }}>
-          <div className="blog-content" style={{ maxWidth: '100%' }}>
-          <PageHeader
-            backHref={ROUTE_PATHS.blogs}
+    <CreateContentLayout
+      onNavigate={requestNavigation}
+      pageClassName="create-page"
+      innerClassName="create-inner"
+      restoreDraft={{
+        open: draftAvailable,
+        noun: 'blog draft',
+        onRestore: confirmRestoreDraft,
+        onDiscard: confirmDiscardDraft,
+      }}
+    >
+          <CreatePageHeader
+            wrapperClassName="create-header"
+            bodyClassName="create-header-body"
+            titleClassName="create-header-title"
+            backHref={ROUTE_PATHS.adminDashboard}
             backOnClick={(event) => {
               event.preventDefault();
-              requestNavigation(ROUTE_PATHS.blogs);
+              requestNavigation(ROUTE_PATHS.adminDashboard);
             }}
             title={editMode ? 'Edit Blog' : 'Create New Blog'}
-            showBack={false}
+            showBack={true}
           />
 
-          <div className="blog-card" style={{ padding: '32px', borderRadius: '12px' }}>
+          <div className="create-card">
             {seeding ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-                <Spin size="large" />
-              </div>
+              <PageLoading />
             ) : (
               <form onSubmit={submit}>
                 <BlogDetailsFields control={control} trackChange={trackChange} />
@@ -252,10 +299,10 @@ const UploadBlog = () => {
                 <BlogCategoryFields control={control} trackChange={trackChange} setValue={setValue} />
 
                 <div id="blog-thumbnail">
-                  <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
+                  <Title level={5} className="create-section-label">
                     Upload Thumbnail
                   </Title>
-                  <Text type="secondary" className="blog-section-hint">
+                  <Text type="secondary" className="create-hint">
                     Upload a thumbnail image for your blog. A default image is
                     shown if you skip this.
                   </Text>
@@ -269,14 +316,14 @@ const UploadBlog = () => {
                   />
                 </div>
 
-                <Divider className="blog-divider" />
+                <Divider className="create-divider" />
 
                 <BlogContentField control={control} trackChange={trackChange} />
 
-                <Title level={5} className="blog-section-label" style={{ margin: '0 0 2px 0' }}>
+                <Title level={5} className="create-section-label">
                   Attachment
                 </Title>
-                <Text type="secondary" className="blog-section-hint">
+                <Text type="secondary" className="create-hint">
                   Upload file required in this blog
                 </Text>
 
@@ -289,20 +336,21 @@ const UploadBlog = () => {
                   onRemoveExisting={handleExistingAttachmentRemove}
                 />
 
-                <Divider className="blog-divider" />
+                <Divider className="create-divider" />
 
-                <BlogFormActions
-                  handlePreview={handlePreview}
+                <CreateFormActions
+                  onPreview={handlePreviewModal}
                   onCancel={() => requestNavigation(editMode ? ROUTE_PATHS.blogs : ROUTE_PATHS.adminDashboard)}
                   loading={loading}
                   submitLabel={editMode ? 'Save Changes' : 'Create'}
+                  previewButtonClassName="create-btn-preview"
+                  cancelDanger
+                  cancelButtonClassName="create-btn-cancel"
+                  submitButtonClassName="create-btn-create"
                 />
               </form>
             )}
           </div>
-        </div>
-        </div>
-      </div>
 
       {/* UNSAVED BLOG DRAFT CONFIRMATION */}
       <Modal
@@ -329,7 +377,17 @@ const UploadBlog = () => {
       >
         <Text>Do you want to save this blog as a draft?</Text>
       </Modal>
-    </AdminLayout>
+
+      {/* BLOG PREVIEW MODAL */}
+      <BlogPreviewModal
+        open={previewVisible}
+        data={previewData}
+        onClose={() => {
+          setPreviewVisible(false);
+          setPreviewData(null);
+        }}
+      />
+    </CreateContentLayout>
   );
 };
 

@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Button, Card, Flex, Form, Input, App as AntApp, Grid } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { login } from '@/services/authService';
-import { storeSession } from '@/hooks/useAuth';
+import { login } from '@/services/auth-service';
+import { storeSession } from '@/hooks/use-auth';
 import { ROUTE_PATHS } from '@/constants';
 import { preventSpaces } from '@/utils/input';
+import PageLoading from '@/components/common/page-loading';
 
 const { useBreakpoint } = Grid;
 
@@ -36,7 +37,7 @@ export default function LoginPage() {
       message.success('Logged in successfully!');
       setTimeout(
         () =>
-          router.push(
+          router.replace(
             data.data?.user?.role === 'admin'
               ? ROUTE_PATHS.adminDashboard
               : ROUTE_PATHS.userDashboard
@@ -52,6 +53,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {loading && <PageLoading />}
       <Card className={`login-card${isMobile ? ' login-card-mobile' : ''}`}>
         <Form
           name="login_form"

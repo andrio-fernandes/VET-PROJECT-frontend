@@ -12,9 +12,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// A dead session (no refresh possible) clears every stored credential so
-// stale tokens can't keep "passing" the presence-only auth gates, then
-// sends the user back to login.
+// Clear credentials and redirect to login when session is dead.
 const handleUnauthorized = () => {
   if (typeof window === "undefined") return;
 
@@ -28,9 +26,8 @@ const handleUnauthorized = () => {
   }
 };
 
-// Exchange the refresh token for a new access + refresh pair.
-// Returns the new access token, or null when a re-login is required.
-const refreshSession = async (): Promise<string | null> => {
+// Exchange refresh token for new access token, or null if re-login required.
+export const refreshSession = async (): Promise<string | null> => {
   if (typeof window === "undefined") return null;
 
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -60,6 +57,46 @@ const refreshSession = async (): Promise<string | null> => {
   }
 };
 
+// Request helpers
+
+// Build item endpoint: itemEndpoint("/videos", "123") -> "/videos/123"
+export const itemEndpoint = (collection: string, id: string): string =>
+  `${collection}/${id}`;
+
+// Get nested resource from API response (supports legacy envelope).
+export const getNested = <T = any>(data: any, key: string): T | null =>
+  data?.[key] ?? data?.data?.[key] ?? null;
+
+// Serialize request body: FormData passes through, else JSON.
+const jsonify = (body?: unknown): BodyInit | undefined => {
+  if (body === undefined || body === null) return undefined;
+  if (typeof FormData !== "undefined" && body instanceof FormData) return body;
+  return JSON.stringify(body);
+};
+
+export const get = (endpoint: string, options?: RequestInit) =>
+  api(endpoint, options);
+
+export const post = (endpoint: string, body?: unknown) =>
+  api(endpoint, { method: "POST", body: jsonify(body) });
+
+export const put = (endpoint: string, body?: unknown) =>
+  api(endpoint, { method: "PUT", body: jsonify(body) });
+
+export const del = (endpoint: string) => api(endpoint, { method: "DELETE" });
+
+// Build query string, skipping undefined/empty/"All" values.
+export const buildQuery = (
+  params: Record<string, string | number | undefined>
+): string => {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === "All") continue;
+    query.set(key, String(value));
+  }
+  return query.toString();
+};
+
 // Single-flight: parallel requests that all hit a 401 share one refresh call.
 let refreshInFlight: Promise<string | null> | null = null;
 
@@ -71,8 +108,7 @@ export const api = async (
   const token =
     typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
-  // FormData bodies (file uploads) must keep the browser-generated
-  // multipart boundary, so the JSON content-type is skipped for them.
+  // Skip JSON content-type for FormData to preserve multipart boundary.
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;
 
@@ -93,9 +129,7 @@ export const api = async (
   }
 
   if (!response.ok) {
-    // Access token expired: try to refresh once and replay the request.
-    // Auth endpoints are excluded - their 401s are credential errors
-    // (e.g. wrong password), not session errors.
+    // On 401 (non-auth endpoint): refresh token and retry request.
     if (
       response.status === 401 &&
       !isRetry &&
@@ -119,10 +153,14 @@ export const api = async (
 
     const error = new Error(
       data?.message || "Something went wrong"
-    ) as Error & { remaining?: number };
+    ) as Error & { remaining?: number; code?: string };
 
     if (typeof data?.remaining === "number") {
       error.remaining = data.remaining;
+    }
+
+    if (typeof data?.code === "string") {
+      error.code = data.code;
     }
 
     throw error;
@@ -131,106 +169,3 @@ export const api = async (
   return data;
 };
 
-// Progress-aware file upload. `fetch` has no upload progress events, so this
-// uses XMLHttpRequest (which exposes xhr.upload.onprogress) for multipart
-// uploads such as videos. Shares the same auth header, token-refresh single-
-// flight, and error normalization as `api`, and reports upload percentage via
-// `onProgress`. Also logs timing so we can tell transfer time apart from
-// server-side processing time.
-export const uploadWithProgress = (
-  endpoint: string,
-  formData: FormData,
-  onProgress?: (percent: number, loaded: number, total: number) => void,
-  onTransferComplete?: () => void
-): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-
-    const transferStart = performance.now();
-
-    const request = (authToken: string | null) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${API_URL}${endpoint}`);
-
-      if (authToken) {
-        xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
-      }
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable && onProgress) {
-          onProgress(
-            Math.round((e.loaded / e.total) * 100),
-            e.loaded,
-            e.total
-          );
-        }
-      };
-
-      // Fires when the request body has been fully sent to the server.
-      xhr.upload.onload = () => {
-        console.warn(
-          `[upload] ALL BYTES SENT (pure transfer) in ${(performance.now() - transferStart).toFixed(0)}ms`
-        );
-        if (onTransferComplete) {
-          onTransferComplete();
-        }
-      };
-
-      xhr.onload = () => {
-        const responseAt = performance.now();
-        console.warn(
-          `[upload] full response received in ${(responseAt - transferStart).toFixed(0)}ms`
-        );
-
-        let data: any = null;
-        try {
-          data = JSON.parse(xhr.responseText);
-        } catch {
-          data = null;
-        }
-
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(data);
-          return;
-        }
-
-        if (
-          xhr.status === 401 &&
-          typeof window !== "undefined" &&
-          !window.location.pathname.startsWith("/auth")
-        ) {
-          refreshInFlight =
-            refreshInFlight ||
-            refreshSession().finally(() => {
-              refreshInFlight = null;
-            });
-
-          refreshInFlight.then((newToken) => {
-            if (newToken) {
-              request(newToken);
-            } else {
-              handleUnauthorized();
-              reject(new Error(data?.message || "Something went wrong"));
-            }
-          });
-          return;
-        }
-
-        const error = new Error(
-          data?.message || "Something went wrong"
-        ) as Error & { remaining?: number };
-        if (typeof data?.remaining === "number") {
-          error.remaining = data.remaining;
-        }
-        reject(error);
-      };
-
-      xhr.onerror = () => reject(new Error("Network error"));
-      xhr.onabort = () => reject(new Error("Upload aborted"));
-      xhr.send(formData);
-    };
-
-    request(token);
-  });
-};
