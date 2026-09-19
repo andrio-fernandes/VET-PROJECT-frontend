@@ -102,11 +102,18 @@ export function ViewAllTable<T>({
   };
 
   const handleFilterApply = () => {
-    if (tempModule !== moduleFilter) {
+    const moduleChanged = tempModule !== moduleFilter;
+    const categoryChanged = tempCategory !== categoryFilter;
+    if (moduleChanged) {
       onModuleChange(tempModule);
     }
-    if (tempCategory !== categoryFilter) {
+    if (categoryChanged) {
       onCategoryChange(tempCategory);
+    }
+    // Applying a filter overrides any active search (last change wins).
+    if (localSearch && (moduleChanged || categoryChanged)) {
+      setLocalSearch('');
+      onSearchChange?.('');
     }
     setFilterOpen(false);
   };

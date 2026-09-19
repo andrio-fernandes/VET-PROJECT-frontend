@@ -79,7 +79,11 @@ const UserDashboardPage = () => {
       const normalized = q.toLowerCase();
       if (['video', 'blog', 'faqs'].includes(normalized)) {
         const match = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-        setActiveTab(match === 'Faqs' ? 'FAQs' : match);
+        const value = match === 'Faqs' ? 'FAQs' : match;
+        // Deferred so the state update does not cascade synchronously from an
+        // effect; manual tab clicks always win until the query changes.
+        const frame = requestAnimationFrame(() => setActiveTab(value));
+        return () => cancelAnimationFrame(frame);
       }
     }
   }, [router.query.tab, router.isReady]);

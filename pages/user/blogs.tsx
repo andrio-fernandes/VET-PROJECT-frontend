@@ -170,6 +170,7 @@ const UserBlogs = () => {
         searchQuery={searchQuery}
         onSearchChange={(val) => {
           setSearchQuery(val);
+          if (val) onModuleChange('All');
           setLoading(true);
         }}
       />

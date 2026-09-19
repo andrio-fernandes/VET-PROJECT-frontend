@@ -96,7 +96,12 @@ const Dashboard = () => {
     const q = router.query.tab;
     if (typeof q === 'string') {
       const match = validTabs.find(t => t.toLowerCase() === q.toLowerCase());
-      if (match) setActiveTab(match);
+      if (match) {
+        // Deferred so the state update does not cascade synchronously from an
+        // effect; manual tab clicks always win until the query changes.
+        const frame = requestAnimationFrame(() => setActiveTab(match));
+        return () => cancelAnimationFrame(frame);
+      }
     }
   }, [router.query.tab, router.isReady]);
 

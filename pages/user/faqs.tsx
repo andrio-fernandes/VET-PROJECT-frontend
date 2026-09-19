@@ -152,6 +152,7 @@ const UserFaqs = () => {
         searchQuery={searchQuery}
         onSearchChange={(val) => {
           setSearchQuery(val);
+          if (val) onModuleChange('All');
           setLoading(true);
         }}
         extra={
