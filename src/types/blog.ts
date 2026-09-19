@@ -14,15 +14,6 @@ export interface BlogRecord {
   createdAt?: string;
 }
 
-// A single attachment parsed from BlogRecord.attachment. Existing (server-side)
-// attachments carry a URL + original name; newly picked ones are local Files.
-export interface BlogAttachmentRef {
-  name: string;
-  url: string;
-  /** True when this attachment already exists on the server (has a URL). */
-  existing?: boolean;
-}
-
 export interface BlogListItem {
   _id: string;
   title: string;

@@ -5,7 +5,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 const { Text } = Typography;
 
-export const contentColumnWidths = {
+const contentColumnWidths = {
   title: '38%',
   category: '15%',
   createdAt: '18%',
@@ -13,10 +13,10 @@ export const contentColumnWidths = {
   actions: '12%',
 } as const;
 
-export const formatContentCreatedAt = (raw?: string): string =>
+const formatContentCreatedAt = (raw?: string): string =>
   dayjs(raw).format('DD/MM/YY');
 
-export type ContentListNamespace = 'videos' | 'blogs' | 'faqs';
+type ContentListNamespace = 'videos' | 'blogs' | 'faqs';
 
 const MUTED_CLASS: Record<ContentListNamespace, string> = {
   videos: 'videos-cell-muted',

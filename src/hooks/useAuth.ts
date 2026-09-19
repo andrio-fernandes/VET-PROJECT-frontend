@@ -24,7 +24,7 @@ import {
 } from "@/constants";
 import { emptySubscribe } from "@/utils/input";
 
-export interface StoredUser {
+interface StoredUser {
   _id?: string;
   fullName?: string;
   username?: string;
@@ -113,5 +113,4 @@ export {
   clearSession,
   useCurrentUser,
   updateStoredUser,
-  emptySubscribe,
 };

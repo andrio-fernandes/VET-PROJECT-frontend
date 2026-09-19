@@ -130,6 +130,10 @@ useEffect(() => {
             <Input placeholder="Enter your email" allowClear size="large" />
           </Form.Item>
 
+          <Text type="warning" style={{ display: "block", textAlign: "center", fontSize: 12, marginTop: -8, marginBottom: 16 }}>
+            Note: Your email will be blocked for 15 minutes after 5 failed attempts.
+          </Text>
+
           {submitted && otpAttempts > 0 && (
             <Text type="danger" className="forgot-otp-attempts">
               {attemptsRemaining > 0

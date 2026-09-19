@@ -3,16 +3,17 @@
    VIDEO THUMBNAIL UPLOAD
 
    Thumbnail dropzone for the Create/Edit Video form. Validates type and size,
-   then hands a valid file to the caller's onFileChange (the caller owns the
-   state). Shows the newly picked preview, the existing server thumbnail in
-   edit mode, or the default thumbnail.
+   opens a crop modal for 16:9 adjustment, then hands a valid file to the
+   caller's onFileChange (the caller owns the state). Shows the newly picked
+   preview, the existing server thumbnail in edit mode, or the default thumbnail.
    ============================================= */
 
-import React from "react";
+import React, { useState } from "react";
 import { App as AntApp, Button, Form, Upload } from "antd";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { MAX_THUMBNAIL_SIZE } from "@/constants";
 import { contentThumbnail } from "@/utils/media";
+import ThumbnailCropModal from "@/components/common/ThumbnailCropModal";
 
 interface VideoThumbnailUploadProps {
   thumbnail: File | null;
@@ -33,6 +34,28 @@ export const VideoThumbnailUpload: React.FC<VideoThumbnailUploadProps> = ({
 }) => {
   const { message } = AntApp.useApp();
 
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingCropSrc, setPendingCropSrc] = useState<string>("");
+
+  const handleFileSelect = (file: File) => {
+    const url = URL.createObjectURL(file);
+    setPendingCropSrc(url);
+    setCropOpen(true);
+  };
+
+  const handleCropConfirm = (file: File) => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc("");
+    onFileChange(file);
+  };
+
+  const handleCropCancel = () => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc("");
+  };
+
   const beforeUpload = (file: File) => {
     if (!file.type.startsWith("image/")) {
       message.error("Please select an image file for the thumbnail.");
@@ -40,11 +63,11 @@ export const VideoThumbnailUpload: React.FC<VideoThumbnailUploadProps> = ({
     }
 
     if (file.size > MAX_THUMBNAIL_SIZE) {
-      message.error("Thumbnail size must not exceed 5 MB.");
+      message.error("Thumbnail size must not exceed 2 MB.");
       return Upload.LIST_IGNORE;
     }
 
-    onFileChange(file);
+    handleFileSelect(file);
     return false;
   };
 
@@ -118,8 +141,17 @@ export const VideoThumbnailUpload: React.FC<VideoThumbnailUploadProps> = ({
       </Upload.Dragger>
 
       <div className="upload-info">
-        Maximum file 5MB | Supported format: JPG, PNG
+        Maximum file 2MB | Supported format: JPG, PNG | Free crop
       </div>
+
+      {cropOpen && (
+        <ThumbnailCropModal
+          open={cropOpen}
+          imageSrc={pendingCropSrc}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
     </Form.Item>
   );
 };

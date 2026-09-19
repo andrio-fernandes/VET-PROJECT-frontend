@@ -12,7 +12,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { getMyBlogs } from "@/services/blogService";
 import type { BlogListItem } from "@/types/blog";
 
-export interface BlogListState {
+interface BlogListState {
   // Cached list per page so All Blogs and the Dashboard can both read the
   // same page without each keeping its own copy.
   blogsByPage: Record<number, BlogListItem[]>;

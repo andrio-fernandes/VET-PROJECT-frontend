@@ -18,7 +18,7 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 
-import videoThumbnail from '@/assets/default.jpg';
+import videoThumbnail from '@/assets/default.svg';
 import { UserLayout } from '@/layouts/UserLayout';
 import { withAuth } from '@/components/auth/with-auth';
 import PageLoading from '@/components/common/PageLoading';
@@ -199,6 +199,17 @@ const UserDashboardPage = () => {
       });
   }, []);
 
+  // Scroll to a specific section when returning from a preview page.
+  useEffect(() => {
+    const section = router.query.section as string | undefined;
+    if (section && router.isReady) {
+      const timer = setTimeout(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [router.query.section, router.isReady]);
+
   useEffect(() => {
     const load = async () => {
       if (activeTab === 'Video') await fetchVideoLibrary();
@@ -216,7 +227,7 @@ const UserDashboardPage = () => {
       : recentFaqs;
 
   const contentType = activeTab === 'Video' ? 'video' : activeTab === 'Blog' ? 'blog' : 'faq';
-  const { isNew } = useNewBadge(contentType, activeRecentData.map(d => ({ _id: d.key, isNew: d.isNew })));
+  const { isNew, isFading } = useNewBadge(contentType, activeRecentData.map(d => ({ _id: d.key, isNew: d.isNew })));
 
   const libraryViewAll =
     activeTab === 'Video'
@@ -247,7 +258,7 @@ const UserDashboardPage = () => {
                 alt={text}
                 style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }}
               />
-              {isNew(record.key) && <NewBadge />}
+              {isNew(record.key) && <NewBadge fading={isFading} />}
             </div>
           ) : (
             <div>
@@ -256,7 +267,7 @@ const UserDashboardPage = () => {
                 expanded={libraryClamp.isExpanded(record.key)}
                 onToggle={() => libraryClamp.toggle(record.key)}
               />
-              {isNew(record.key) && <NewBadge />}
+              {isNew(record.key) && <NewBadge fading={isFading} />}
             </div>
           )}
           {activeTab !== 'FAQs' && (
@@ -317,9 +328,9 @@ const UserDashboardPage = () => {
                       src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
                     })
                   );
-                  router.push(ROUTE_PATHS.userVideoPreview);
+                  router.push(`${ROUTE_PATHS.userVideoPreview}?from=dashboard&section=latest-content`);
                 } else {
-                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.key}`);
+                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.key}&from=dashboard&section=latest-content`);
                 }
               }}
             />
@@ -336,7 +347,7 @@ const UserDashboardPage = () => {
           <Text strong style={{ fontSize: "18px" }}>Welcome, {userDisplayName}!</Text>
         </div>
 
-        <div style={{ padding: "24px 32px" }}>
+        <div style={{ padding: "12px 32px" }}>
           <div style={{ background: "#fff", borderRadius: 8, padding: 24 }}>
             {/* Search and Quick Actions */}
             <Flex vertical align="center" style={{ textAlign: "center", marginBottom: 24 }}>
@@ -408,7 +419,7 @@ const UserDashboardPage = () => {
 
             {/* Recently Viewed */}
             {continueData?.recentlyViewed?.length ? (
-              <div style={{ marginTop: 24 }}>
+              <div id="recently-viewed" style={{ marginTop: 24 }}>
                 <div className="dash-section-title" style={{ fontWeight: 700 }}>Recently Viewed</div>
                 <div className="dash-recent-box">
                   <Spin spinning={loading}>
@@ -469,7 +480,7 @@ const UserDashboardPage = () => {
                                     answer: record.text,
                                   });
                                 } else {
-                                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.contentId}`);
+                                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.contentId}&from=dashboard&section=recently-viewed`);
                                 }
                               }}
                             />
@@ -488,7 +499,7 @@ const UserDashboardPage = () => {
             ) : null}
 
             {/* Content Library */}
-            <div style={{ marginTop: 40 }}>
+            <div id="latest-content" style={{ marginTop: 40 }}>
               <div className="dash-section-title" style={{ fontWeight: 700 }}>Latest Content</div>
               <div className="dash-recent-box">
                 <div className="dash-tabs">

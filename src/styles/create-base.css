@@ -18,8 +18,9 @@
 
 .create-header {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   margin-bottom: 24px;
+  gap: 12px;
 }
 
 .create-header-body {
@@ -31,6 +32,7 @@
   margin: 0;
   font-weight: 600;
   color: #262626;
+  line-height: 34px;
 }
 
 .create-card {

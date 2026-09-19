@@ -12,6 +12,15 @@ import { clearResetFlow } from "@/utils/resetFlow";
 
 const { Text } = Typography;
 
+const readSendAttempts = () => {
+  const storedAttempts = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpAttempts)) || 0;
+  const windowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart)) || 0;
+  const withinRequestWindow =
+    windowStart > 0 && Date.now() - windowStart < OTP_REQUEST_WINDOW_SECONDS * 1000;
+
+  return withinRequestWindow ? storedAttempts : 0;
+};
+
 export default function OtpVerificationPage() {
   const router = useRouter();
   const { message } = App.useApp();
@@ -37,6 +46,12 @@ export default function OtpVerificationPage() {
     () => false,
   );
 
+  const sendAttempts = useSyncExternalStore(
+    emptySubscribe,
+    readSendAttempts,
+    () => 0,
+  );
+
   const otpInputRef = useRef<OtpInputHandle>(null);
   const lastSubmitTime = useRef<number>(0);
 
@@ -46,7 +61,7 @@ export default function OtpVerificationPage() {
   // Resend is only available once the OTP has fully expired. The server
   // supports resends at any time, but the UI blocks it until expiry to avoid
   // confusion from mid-session token rotation.
-  const canResend = expired;
+  const canResend = expired && sendAttempts < MAX_OTP_ATTEMPTS;
 
   useEffect(() => {
     if (!router.isReady) {
@@ -304,6 +319,10 @@ export default function OtpVerificationPage() {
             <Text className="otp-timer">
               OTP expires in <Text strong type="success">{formatTime(timeLeft)}</Text>
             </Text>
+          ) : sendAttempts >= MAX_OTP_ATTEMPTS ? (
+            <Text type="danger" className="otp-timer">
+              Maximum OTP requests reached. Please try again later.
+            </Text>
           ) : (
             <Text type="danger" className="otp-timer">
               OTP has expired.
@@ -338,7 +357,7 @@ export default function OtpVerificationPage() {
             block
             disabled={isResending || isVerifying || !canResend}
             onClick={handleResend}
-            style={{ marginTop: 18, color: "#54b226" }}
+            style={{ marginTop: 18, color: (isResending || isVerifying || !canResend) ? "#b0b0b0" : "#54b226" }}
           >
             {isResending ? "Sending..." : "Resend OTP"}
           </Button>

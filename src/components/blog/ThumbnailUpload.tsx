@@ -3,14 +3,16 @@
 //
 // Dashed upload area for the blog thumbnail image, with validation,
 // preview (with remove) and error display. The caller owns the state.
+// Includes a crop modal so users can adjust the thumbnail before saving.
 // =============================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Typography, Upload } from 'antd';
 import { CloseOutlined, UploadOutlined } from '@ant-design/icons';
 
 import { THUMBNAIL_ACCEPT, THUMBNAIL_MAX_BYTES } from '@/constants/blog';
 import type { PickedImage } from '@/types/blog';
+import ThumbnailCropModal from '@/components/common/ThumbnailCropModal';
 
 const { Text } = Typography;
 
@@ -31,6 +33,28 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
   onRemove,
 }) => {
   const showExisting = !thumbnail && existingThumbnail?.url;
+
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingCropSrc, setPendingCropSrc] = useState<string>('');
+
+  const handleFileSelect = (_file: File) => {
+    const url = URL.createObjectURL(_file);
+    setPendingCropSrc(url);
+    setCropOpen(true);
+  };
+
+  const handleCropConfirm = (file: File) => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc('');
+    onChange(file);
+  };
+
+  const handleCropCancel = () => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc('');
+  };
 
   const renderPreview = (
     src: string | undefined,
@@ -90,7 +114,7 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
                 showUploadList={false}
                 beforeUpload={(_file, fileList) => {
                   if (fileList[0] === _file) {
-                    onChange(_file);
+                    handleFileSelect(_file);
                   }
                   return false;
                 }}
@@ -108,7 +132,7 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
               showUploadList={false}
               beforeUpload={(_file, fileList) => {
                 if (fileList[0] === _file) {
-                  onChange(_file);
+                  handleFileSelect(_file);
                 }
                 return false;
               }}
@@ -118,7 +142,7 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
               </Button>
             </Upload>
             <div className="blog-upload-hint">
-              Maximum file {THUMBNAIL_MAX_BYTES / (1024 * 1024)}MB | PNG, JPG
+              Maximum file {THUMBNAIL_MAX_BYTES / (1024 * 1024)}MB | PNG, JPG | Free crop
             </div>
           </>
         )}
@@ -127,6 +151,14 @@ export const ThumbnailUpload: React.FC<ThumbnailUploadProps> = ({
         <Text type="danger" className="blog-field-error">
           {error}
         </Text>
+      )}
+      {cropOpen && (
+        <ThumbnailCropModal
+          open={cropOpen}
+          imageSrc={pendingCropSrc}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
       )}
     </>
   );

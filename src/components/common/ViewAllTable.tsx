@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { Button, Input, Modal, Select, Table, Typography } from 'antd';
 import { FilterOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useModuleCategories } from '@/hooks/useModuleCategories';
 import type { ColumnsType } from 'antd/es/table';
 import PageLoading from '@/components/common/PageLoading';
@@ -45,6 +46,7 @@ interface ViewAllTableProps<T> {
   innerClassName?: string;
   showCount?: boolean;
   extra?: React.ReactNode;
+  backHref?: string;
   searchQuery?: string;
   onSearchChange?: (value: string) => void;
 }
@@ -75,6 +77,7 @@ export function ViewAllTable<T>({
   innerClassName,
   showCount = true,
   extra,
+  backHref,
   searchQuery = '',
   onSearchChange,
 }: ViewAllTableProps<T>) {
@@ -99,18 +102,24 @@ export function ViewAllTable<T>({
   };
 
   const handleFilterApply = () => {
-    setLocalSearch('');
-    onSearchChange?.('');
-    onModuleChange(tempModule);
-    onCategoryChange(tempCategory);
+    if (tempModule !== moduleFilter) {
+      onModuleChange(tempModule);
+    }
+    if (tempCategory !== categoryFilter) {
+      onCategoryChange(tempCategory);
+    }
     setFilterOpen(false);
   };
 
   const handleFilterClear = () => {
     setTempModule('All');
     setTempCategory('All');
-    onModuleChange('All');
-    onCategoryChange('All');
+    if (moduleFilter !== 'All') {
+      onModuleChange('All');
+    }
+    if (categoryFilter !== 'All') {
+      onCategoryChange('All');
+    }
     setFilterOpen(false);
   };
 
@@ -118,6 +127,24 @@ export function ViewAllTable<T>({
     <div className={pageClassName ?? `${ns}-page-pad`}>
       <div className={innerClassName ?? `${ns}-page-inner`}>
         <div className={`${ns}-header`}>
+          {backHref && (
+            <Link href={backHref}>
+              <Button
+                style={{
+                  fontSize: 14,
+                  height: 34,
+                  padding: '0 16px',
+                  borderRadius: 8,
+                  fontWeight: 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                Back
+              </Button>
+            </Link>
+          )}
           <div className={`${ns}-header-title-wrap`}>
             <div className={`${ns}-header-icon`}>{icon}</div>
             <Title level={3} className={`${ns}-header-title`}>
@@ -130,7 +157,7 @@ export function ViewAllTable<T>({
           <div className={`${ns}-search-bar`}>
             <Input
               className={`${ns}-search-input`}
-              placeholder="Search by title, category..."
+              placeholder="Search by category..."
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}

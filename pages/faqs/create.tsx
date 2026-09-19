@@ -132,6 +132,12 @@ const UploadFAQ = () => {
             bodyClassName="create-header-body"
             titleClassName="create-header-title"
             title="Create New FAQs"
+            showBack={true}
+            backHref={ROUTE_PATHS.adminDashboard}
+            backOnClick={(event) => {
+              event.preventDefault();
+              router.push(ROUTE_PATHS.adminDashboard);
+            }}
           />
 
           {/* Main Form Card */}

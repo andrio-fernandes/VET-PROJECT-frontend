@@ -2,7 +2,7 @@
 // MEDIA / URL HELPERS
 // =============================================
 
-import defaultThumbnail from '@/assets/default.jpg';
+import defaultThumbnail from '@/assets/default.svg';
 import { getFileExtension } from '@/utils/file';
 
 // Resolves a content record's thumbnail: the record's own image when present
@@ -59,10 +59,6 @@ export const buildDocumentViewerUrl = (fileName: string, actualUrl: string): str
   }
   return '';
 };
-
-// True when the given file can be shown in a third-party document viewer.
-export const isDocumentViewable = (fileName: string): boolean =>
-  buildDocumentViewerUrl(fileName, '') !== '';
 
 // Parses a BlogRecord.attachment JSON string into attachment references that
 // carry a stable display name and a URL. Supports the persisted backend shape

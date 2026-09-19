@@ -185,14 +185,23 @@ const UserVideoPreview = () => {
     );
   }
 
+  const from = router.query.from as string | undefined;
+  const tab = router.query.tab as string | undefined;
+  const section = router.query.section as string | undefined;
+  const backHref = from === 'search'
+    ? `${ROUTE_PATHS.search}${tab ? `?tab=${tab}` : ''}`
+    : from === 'dashboard'
+      ? `${ROUTE_PATHS.userDashboard}${section ? `?section=${section}` : ''}`
+      : ROUTE_PATHS.userVideos;
+
   return (
     <UserLayout activeKey={ROUTE_PATHS.userVideos}>
       <div className="vp-page">
         <PageHeader
-          backHref={ROUTE_PATHS.userVideos}
+          backHref={backHref}
           title="Video"
           icon={<VideoCameraOutlined />}
-          showBack={false}
+          showBack
         />
 
         <div className="vp-card">

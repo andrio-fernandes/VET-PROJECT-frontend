@@ -30,6 +30,14 @@ const UserBlogPreview = () => {
 
   const blogId =
     typeof router.query.id === 'string' && router.query.id ? router.query.id : '';
+  const from = router.query.from as string | undefined;
+  const tab = router.query.tab as string | undefined;
+  const section = router.query.section as string | undefined;
+  const backHref = from === 'search'
+    ? `${ROUTE_PATHS.search}${tab ? `?tab=${tab}` : ''}`
+    : from === 'dashboard'
+      ? `${ROUTE_PATHS.userDashboard}${section ? `?section=${section}` : ''}`
+      : ROUTE_PATHS.userBlogs;
 
   useEffect(() => {
     if (!router.isReady || !blogId) return;
@@ -117,10 +125,10 @@ const UserBlogPreview = () => {
     <UserLayout activeKey={ROUTE_PATHS.userBlogs}>
       <div className="bp-page">
         <PageHeader
-          backHref={ROUTE_PATHS.userBlogs}
+          backHref={backHref}
           title="Blog"
           icon={<FileTextOutlined />}
-          showBack={false}
+          showBack
         />
 
         <div className="bp-card">

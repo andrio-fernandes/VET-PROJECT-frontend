@@ -10,6 +10,7 @@ import { buildContentColumns } from '@/components/common/contentColumns';
 
 import {
   ROUTE_PATHS,
+  PAGE_SIZE,
 } from '@/constants';
 import { contentThumbnail } from '@/utils/media';
 import { useCanManage } from '@/hooks/useCanManage';
@@ -24,8 +25,6 @@ import type { BlogListItem } from '@/types/blog';
 import ClampedCellText from '@/components/common/ClampedCellText';
 
 const { Text } = Typography;
-
-const PAGE_SIZE = 10;
 
 const BlogsPage = () => {
   const router = useRouter();

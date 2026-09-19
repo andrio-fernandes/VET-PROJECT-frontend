@@ -270,13 +270,13 @@ const UploadBlog = () => {
             wrapperClassName="create-header"
             bodyClassName="create-header-body"
             titleClassName="create-header-title"
-            backHref={ROUTE_PATHS.blogs}
+            backHref={ROUTE_PATHS.adminDashboard}
             backOnClick={(event) => {
               event.preventDefault();
-              requestNavigation(ROUTE_PATHS.blogs);
+              requestNavigation(ROUTE_PATHS.adminDashboard);
             }}
             title={editMode ? 'Edit Blog' : 'Create New Blog'}
-            showBack={false}
+            showBack={true}
           />
 
           <div className="create-card">

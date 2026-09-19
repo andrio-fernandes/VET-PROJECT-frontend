@@ -29,7 +29,7 @@ export const FaqPreviewModal: React.FC<FaqPreviewModalProps> = ({
         backdropFilter: 'blur(6px)',
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
       },
-      body: { borderRadius: '12px', padding: '24px' },
+      body: { borderRadius: '12px', padding: '28px' },
     }}
   >
     <div>
@@ -41,6 +41,8 @@ export const FaqPreviewModal: React.FC<FaqPreviewModalProps> = ({
           {question || 'Your question will appear here?'}
         </Text>
       </div>
+
+      <hr className="faq-preview-divider" />
 
       <div className="faqs-create-preview-answer-block">
         <Text className="faqs-create-preview-label">

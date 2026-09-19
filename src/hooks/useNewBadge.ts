@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { updateLastSeen, type ContentType } from '@/services/libraryService';
 
-const LAST_SEEN_DELAY_MS = 10_000; // 10 seconds
+const LAST_SEEN_DELAY_MS = 15_000; // 15 seconds total
+const FADE_DELAY_MS = 13_000; // start fading 2 seconds before removal
 
 const useNewBadge = (type: ContentType, items: { _id?: string; key?: string; isNew?: boolean }[]) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevTypeRef = useRef<ContentType>(type);
   const [clearedTypes, setClearedTypes] = useState<Set<ContentType>>(new Set());
+  const [fadingTypes, setFadingTypes] = useState<Set<ContentType>>(new Set());
 
   const newIds = useMemo(() => {
     const ids = new Set<string>();
@@ -18,13 +21,17 @@ const useNewBadge = (type: ContentType, items: { _id?: string; key?: string; isN
     return ids;
   }, [items]);
 
-  // Reset cleared state when type changes (tab switch)
+  // Reset cleared/fading state when type changes (tab switch)
   useEffect(() => {
     if (prevTypeRef.current !== type) {
       prevTypeRef.current = type;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
+      }
+      if (fadeTimerRef.current) {
+        clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
       }
     }
   }, [type]);
@@ -35,6 +42,11 @@ const useNewBadge = (type: ContentType, items: { _id?: string; key?: string; isN
     if (isCleared) return;
     if (newIds.size === 0) return;
     if (timerRef.current) return;
+
+    fadeTimerRef.current = setTimeout(() => {
+      setFadingTypes((prev) => new Set(prev).add(type));
+      fadeTimerRef.current = null;
+    }, FADE_DELAY_MS);
 
     timerRef.current = setTimeout(() => {
       updateLastSeen(type).catch(() => {});
@@ -47,6 +59,10 @@ const useNewBadge = (type: ContentType, items: { _id?: string; key?: string; isN
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
+      if (fadeTimerRef.current) {
+        clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
     };
   }, [type, newIds.size, isCleared]);
 
@@ -55,7 +71,9 @@ const useNewBadge = (type: ContentType, items: { _id?: string; key?: string; isN
     [newIds, clearedTypes, type]
   );
 
-  return { isNew, newIds };
+  const isFading = fadingTypes.has(type);
+
+  return { isNew, newIds, isFading };
 };
 
 export default useNewBadge;

@@ -6,35 +6,45 @@
    ============================================= */
 
 .faqs-create-block {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .faqs-create-preview-label {
   color: #52c41a;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
   display: block;
+  margin-bottom: 8px;
 }
 
 .faqs-create-preview-label-q {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .faqs-create-preview-question {
-  font-size: 18px;
+  font-size: 17px;
   color: #262626;
   line-height: 1.7;
   display: block;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f6ffed 0%, #f9fbe7 100%);
+  border-left: 3px solid #52c41a;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.08);
 }
 
 .faqs-create-preview-answer-block {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .faqs-create-preview-answer-box {
-  padding: 0;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  border-left: 3px solid #d9d9d9;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .faq-view-modal .ant-modal-title {
@@ -44,9 +54,15 @@
 }
 
 .faqs-create-preview-answer {
-  font-size: 16px;
-  color: #262626;
-  font-weight: 600;
-  line-height: 1.7;
+  font-size: 15px;
+  color: #434343;
+  font-weight: 400;
+  line-height: 1.8;
   display: block;
+}
+
+.faq-preview-divider {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 4px 0 20px;
 }

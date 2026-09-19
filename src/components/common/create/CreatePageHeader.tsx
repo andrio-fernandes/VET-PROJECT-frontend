@@ -60,10 +60,19 @@ export const CreatePageHeader: React.FC<CreatePageHeaderProps> = ({
       {showBack && (
         <Link href={backHref || '#'} onClick={backOnClick}>
           <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            style={{ marginTop: 6, fontSize: 18 }}
-          />
+            style={{
+              marginTop: 2,
+              fontSize: 14,
+              height: 34,
+              padding: '0 16px',
+              borderRadius: 8,
+              fontWeight: 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            Back
+          </Button>
         </Link>
       )}
       <div className={bodyClassName}>

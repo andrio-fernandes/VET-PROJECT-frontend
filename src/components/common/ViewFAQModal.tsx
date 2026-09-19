@@ -25,7 +25,7 @@ export function ViewFAQModal({ open, question, answer, onClose }: ViewFAQModalPr
           backdropFilter: 'blur(6px)',
           backgroundColor: 'rgba(0, 0, 0, 0.2)',
         },
-        body: { borderRadius: '12px', padding: '24px' },
+        body: { borderRadius: '12px', padding: '28px' },
       }}
     >
       <div>
@@ -37,6 +37,8 @@ export function ViewFAQModal({ open, question, answer, onClose }: ViewFAQModalPr
             {question}
           </Text>
         </div>
+
+        <hr className="faq-preview-divider" />
 
         <div className="faqs-create-preview-answer-block">
           <Text className="faqs-create-preview-label">

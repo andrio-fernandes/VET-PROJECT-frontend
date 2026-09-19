@@ -352,6 +352,12 @@ const UploadVideo = () => {
             bodyClassName="create-header-body"
             titleClassName="create-header-title"
             title={editMode ? "Edit Video" : "Create New Video"}
+            showBack={true}
+            backHref={ROUTE_PATHS.adminDashboard}
+            backOnClick={(event) => {
+              event.preventDefault();
+              router.push(ROUTE_PATHS.adminDashboard);
+            }}
           />
 
           {/* Main Form Card */}

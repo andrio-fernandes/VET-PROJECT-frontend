@@ -39,6 +39,7 @@ interface GetLibraryParams {
   module?: string;
   category?: string;
   q?: string;
+  fullText?: boolean;
 }
 
 const buildLibraryQuery = (params: GetLibraryParams): string => {
@@ -46,6 +47,7 @@ const buildLibraryQuery = (params: GetLibraryParams): string => {
   if (params.module) query.set("module", params.module);
   if (params.category) query.set("category", params.category);
   if (params.q) query.set("q", params.q);
+  if (params.fullText) query.set("fullText", "true");
   return query.toString();
 };
 

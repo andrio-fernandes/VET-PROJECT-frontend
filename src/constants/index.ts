@@ -196,7 +196,7 @@ export const DESCRIPTION_MAX_WORDS = 60;
 
 // Video upload size limits (in bytes).
 export const MAX_VIDEO_SIZE = 64 * 1024 * 1024;
-export const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024;
+export const MAX_THUMBNAIL_SIZE = 2 * 1024 * 1024;
 
 // Local storage key used to retain unsaved FAQ draft progress.
 export const RETAINED_FAQ_STORAGE_KEY = "retained_faq_progress";

@@ -39,7 +39,7 @@ const UserBlogs = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const blogClamp = useClampedRows();
-  const { isNew } = useNewBadge('blog', blogs);
+  const { isNew, isFading } = useNewBadge('blog', blogs);
 
   useEffect(() => {
     // Restore the "just viewed" flash across the list → preview navigation.
@@ -102,7 +102,7 @@ const UserBlogs = () => {
             alt={text}
             className="blogs-cell-thumb"
           />
-          {isNew(String(record._id)) && <NewBadge />}
+          {isNew(String(record._id)) && <NewBadge fading={isFading} />}
         </div>
         <div>
           <ClampedCellText

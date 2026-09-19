@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import { App as AntApp, Spin } from "antd";
+import { App as AntApp, Button, Spin } from "antd";
 import { SearchOutlined, CloseCircleFilled } from "@ant-design/icons";
+import Link from "next/link";
 
 import { UserLayout } from "@/layouts/UserLayout";
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from "@/constants";
@@ -100,7 +101,7 @@ function SearchPage() {
   });
 
   // Pre-fill the box when opened with /search?q=... (load-only; typing never
-  // touches the URL).
+  // touches the URL). Also restore the active tab from the URL.
   useEffect(() => {
     const syncQuery = async () => {
       await Promise.resolve();
@@ -108,9 +109,13 @@ function SearchPage() {
       if (query) {
         setSearchQuery(query);
       }
+      const tab = router.query.tab as string;
+      if (tab && ['all', 'videos', 'blogs', 'faqs'].includes(tab)) {
+        setActiveTab(tab);
+      }
     };
     void syncQuery();
-  }, [router.query.q]);
+  }, [router.query.q, router.query.tab]);
 
   // Debounce keystrokes so the backend is queried per settled text, not per
   // character typed.
@@ -139,9 +144,9 @@ function SearchPage() {
 
         if (activeTab === "all") {
           const [faqResult, videoResult, blogResult] = await Promise.allSettled([
-            getLibraryFaqs({ page: 1, limit: sectionLimits.faq, q }, { signal }),
-            getLibraryVideos({ page: 1, limit: sectionLimits.video, q }, { signal }),
-            getLibraryBlogs({ page: 1, limit: sectionLimits.blog, q }, { signal }),
+            getLibraryFaqs({ page: 1, limit: sectionLimits.faq, q, fullText: true }, { signal }),
+            getLibraryVideos({ page: 1, limit: sectionLimits.video, q, fullText: true }, { signal }),
+            getLibraryBlogs({ page: 1, limit: sectionLimits.blog, q, fullText: true }, { signal }),
           ]);
 
           setResultsByType({
@@ -173,11 +178,11 @@ function SearchPage() {
 
         const type: SearchResult["type"] = tabType ?? "faq";
         if (type === "faq") {
-          const res = await getLibraryFaqs({ page: 1, limit: visibleCount, q }, { signal });
+          const res = await getLibraryFaqs({ page: 1, limit: visibleCount, q, fullText: true }, { signal });
           setResultsByType((prev) => ({ ...prev, faq: res.faqs.map(toFaqResult) }));
           setTotals((prev) => ({ ...prev, faq: res.totalFaqs }));
         } else if (type === "video") {
-          const res = await getLibraryVideos({ page: 1, limit: visibleCount, q }, { signal });
+          const res = await getLibraryVideos({ page: 1, limit: visibleCount, q, fullText: true }, { signal });
           setResultsByType((prev) => ({
             ...prev,
             video: res.videos
@@ -186,7 +191,7 @@ function SearchPage() {
           }));
           setTotals((prev) => ({ ...prev, video: res.totalVideos }));
         } else {
-          const res = await getLibraryBlogs({ page: 1, limit: visibleCount, q }, { signal });
+          const res = await getLibraryBlogs({ page: 1, limit: visibleCount, q, fullText: true }, { signal });
           setResultsByType((prev) => ({ ...prev, blog: res.blogs.map(toBlogResult) }));
           setTotals((prev) => ({ ...prev, blog: res.totalBlogs }));
         }
@@ -322,6 +327,7 @@ function SearchPage() {
   };
 
   const handleResultClick = (result: SearchResult) => {
+    const tabParam = activeTab !== 'all' ? `&tab=${activeTab}` : '';
     if (result.type === "video") {
       sessionStorage.setItem(
         VIDEO_PREVIEW_STORAGE_KEY,
@@ -331,9 +337,9 @@ function SearchPage() {
           description: result.description || "",
         })
       );
-      router.push(ROUTE_PATHS.userVideoPreview);
+      router.push(`${ROUTE_PATHS.userVideoPreview}?from=search${tabParam}`);
     } else if (result.type === "blog") {
-      router.push(`${ROUTE_PATHS.userBlogPreview}?id=${result._id}`);
+      router.push(`${ROUTE_PATHS.userBlogPreview}?id=${result._id}&from=search${tabParam}`);
     }
   };
 
@@ -342,13 +348,30 @@ function SearchPage() {
     <UserLayout activeKey={ROUTE_PATHS.search}>
       <div className="search-page">
         <div className="search-container">
-          {/* Search Input */}
-          <div className="search-input-wrapper">
+          {/* Back Button + Search Input on same line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <Link href={ROUTE_PATHS.userDashboard}>
+              <Button
+                style={{
+                  fontSize: 14,
+                  height: 34,
+                  padding: '0 16px',
+                  borderRadius: 8,
+                  fontWeight: 500,
+                  flexShrink: 0,
+                }}
+              >
+                Back
+              </Button>
+            </Link>
+
+            {/* Search Input */}
+            <div className="search-input-wrapper" style={{ marginBottom: 0, flex: 1 }}>
             <div className="search-input-box">
               <SearchOutlined className="search-icon" />
               <input
                 className="search-input-field"
-                placeholder="Create Quotation"
+                placeholder="Search by category, title, description..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -372,6 +395,7 @@ function SearchPage() {
                 />
               )}
             </div>
+          </div>
           </div>
 
           {/* Tabs */}
@@ -417,7 +441,7 @@ function SearchPage() {
                       groupedAllResults.map((group) => (
                         <div key={group.type} className="search-result-group">
                           <div className="search-result-group-title">{group.label}</div>
-                          {group.items.map(renderResultCard)}
+                          {group.items.map(group.type === 'faq' ? renderFaqCard : renderResultCard)}
                           {hasMoreByType(group.type) && (
                             <div className="see-more-wrapper">
                               <button className="see-more-btn" onClick={() => handleSeeMoreSection(group.type)}>

@@ -21,6 +21,7 @@ import { AdminLayout } from "@/layouts/AdminLayout";
 import { UserLayout } from "@/layouts/UserLayout";
 import { useCurrentUser, updateStoredUser } from "@/hooks/useAuth";
 import { updateProfileAvatar, deleteProfileAvatar } from "@/services/authService";
+import ThumbnailCropModal from "@/components/common/ThumbnailCropModal";
 
 const { Title, Text } = Typography;
 
@@ -30,6 +31,9 @@ const ProfilePage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingCropSrc, setPendingCropSrc] = useState<string>("");
 
   const currentAvatar = user?.avatar || "";
   const [removing, setRemoving] = useState(false);
@@ -44,9 +48,24 @@ const ProfilePage = () => {
       message.error("Image must be smaller than 2MB.");
       return Upload.LIST_IGNORE;
     }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    const url = URL.createObjectURL(f);
+    setPendingCropSrc(url);
+    setCropOpen(true);
     return false;
+  };
+
+  const handleCropConfirm = (croppedFile: File) => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc("");
+    setFile(croppedFile);
+    setPreview(URL.createObjectURL(croppedFile));
+  };
+
+  const handleCropCancel = () => {
+    setCropOpen(false);
+    URL.revokeObjectURL(pendingCropSrc);
+    setPendingCropSrc("");
   };
 
   const handleSave = async () => {
@@ -171,6 +190,15 @@ const ProfilePage = () => {
         >
           <p>Remove your profile photo? This cannot be undone.</p>
         </Modal>
+
+        {cropOpen && (
+          <ThumbnailCropModal
+            open={cropOpen}
+            imageSrc={pendingCropSrc}
+            onCancel={handleCropCancel}
+            onConfirm={handleCropConfirm}
+          />
+        )}
       </div>
     </LayoutShell>
   );

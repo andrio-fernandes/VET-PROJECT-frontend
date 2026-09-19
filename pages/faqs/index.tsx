@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { PAGE_SIZE } from '@/constants';
+import { PAGE_SIZE, ROUTE_PATHS } from '@/constants';
 import { useCanManage } from '@/hooks/useCanManage';
 import { useContentFilters } from '@/hooks/useContentFilters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';

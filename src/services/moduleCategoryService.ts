@@ -23,11 +23,3 @@ export const getModuleCategories = async (): Promise<ModuleCategoriesResponse> =
   };
   return cached;
 };
-
-/**
- * Clears the in-memory cache so the next call to getModuleCategories()
- * fetches fresh data.  Useful after a new module/category is created.
- */
-export const clearModuleCategoryCache = (): void => {
-  cached = null;
-};

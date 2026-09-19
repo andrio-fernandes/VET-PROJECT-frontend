@@ -41,7 +41,7 @@ const UserVideos = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const videoClamp = useClampedRows();
-  const { isNew } = useNewBadge('video', videos);
+  const { isNew, isFading } = useNewBadge('video', videos);
 
   useEffect(() => {
     // Restore the "just viewed" flash across the list → preview navigation.
@@ -149,7 +149,7 @@ const UserVideos = () => {
             alt={text}
             className="videos-cell-thumb"
           />
-          {isNew(String(record.key)) && <NewBadge />}
+          {isNew(String(record.key)) && <NewBadge fading={isFading} />}
         </div>
         <div>
           <ClampedCellText

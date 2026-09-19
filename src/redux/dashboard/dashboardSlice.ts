@@ -22,7 +22,7 @@ import type {
 } from "@/types/dashboard";
 import type { PurgedVideo } from "@/types/video";
 
-export interface DashboardState {
+interface DashboardState {
   stats: DashboardStats;
   recentVideos: RecentItem[];
   recentBlogs: RecentItem[];

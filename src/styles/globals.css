@@ -29,8 +29,11 @@ a {
 
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #54b226 0%, #3d8d1f 100%);
   padding: 24px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 35% 50%, #f5fdf0 0%, #d8f4c4 25%, #b0e490 50%, #8cc870 75%, #6ab848 100%);
+  background-color: #b0e490;
 }
 
 .auth-card {
@@ -62,7 +65,10 @@ a {
 .register-page {
   min-height: 100vh;
   display: flex;
-  background-color: #54b226;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 35% 50%, #f5fdf0 0%, #d8f4c4 25%, #b0e490 50%, #8cc870 75%, #6ab848 100%);
+  background-color: #b0e490;
 }
 
 .register-left-panel {
@@ -75,7 +81,7 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 8px 0 24px rgba(84, 178, 38, 0.1);
 }
 
 .register-left-content {
@@ -128,14 +134,20 @@ a {
   margin-bottom: 16px;
 }
 
+.register-form-item .ant-input,
+.register-form-item .ant-input-password {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 8px;
+}
+
 .register-label {
-  color: #fff;
+  color: #333;
   font-weight: bold;
   display: inline-block;
 }
 
 .register-extra {
-  color: #d9f7be;
+  color: #237a07;
 }
 
 /* Reset-password page: match the register page's password-requirements hint
@@ -149,7 +161,7 @@ a {
 }
 
 #register_form_password_extra.ant-form-item-extra {
-  color: #d9f7be;
+  color: #237a07;
 }
 
 #register_form_password_extra.ant-form-item-extra .ant-typography {
@@ -160,13 +172,13 @@ a {
   padding: 0 4px;
   height: auto;
   font-size: inherit;
-  color: #d9f7be;
+  color: #54b226;
   text-decoration: underline;
 }
 
 .register-username-reset.ant-btn-link:hover,
 .register-username-reset.ant-btn-link:focus {
-  color: #ffffff;
+  color: #3d8d1f;
 }
 
 .register-submit-item {
@@ -175,27 +187,28 @@ a {
 }
 
 .register-submit-button {
-  background-color: #cccccc;
-  color: #666666;
+  background: linear-gradient(to right, #e8f8e0, #b8e8a0);
+  color: #237a07;
   border-radius: 20px;
   height: 42px;
   font-weight: bold;
+  border: 1px solid #a0d890;
 }
 
 .register-submit-button-valid {
-  background-color: #ffffff;
-  color: #54b226;
+  background: linear-gradient(to right, #d0f0b8, #90d060);
+  color: #ffffff;
 }
 
 .register-login-row {
   text-align: center;
-  color: #ffffff;
+  color: #555;
   margin-top: 10px;
   font-size: 14px;
 }
 
 .register-login-link {
-  color: #ffffff;
+  color: #54b226;
   font-weight: bold;
   text-decoration: underline;
 }
@@ -209,8 +222,11 @@ a {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #54b226;
   padding: 20px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 35% 50%, #f5fdf0 0%, #d8f4c4 25%, #b0e490 50%, #8cc870 75%, #6ab848 100%);
+  background-color: #b0e490;
 }
 
 .login-card {

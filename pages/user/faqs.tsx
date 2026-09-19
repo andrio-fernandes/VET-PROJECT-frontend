@@ -31,7 +31,7 @@ const UserFaqs = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { flashIds, flashView } = useViewedFlash();
   const faqClamp = useClampedRows();
-  const { isNew } = useNewBadge('faq', faqs);
+  const { isNew, isFading } = useNewBadge('faq', faqs);
 
   const [viewingFaq, setViewingFaq] = useState<FaqRecord | null>(null);
 
@@ -101,7 +101,7 @@ const UserFaqs = () => {
           />
           {flashIds.has(String(record._id)) && <ViewedBadge />}
         </span>
-        {isNew(String(record._id)) && <NewBadge />}
+        {isNew(String(record._id)) && <NewBadge fading={isFading} />}
       </div>
     ),
     categoryEllipsis: true,

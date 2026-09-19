@@ -41,5 +41,3 @@ export const notifyFailedVideos = (
     });
   }
 };
-
-export default notifyFailedVideos;

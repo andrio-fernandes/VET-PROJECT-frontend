@@ -101,12 +101,20 @@ const AdminFeedbackPage = () => {
   };
 
   const handleFilterApply = () => {
+    const dateChanged = draftDate !== appliedFilterDate;
+    const statusChanged = draftStatus !== appliedFilterStatus;
+    const reviewerChanged = draftReviewedById !== appliedFilterReviewedById;
+    const anyChanged = dateChanged || statusChanged || reviewerChanged;
+
     setAppliedFilterDate(draftDate);
     setAppliedFilterStatus(draftStatus);
     setAppliedFilterReviewedById(draftReviewedById);
     setFilterOpen(false);
-    setPage(1);
-    setLoading(true);
+
+    if (anyChanged) {
+      setPage(1);
+      setLoading(true);
+    }
   };
 
   useEffect(() => {
@@ -311,7 +319,7 @@ const AdminFeedbackPage = () => {
           <div className="feed-search-bar">
             <Input
               className="feed-search-input"
-              placeholder="Enter search query"
+              placeholder="Search by Name, Email or Reviewed By"
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
