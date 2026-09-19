@@ -2,20 +2,20 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Input, Typography, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import PageLoading from '@/components/common/PageLoading';
-import { updateFaq, getFaqById } from '@/services/faqService';
+import PageLoading from '@/components/common/page-loading';
+import { updateFaq, getFaqById } from '@/services/faq-service';
 import { ROUTE_PATHS } from '@/constants';
-import WordCount from '@/components/WordCount';
-import ModuleCategorySelects from '@/components/ModuleCategorySelects';
-import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
-import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
-import { CreateFormActions } from '@/components/common/create/CreateFormActions';
-import { FaqPreviewModal } from '@/components/common/FaqPreviewModal';
+import WordCount from '@/components/word-count';
+import ModuleCategorySelects from '@/components/module-category-selects';
+import { CreateContentLayout } from '@/components/common/create/create-content-layout';
+import { CreatePageHeader } from '@/components/common/create/create-page-header';
+import { CreateFormActions } from '@/components/common/create/create-form-actions';
+import { FaqPreviewModal } from '@/components/common/faq-preview-modal';
 import {
   wordCountValidator,
   scrollToFirstError,
   resetCategoryOnModuleChange,
-} from '@/utils/formValidation';
+} from '@/utils/form-validation';
 
 const { Title } = Typography;
 

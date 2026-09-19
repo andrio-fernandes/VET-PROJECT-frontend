@@ -2,18 +2,17 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
-import { forgotPassword } from "@/services/authService";
+import { forgotPassword } from "@/services/auth-service";
 import { emailRules } from "@/utils/validation";
 import { MAX_OTP_ATTEMPTS, OTP_REQUEST_WINDOW_SECONDS, ROUTE_PATHS, STORAGE_KEYS } from "@/constants";
-import AuthCard from "@/components/AuthCard";
-import PageLoading from "@/components/common/PageLoading";
+import AuthCard from "@/components/auth-card";
+import PageLoading from "@/components/common/page-loading";
 import { emptySubscribe } from "@/utils/input";
-import { isResetFlowActive, markResetFlowActive, clearResetFlow } from "@/utils/resetFlow";
+import { isResetFlowActive, markResetFlowActive, clearResetFlow } from "@/utils/reset-flow";
 
 const { Title, Text } = Typography;
 
-// Mirror the server's rolling request window: once it lapses the quota is
-// considered fresh again instead of staying exhausted forever.
+// Mirror server's rolling request window for quota reset.
 const readSendAttempts = () => {
   const storedAttempts = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpAttempts)) || 0;
   const windowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart)) || 0;
@@ -35,11 +34,7 @@ export default function ForgotPasswordPage() {
     () => 0,
   );
 
-// A brand-new visit to Forgot Password (e.g. typed URL, fresh tab, or after a
-// flow completed) starts a clean slate, so state from a previous capture on
-// this device never leaks into the new flow. But if the user pressed browser
-// Back from the OTP page, an active flow is still in progress and its state
-// must NOT be wiped - only clear on a genuinely new visit.
+// Clear state on new visit, but preserve active flow on browser Back.
 useEffect(() => {
   if (isResetFlowActive()) {
     return;
@@ -55,20 +50,16 @@ useEffect(() => {
 
       const data = await forgotPassword(email);
 
-      // Session storage is the source of truth so the attempt counter survives
-      // navigation between the forgot-password and OTP pages. A different
-      // email, or a lapsed request window, starts a fresh count.
+      // Session storage is source of truth for attempt counter across pages.
       const now = Date.now();
-      // An in-progress reset flow now exists; the OTP and reset-password pages
-      // rely on it, and a browser Back here must not wipe it.
+      // Mark reset flow active; OTP/reset pages rely on it.
       markResetFlowActive();
       const previousWindowStart = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpWindowStart));
       const withinRequestWindow =
         previousWindowStart > 0 && now - previousWindowStart < OTP_REQUEST_WINDOW_SECONDS * 1000;
       const isNewResetFlow = sessionStorage.getItem(STORAGE_KEYS.resetEmail) !== email;
       const previousAttempts = Number(sessionStorage.getItem(STORAGE_KEYS.resetOtpAttempts)) || 0;
-      // Prefer the authoritative count returned by the server (it also counts
-      // requests made from other devices/sessions); fall back to +1 locally.
+      // Prefer server's authoritative count, fallback to +1 locally.
       const nextAttempt =
         typeof data?.otpRequestsRemaining === "number"
           ? Math.max(MAX_OTP_ATTEMPTS - data.otpRequestsRemaining, 0)
@@ -77,22 +68,18 @@ useEffect(() => {
             : previousAttempts + 1;
 
       sessionStorage.setItem(STORAGE_KEYS.resetEmail, email);
-      // The single-use reset token is returned by the server (not emailed) and
-      // lets the user go straight to the OTP page. A re-send mints a new token,
-      // so any token cached from a previous flow is stale and is replaced below.
+      // Store server-returned reset token (re-send mints new token).
       if (typeof data?.token === "string" && data.token) {
         sessionStorage.setItem(STORAGE_KEYS.resetToken, data.token);
       }
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerified);
-      // A re-send starts a fresh verification budget on the OTP page even if a
-      // previous flow for another email left burn-down behind.
+      // Reset verification budget for new send.
       sessionStorage.removeItem(STORAGE_KEYS.resetOtpVerifyAttempts);
       sessionStorage.setItem(STORAGE_KEYS.resetOtpAttempts, String(nextAttempt));
       if (isNewResetFlow || !withinRequestWindow) {
         sessionStorage.setItem(STORAGE_KEYS.resetOtpWindowStart, String(now));
       }
-      // Send time lets the OTP page restore the true remaining countdown
-      // after a refresh instead of restarting it.
+      // Store send time for OTP page countdown restoration.
       sessionStorage.setItem(STORAGE_KEYS.resetOtpSentAt, String(now));
 
       message.success(

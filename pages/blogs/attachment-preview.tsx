@@ -15,7 +15,7 @@ import { Alert, Button, Space, Typography } from 'antd';
 import { ArrowLeftOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import { buildDocumentViewerUrl } from '@/utils/media';
-import PageLoading from '@/components/common/PageLoading';
+import PageLoading from '@/components/common/page-loading';
 
 const { Text } = Typography;
 

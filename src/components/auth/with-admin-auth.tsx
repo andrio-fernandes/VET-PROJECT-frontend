@@ -34,24 +34,20 @@ const readAuth = () => {
 export const withAdminAuth = (WrappedComponent: React.ComponentType<any>) => {
   const RequiresAdmin = (props: any) => {
     const router = useRouter();
-    // Undefined until checked on the client, so SSR/first paint never
-    // flashes the protected content before the redirect - and shows a real
-    // spinner instead of a blank page while the check + possible refresh
-    // are in flight.
+    // Undefined until client check completes — avoids flashing protected
+    // content during SSR and shows a spinner while the session is verified.
     const [allowed, setAllowed] = useState<boolean | undefined>(undefined);
 
     useEffect(() => {
       let cancelled = false;
 
       const decide = async () => {
-        // Dev-only: seed a valid admin session when none exists (no backend).
+        // Dev-only: seed a valid admin session when none exists.
         ensureDevSession();
 
         let { token, user } = readAuth();
 
-        // An expired (but present) access token doesn't mean logged out: with
-        // a valid refresh token the session can be silently renewed instead
-        // of bouncing the user to login.
+        // An expired access token can be silently renewed via refresh token.
         if (!token || isTokenExpired(token)) {
           try {
             const fresh = await refreshSession();
@@ -72,8 +68,7 @@ export const withAdminAuth = (WrappedComponent: React.ComponentType<any>) => {
 
         if (cancelled) return;
 
-        // Missing or malformed tokens are treated as logged out, so a dead
-        // session never renders and then fails on every API call.
+        // Missing/malformed tokens or non-admin role → redirect to dashboard.
         if (!token || user?.role !== 'admin') {
           setAllowed(false);
           router.replace(ROUTE_PATHS.userDashboard);

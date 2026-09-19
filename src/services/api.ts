@@ -12,9 +12,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// A dead session (no refresh possible) clears every stored credential so
-// stale tokens can't keep "passing" the presence-only auth gates, then
-// sends the user back to login.
+// Clear credentials and redirect to login when session is dead.
 const handleUnauthorized = () => {
   if (typeof window === "undefined") return;
 
@@ -28,10 +26,7 @@ const handleUnauthorized = () => {
   }
 };
 
-// Exchange the refresh token for a new access + refresh pair.
-// Returns the new access token, or null when a re-login is required.
-// Exported so route guards (with-admin-auth) can silently refresh an expired
-// access token before deciding whether the user is still logged in.
+// Exchange refresh token for new access token, or null if re-login required.
 export const refreshSession = async (): Promise<string | null> => {
   if (typeof window === "undefined") return null;
 
@@ -62,22 +57,17 @@ export const refreshSession = async (): Promise<string | null> => {
   }
 };
 
-// ---------------------------------------------------------------------------
 // Request helpers
-// ---------------------------------------------------------------------------
 
-// Builds an item-level endpoint for a resource collection, e.g.
-//   itemEndpoint("/videos", "123") -> "/videos/123"
+// Build item endpoint: itemEndpoint("/videos", "123") -> "/videos/123"
 export const itemEndpoint = (collection: string, id: string): string =>
   `${collection}/${id}`;
 
-// Pulls a resource off an API response, accepting both the direct shape
-// (data.<key>) and the legacy envelope (data.data.<key>).
+// Get nested resource from API response (supports legacy envelope).
 export const getNested = <T = any>(data: any, key: string): T | null =>
   data?.[key] ?? data?.data?.[key] ?? null;
 
-// Serializes request bodies: FormData passes through untouched (so the
-// browser keeps the multipart boundary), anything else becomes JSON.
+// Serialize request body: FormData passes through, else JSON.
 const jsonify = (body?: unknown): BodyInit | undefined => {
   if (body === undefined || body === null) return undefined;
   if (typeof FormData !== "undefined" && body instanceof FormData) return body;
@@ -95,8 +85,7 @@ export const put = (endpoint: string, body?: unknown) =>
 
 export const del = (endpoint: string) => api(endpoint, { method: "DELETE" });
 
-// Builds a query string from a parameter object, skipping keys that are
-// undefined, empty, or the "All" placeholder used by the content filters.
+// Build query string, skipping undefined/empty/"All" values.
 export const buildQuery = (
   params: Record<string, string | number | undefined>
 ): string => {
@@ -119,8 +108,7 @@ export const api = async (
   const token =
     typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
-  // FormData bodies (file uploads) must keep the browser-generated
-  // multipart boundary, so the JSON content-type is skipped for them.
+  // Skip JSON content-type for FormData to preserve multipart boundary.
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;
 
@@ -141,9 +129,7 @@ export const api = async (
   }
 
   if (!response.ok) {
-    // Access token expired: try to refresh once and replay the request.
-    // Auth endpoints are excluded - their 401s are credential errors
-    // (e.g. wrong password), not session errors.
+    // On 401 (non-auth endpoint): refresh token and retry request.
     if (
       response.status === 401 &&
       !isRetry &&

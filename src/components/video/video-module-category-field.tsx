@@ -6,7 +6,7 @@
    ============================================= */
 
 import React from "react";
-import ModuleCategorySelects from "@/components/ModuleCategorySelects";
+import ModuleCategorySelects from "@/components/module-category-selects";
 
 export const VideoModuleCategoryField: React.FC = () => (
   <div className="create-select-block">

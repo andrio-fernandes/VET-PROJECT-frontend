@@ -5,14 +5,15 @@ import { App as AntApp, Button, Spin } from "antd";
 import { SearchOutlined, CloseCircleFilled } from "@ant-design/icons";
 import Link from "next/link";
 
-import { UserLayout } from "@/layouts/UserLayout";
+import { UserLayout } from "@/layouts/user-layout";
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from "@/constants";
 import { withAuth } from "@/components/auth/with-auth";
 import {
   getLibraryBlogs,
   getLibraryFaqs,
   getLibraryVideos,
-} from "@/services/libraryService";
+  markViewed,
+} from "@/services/library-service";
 import { contentThumbnail } from "@/utils/media";
 import type { FaqRecord } from "@/types/faq";
 import type { BlogListItem } from "@/types/blog";
@@ -61,7 +62,7 @@ function SearchPage() {
     useState<Record<SearchResult["type"], number>>(INITIAL_SECTION_LIMITS);
   const [expandedFaqIds, setExpandedFaqIds] = useState<Set<string>>(new Set());
 
-  // ── Server result mappers ─────────────────────────────────────
+  // Server result mappers
   const toFaqResult = (faq: FaqRecord): SearchResult => {
     const answer = faq.answer || "";
     return {
@@ -100,8 +101,7 @@ function SearchPage() {
     createdAt: blog.createdAt,
   });
 
-  // Pre-fill the box when opened with /search?q=... (load-only; typing never
-  // touches the URL). Also restore the active tab from the URL.
+  // Pre-fill search box from URL query param and restore active tab.
   useEffect(() => {
     const syncQuery = async () => {
       await Promise.resolve();
@@ -117,8 +117,7 @@ function SearchPage() {
     void syncQuery();
   }, [router.query.q, router.query.tab]);
 
-  // Debounce keystrokes so the backend is queried per settled text, not per
-  // character typed.
+  // Debounce keystrokes to avoid per-character backend queries.
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
@@ -133,9 +132,7 @@ function SearchPage() {
           ? "faq"
           : null;
 
-  // Server-side search. Each type is fetched with its current per-section
-  // limit so the backend does the matching + pagination and returns only the
-  // matching rows plus the true total (which drives the "show more" buttons).
+  // Server-side search with per-section limits and true totals.
   const searchContent = useCallback(
     async (signal?: AbortSignal) => {
       setLoading(true);
@@ -206,8 +203,7 @@ function SearchPage() {
     [activeTab, debouncedQuery, sectionLimits, tabType, visibleCount, message]
   );
 
-  // Every search-relevant change re-queries the backend; the previous in-flight
-  // request is aborted so stale responses never overwrite newer ones.
+  // Re-query on search changes; abort previous request.
   useEffect(() => {
     const controller = new AbortController();
     const run = async () => {
@@ -218,8 +214,7 @@ function SearchPage() {
     return () => controller.abort();
   }, [searchContent]);
 
-  // "All" tab: Videos, Blogs, and FAQs rendered vertically in the same
-  // section. Empty types are dropped.
+  // "All" tab: group results by type, drop empty types.
   const groupedAllResults: { type: SearchResult["type"]; label: string; items: SearchResult[] }[] = ([
     { type: "video", label: "Videos" },
     { type: "blog", label: "Blogs" },
@@ -231,19 +226,17 @@ function SearchPage() {
     }))
     .filter((group) => group.items.length > 0);
 
-  // "All" tab right column: matching FAQs returned by the server.
+  // "All" tab FAQ column.
   const visibleFaqs = resultsByType.faq;
 
-  // True server totals decide whether each section still has more to load.
+  // Check if section has more items to load.
   const hasMoreByType = (type: SearchResult["type"]): boolean =>
     sectionLimits[type] < totals[type];
 
   const visibleResults = tabType ? resultsByType[tabType] : [];
   const hasMoreResults = tabType ? visibleCount < totals[tabType] : false;
 
-  // Any content currently on screen (used to keep results mounted while a
-  // follow-up search runs, so the input stays usable instead of flashing a
-  // full-screen loader on every keystroke).
+  // Keep results mounted during search to avoid full-screen loader.
   const hasAnyResult =
     activeTab === "all"
       ? groupedAllResults.length > 0 || visibleFaqs.length > 0
@@ -254,6 +247,10 @@ function SearchPage() {
     setVisibleCount(ITEMS_PER_PAGE);
     setSectionLimits(INITIAL_SECTION_LIMITS);
     setExpandedFaqIds(new Set());
+    const query: Record<string, string> = {};
+    if (searchQuery) query.q = searchQuery;
+    if (key !== 'all') query.tab = key;
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
   };
 
   const handleSeeMoreResults = () => {
@@ -266,11 +263,15 @@ function SearchPage() {
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
-    // New query = fresh results: collapse accordions and reset the sizes sent
-    // to the backend as limits.
+    // New query: collapse accordions and reset limits.
     setExpandedFaqIds(new Set());
     setSectionLimits(INITIAL_SECTION_LIMITS);
     setVisibleCount(ITEMS_PER_PAGE);
+    // Persist query in URL for navigation.
+    const query: Record<string, string> = {};
+    if (value) query.q = value;
+    if (activeTab !== 'all') query.tab = activeTab;
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
   };
 
   const renderResultCard = (result: SearchResult) => {
@@ -303,13 +304,15 @@ function SearchPage() {
     setExpandedFaqIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        next.add(id);
+        markViewed('faq', id).catch(() => {});
+      }
       return next;
     });
   };
 
-  // All-tab FAQ column: question-only accordion rows; the answer expands inline
-  // below a question only when it is clicked (no modal in this column).
+  // All-tab FAQ: question-only accordion with inline answer expansion.
   const renderFaqCard = (result: SearchResult) => {
     const expanded = expandedFaqIds.has(result._id);
     return (
@@ -327,7 +330,11 @@ function SearchPage() {
   };
 
   const handleResultClick = (result: SearchResult) => {
-    const tabParam = activeTab !== 'all' ? `&tab=${activeTab}` : '';
+    const params = new URLSearchParams();
+    params.set('from', 'search');
+    if (activeTab !== 'all') params.set('tab', activeTab);
+    if (searchQuery) params.set('q', searchQuery);
+    const qs = params.toString();
     if (result.type === "video") {
       sessionStorage.setItem(
         VIDEO_PREVIEW_STORAGE_KEY,
@@ -337,9 +344,10 @@ function SearchPage() {
           description: result.description || "",
         })
       );
-      router.push(`${ROUTE_PATHS.userVideoPreview}?from=search${tabParam}`);
+      markViewed('video', result._id).catch(() => {});
+      router.push(`${ROUTE_PATHS.userVideoPreview}?${qs}`);
     } else if (result.type === "blog") {
-      router.push(`${ROUTE_PATHS.userBlogPreview}?id=${result._id}&from=search${tabParam}`);
+      router.push(`${ROUTE_PATHS.userBlogPreview}?id=${result._id}&${qs}`);
     }
   };
 
@@ -375,8 +383,7 @@ function SearchPage() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  // New query = fresh results: collapse accordions and reset
-                  // the sizes sent to the backend as limits.
+                  // New query: collapse accordions and reset limits.
                   setExpandedFaqIds(new Set());
                   setSectionLimits(INITIAL_SECTION_LIMITS);
                   setVisibleCount(ITEMS_PER_PAGE);

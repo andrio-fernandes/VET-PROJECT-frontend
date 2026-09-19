@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Button, Empty, Typography } from "antd";
 import { PlayCircleOutlined, VideoCameraOutlined } from "@ant-design/icons";
-import { AdminLayout } from "@/layouts/AdminLayout";
-import { PageHeader } from "@/components/blog/PageHeader";
+import { AdminLayout } from "@/layouts/admin-layout";
+import { PageHeader } from "@/components/blog/page-header";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import PageLoading from "@/components/common/PageLoading";
-import { getVideoById } from "@/services/videoService";
+import PageLoading from "@/components/common/page-loading";
+import { getVideoById } from "@/services/video-service";
 import { VIDEO_PREVIEW_STORAGE_KEY, ROUTE_PATHS } from "@/constants";
 import { contentThumbnail } from "@/utils/media";
 import type { VideoRecord } from "@/types/video";
@@ -82,6 +82,13 @@ const VideoPreview = () => {
   const src = record?.videoUrl || (record ? "" : seed?.src);
   const thumbnail = contentThumbnail(record?.thumbnailUrl || seed?.thumbnail);
 
+  const from = router.query.from as string | undefined;
+  const section = router.query.section as string | undefined;
+  const tab = router.query.tab as string | undefined;
+  const backHref = from === 'dashboard'
+    ? `${ROUTE_PATHS.adminDashboard}?section=${section || 'recently-uploaded'}${tab ? `&tab=${tab}` : ''}`
+    : ROUTE_PATHS.videos;
+
   if (loading) {
     return <PageLoading />;
   }
@@ -101,7 +108,7 @@ const VideoPreview = () => {
             />
             <Button
               type="primary"
-              onClick={() => router.push(ROUTE_PATHS.videos)}
+              onClick={() => router.push(backHref)}
               style={{ marginTop: 16 }}
             >
               Back to Videos
@@ -116,10 +123,10 @@ const VideoPreview = () => {
     <AdminLayout>
       <div className="vp-page">
         <PageHeader
-          backHref={ROUTE_PATHS.videos}
+          backHref={backHref}
           title="Video preview"
           icon={<VideoCameraOutlined />}
-          showBack={false}
+          showBack={true}
         />
 
         <div className="vp-card">

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 
 import { ROUTE_PATHS, isTokenExpired, TOKEN_KEY, USER_KEY } from '@/constants';
 import { refreshSession } from '@/services/api';
-import PageLoading from '@/components/common/PageLoading';
+import PageLoading from '@/components/common/page-loading';
 
 interface StoredUser {
   id?: string;

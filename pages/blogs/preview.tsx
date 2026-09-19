@@ -4,9 +4,9 @@ import { EyeOutlined, FileTextOutlined, PaperClipOutlined } from '@ant-design/ic
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { PageHeader } from '@/components/blog/PageHeader';
-import PageLoading from '@/components/common/PageLoading';
+import { AdminLayout } from '@/layouts/admin-layout';
+import { PageHeader } from '@/components/blog/page-header';
+import PageLoading from '@/components/common/page-loading';
 
 import { BLOG_PREVIEW_STORAGE_KEY } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
@@ -16,9 +16,9 @@ import {
   mediaUrl,
   parseBlogAttachments,
 } from '@/utils/media';
-import { hasVisibleText, sanitizeRichText } from '@/utils/richText';
-import { readPreviewValue, removePreviewValue } from '@/utils/blogPreviewStorage';
-import { getBlogById } from '@/services/blogService';
+import { hasVisibleText, sanitizeRichText } from '@/utils/rich-text';
+import { readPreviewValue, removePreviewValue } from '@/utils/blog-preview-storage';
+import { getBlogById } from '@/services/blog-service';
 import type { BlogRecord, ParsedAttachment, PreviewDraft } from '@/types/blog';
 
 const { Title, Text } = Typography;
@@ -49,13 +49,12 @@ const BlogPreview = () => {
         } catch {
           /* ignore */
         }
-        // Only clean up the preview draft once it has been read (or confirmed
-        // absent), so it is never removed before the read above completes.
+        // Only clean up after reading to avoid removing before read completes.
         if (draft) {
-          // Tolerate drafts saved before the rename of `feature` -> `category`.
+          // Handle drafts saved before feature->category rename.
           const category =
             (draft as any).category ?? (draft as any).feature;
-          // Draft restore intentionally seeds state from storage on mount.
+          // Intentionally seed state from storage on mount.
           setBlog({
             title: draft.title,
             description: draft.description,
@@ -109,8 +108,7 @@ const BlogPreview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, blogId, isPreviewMode]);
 
-  // mediaUrl resolves server-relative /uploads paths and passes data: / https:
-  // URLs through unchanged, so it is safe to apply in both preview modes.
+  // mediaUrl resolves /uploads paths and passes data:/https URLs through.
   const attachmentUrls = parseBlogAttachments(blog?.attachment).map((a) => ({
     ...a,
     url: mediaUrl(a.url),
@@ -118,11 +116,10 @@ const BlogPreview = () => {
   const contentHtml = sanitizeRichText(blog?.content);
 
   const openAttachment = (att: ParsedAttachment) => {
-    // att.url is already resolved via mediaUrl() in attachmentUrls above, so
-    // any relative /uploads path, Cloudinary HTTPS URL and data: URL are ready.
+    // att.url already resolved via mediaUrl() - ready to use.
     const ext = getAttachmentExtension(att.name);
 
-    // PDFs: fetch into a blob so the browser's native PDF viewer handles it.
+    // PDFs: fetch as blob for native viewer.
     if (ext === 'pdf') {
       fetch(att.url)
         .then((res) => res.arrayBuffer())
@@ -137,8 +134,7 @@ const BlogPreview = () => {
       return;
     }
 
-    // Data URLs (draft preview): convert to blob URL so the browser can open
-    // them without relying on external viewers.
+    // Data URLs: convert to blob for browser opening.
     if (att.url.startsWith('data:')) {
       fetch(att.url)
         .then((res) => res.blob())
@@ -153,9 +149,7 @@ const BlogPreview = () => {
       return;
     }
 
-    // Server-stored Office files: try the Microsoft Office Online Viewer first.
-    // If the viewer cannot reach the URL (localhost, auth-required), fetch the
-    // file as a blob instead so it opens directly in the browser.
+    // Office files: try Microsoft viewer, fallback to blob fetch.
     const viewerUrl = buildDocumentViewerUrl(att.name, att.url);
     if (viewerUrl) {
       fetch(att.url)
@@ -178,7 +172,7 @@ const BlogPreview = () => {
           setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
         })
         .catch(() => {
-          // Fallback: let the browser handle the URL directly (may download).
+          // Fallback: let browser handle URL directly.
           window.open(att.url, '_blank');
         });
       return;
@@ -188,14 +182,21 @@ const BlogPreview = () => {
     window.open(att.url, '_blank');
   };
 
+  const from = router.query.from as string | undefined;
+  const section = router.query.section as string | undefined;
+  const tab = router.query.tab as string | undefined;
+  const backHref = from === 'dashboard'
+    ? `${ROUTE_PATHS.adminDashboard}?section=${section || 'recently-uploaded'}${tab ? `&tab=${tab}` : ''}`
+    : ROUTE_PATHS.blogs;
+
   return (
     <AdminLayout>
       <div className="bp-page">
       <PageHeader
-        backHref={ROUTE_PATHS.blogs}
+        backHref={backHref}
         title="Blog preview"
         icon={<FileTextOutlined />}
-        showBack={false}
+        showBack={true}
       />
 
       <div className="bp-card">

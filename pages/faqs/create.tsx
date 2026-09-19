@@ -2,21 +2,21 @@ import React, { useState } from 'react';
 import { Form, Input, Typography, App as AntApp } from 'antd';
 import { useRouter } from 'next/router';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { createFaq } from '@/services/faqService';
+import { createFaq } from '@/services/faq-service';
 import { ROUTE_PATHS, RETAINED_FAQ_STORAGE_KEY } from '@/constants';
-import WordCount from '@/components/WordCount';
-import ModuleCategorySelects from '@/components/ModuleCategorySelects';
-import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
-import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
-import { CreateFormActions } from '@/components/common/create/CreateFormActions';
-import { FaqPreviewModal } from '@/components/common/FaqPreviewModal';
+import WordCount from '@/components/word-count';
+import ModuleCategorySelects from '@/components/module-category-selects';
+import { CreateContentLayout } from '@/components/common/create/create-content-layout';
+import { CreatePageHeader } from '@/components/common/create/create-page-header';
+import { CreateFormActions } from '@/components/common/create/create-form-actions';
+import { FaqPreviewModal } from '@/components/common/faq-preview-modal';
 import {
   wordCountValidator,
   scrollToFirstError,
   resetCategoryOnModuleChange,
-} from '@/utils/formValidation';
-import { useUnsavedNavigation } from '@/hooks/useUnsavedNavigation';
-import { useDraftRestore } from '@/hooks/useDraftRestore';
+} from '@/utils/form-validation';
+import { useUnsavedNavigation } from '@/hooks/use-unsaved-navigation';
+import { useDraftRestore } from '@/hooks/use-draft-restore';
 
 const { Title } = Typography;
 
@@ -197,7 +197,15 @@ const UploadFAQ = () => {
               <div className="create-divider" />
 
               <CreateFormActions
-                  onPreview={() => setPreviewVisible(true)}
+                  onPreview={async () => {
+                    try {
+                      await form.validateFields();
+                      setPreviewVisible(true);
+                    } catch (err: any) {
+                      setSubmitted(true);
+                      scrollToFirstError(form, err?.errorFields);
+                    }
+                  }}
                   onCancel={handleCancel}
                   loading={loading}
                   submitLabel="Create"

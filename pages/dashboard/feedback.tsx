@@ -9,11 +9,11 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminLayout } from '@/layouts/admin-layout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import PageLoading from '@/components/common/PageLoading';
-import ClampedCellText from '@/components/common/ClampedCellText';
-import { useClampedRows } from '@/hooks/useClampedRows';
+import PageLoading from '@/components/common/page-loading';
+import ClampedCellText from '@/components/common/clamped-cell-text';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
 import { PAGE_SIZE } from '@/constants';
 import {
   getFeedbacks,
@@ -21,7 +21,7 @@ import {
   updateFeedbackStatus,
   type FeedbackRecord,
   type FeedbackStatus,
-} from '@/services/feedbackService';
+} from '@/services/feedback-service';
 
 const { Text } = Typography;
 

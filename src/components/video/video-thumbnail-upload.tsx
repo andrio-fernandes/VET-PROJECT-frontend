@@ -13,7 +13,7 @@ import { App as AntApp, Button, Form, Upload } from "antd";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { MAX_THUMBNAIL_SIZE } from "@/constants";
 import { contentThumbnail } from "@/utils/media";
-import ThumbnailCropModal from "@/components/common/ThumbnailCropModal";
+import ThumbnailCropModal from "@/components/common/thumbnail-crop-modal";
 
 interface VideoThumbnailUploadProps {
   thumbnail: File | null;

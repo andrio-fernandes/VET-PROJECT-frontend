@@ -9,8 +9,8 @@
 
 import React from "react";
 import { Form, Input } from "antd";
-import WordCount from "@/components/WordCount";
-import { wordCountValidator } from "@/utils/formValidation";
+import WordCount from "@/components/word-count";
+import { wordCountValidator } from "@/utils/form-validation";
 
 export const VideoDetailsFields: React.FC = () => {
   const titleValue = Form.useWatch("title");

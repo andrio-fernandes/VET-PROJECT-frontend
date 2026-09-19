@@ -5,26 +5,26 @@ import { App as AntApp, Button, Divider, Modal, Typography } from 'antd';
 import { useRouter } from 'next/router';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import PageLoading from '@/components/common/PageLoading';
-import { CreateContentLayout } from '@/components/common/create/CreateContentLayout';
-import { CreatePageHeader } from '@/components/common/create/CreatePageHeader';
-import { CreateFormActions } from '@/components/common/create/CreateFormActions';
-import { ThumbnailUpload } from '@/components/blog/ThumbnailUpload';
-import { AttachmentUpload } from '@/components/blog/AttachmentUpload';
-import { BlogDetailsFields } from '@/components/blog/BlogDetailsFields';
-import { BlogCategoryFields } from '@/components/blog/BlogCategoryFields';
-import { BlogContentField } from '@/components/blog/BlogContentField';
-import { BlogPreviewModal, type BlogPreviewData } from '@/components/blog/BlogPreviewModal';
+import PageLoading from '@/components/common/page-loading';
+import { CreateContentLayout } from '@/components/common/create/create-content-layout';
+import { CreatePageHeader } from '@/components/common/create/create-page-header';
+import { CreateFormActions } from '@/components/common/create/create-form-actions';
+import { ThumbnailUpload } from '@/components/blog/thumbnail-upload';
+import { AttachmentUpload } from '@/components/blog/attachment-upload';
+import { BlogDetailsFields } from '@/components/blog/blog-details-fields';
+import { BlogCategoryFields } from '@/components/blog/blog-category-fields';
+import { BlogContentField } from '@/components/blog/blog-content-field';
+import { BlogPreviewModal, type BlogPreviewData } from '@/components/blog/blog-preview-modal';
 
 import { GREEN } from '@/constants/blog';
 import { ROUTE_PATHS } from '@/constants';
-import { createBlog, getBlogById, updateBlog } from '@/services/blogService';
+import { createBlog, getBlogById, updateBlog } from '@/services/blog-service';
 import { fileNameFromUrl, mediaUrl, parseBlogAttachments } from '@/utils/media';
 import {
   DEFAULT_FORM_VALUES,
   useBlogDraft,
   type BlogFormValues,
-} from '@/hooks/useBlogDraft';
+} from '@/hooks/use-blog-draft';
 
 const { Title, Text } = Typography;
 
@@ -172,6 +172,16 @@ const UploadBlog = () => {
   };
 
   const handlePreviewModal = async () => {
+    const values = getValues();
+    const hasAnyField = values.title || values.description || values.module || values.category || values.content;
+    if (hasAnyField) {
+      const data = await preparePreviewData();
+      if (data) {
+        setPreviewData(data);
+        setPreviewVisible(true);
+      }
+      return;
+    }
     const valid = await trigger();
     if (!valid) {
       scrollToFirstInvalid();

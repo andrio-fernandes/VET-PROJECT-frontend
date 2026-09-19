@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Button, Card, Flex, Form, Input, App as AntApp, Grid } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { login } from '@/services/authService';
-import { storeSession } from '@/hooks/useAuth';
+import { login } from '@/services/auth-service';
+import { storeSession } from '@/hooks/use-auth';
 import { ROUTE_PATHS } from '@/constants';
 import { preventSpaces } from '@/utils/input';
-import PageLoading from '@/components/common/PageLoading';
+import PageLoading from '@/components/common/page-loading';
 
 const { useBreakpoint } = Grid;
 

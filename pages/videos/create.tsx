@@ -1,20 +1,20 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import { withAdminAuth } from "@/components/auth/with-admin-auth";
-import { createVideo, getVideoById, updateVideo } from "@/services/videoService";
+import { createVideo, getVideoById, updateVideo } from "@/services/video-service";
 import { ROUTE_PATHS, RETAINED_VIDEO_STORAGE_KEY } from "@/constants";
 import { Form, Typography, App as AntApp } from "antd";
-import { CreateContentLayout } from "@/components/common/create/CreateContentLayout";
-import { CreatePageHeader } from "@/components/common/create/CreatePageHeader";
-import { CreateFormActions } from "@/components/common/create/CreateFormActions";
-import PageLoading from "@/components/common/PageLoading";
-import { useUnsavedNavigation } from "@/hooks/useUnsavedNavigation";
-import { useDraftRestore } from "@/hooks/useDraftRestore";
-import { useVideoUpload } from "@/hooks/useVideoUpload";
+import { CreateContentLayout } from "@/components/common/create/create-content-layout";
+import { CreatePageHeader } from "@/components/common/create/create-page-header";
+import { CreateFormActions } from "@/components/common/create/create-form-actions";
+import PageLoading from "@/components/common/page-loading";
+import { useUnsavedNavigation } from "@/hooks/use-unsaved-navigation";
+import { useDraftRestore } from "@/hooks/use-draft-restore";
+import { useVideoUpload } from "@/hooks/use-video-upload";
 import {
   resetCategoryOnModuleChange,
   scrollToFirstError,
-} from "@/utils/formValidation";
+} from "@/utils/form-validation";
 import { VideoDetailsFields } from "@/components/video/video-details-fields";
 import { VideoModuleCategoryField } from "@/components/video/video-module-category-field";
 import { VideoThumbnailUpload } from "@/components/video/video-thumbnail-upload";
@@ -419,6 +419,15 @@ const UploadVideo = () => {
               {/* Footer */}
               <CreateFormActions
                 onPreview={async () => {
+                  const values = form.getFieldsValue();
+                  const hasAnyField = values.title || values.description || values.module || values.category;
+                  if (hasAnyField) {
+                    upload.openPreview(
+                      form.getFieldValue("title") || "",
+                      form.getFieldValue("description") || ""
+                    );
+                    return;
+                  }
                   try {
                     await form.validateFields();
                     upload.openPreview(

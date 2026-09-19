@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Button, Empty, Typography } from 'antd';
 import { PlayCircleOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { UserLayout } from '@/layouts/UserLayout';
-import { PageHeader } from '@/components/blog/PageHeader';
+import { UserLayout } from '@/layouts/user-layout';
+import { PageHeader } from '@/components/blog/page-header';
 import { withAuth } from '@/components/auth/with-auth';
-import PageLoading from '@/components/common/PageLoading';
+import PageLoading from '@/components/common/page-loading';
 import {
   getLibraryVideoById,
   getWatchProgress,
   saveWatchProgress,
-} from '@/services/libraryService';
+} from '@/services/library-service';
 import { VIDEO_PREVIEW_STORAGE_KEY, ROUTE_PATHS } from '@/constants';
 import { contentThumbnail } from '@/utils/media';
 import type { VideoRecord } from '@/types/video';
@@ -188,10 +188,18 @@ const UserVideoPreview = () => {
   const from = router.query.from as string | undefined;
   const tab = router.query.tab as string | undefined;
   const section = router.query.section as string | undefined;
+  const searchQ = router.query.q as string | undefined;
+  const buildSearchBackHref = () => {
+    const params = new URLSearchParams();
+    if (tab) params.set('tab', tab);
+    if (searchQ) params.set('q', searchQ);
+    const qs = params.toString();
+    return `${ROUTE_PATHS.search}${qs ? `?${qs}` : ''}`;
+  };
   const backHref = from === 'search'
-    ? `${ROUTE_PATHS.search}${tab ? `?tab=${tab}` : ''}`
+    ? buildSearchBackHref()
     : from === 'dashboard'
-      ? `${ROUTE_PATHS.userDashboard}${section ? `?section=${section}` : ''}`
+      ? `${ROUTE_PATHS.userDashboard}?section=${section || 'latest-content'}${tab ? `&tab=${tab}` : ''}`
       : ROUTE_PATHS.userVideos;
 
   return (

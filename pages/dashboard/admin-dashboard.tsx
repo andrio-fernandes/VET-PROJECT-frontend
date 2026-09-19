@@ -9,25 +9,25 @@ import {
   FileTextOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminLayout } from '@/layouts/admin-layout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import PageLoading from '@/components/common/PageLoading';
+import PageLoading from '@/components/common/page-loading';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import VideoStatusTag from '@/components/video/VideoStatusTag';
+import VideoStatusTag from '@/components/video/video-status-tag';
 import {
   fetchDashboardStats,
   fetchRecentBlogs,
   fetchRecentFaqs,
   fetchRecentVideos,
-} from '@/redux/dashboard/dashboardSlice';
+} from '@/redux/dashboard/dashboard-slice';
 import { selectDashboard, selectDashboardError } from '@/redux/dashboard/selectors';
-import { useCurrentUser } from '@/hooks/useAuth';
-import { useClampedRows } from '@/hooks/useClampedRows';
+import { useCurrentUser } from '@/hooks/use-auth';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
-import { notifyFailedVideos } from '@/utils/videoFailure';
+import { notifyFailedVideos } from '@/utils/video-failure';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
-import { ViewFAQModal } from '@/components/common/ViewFAQModal';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import { ViewFAQModal } from '@/components/common/view-faq-modal';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 
@@ -43,6 +43,8 @@ interface TableItem {
   description?: string;
   videoUrl?: string;
 }
+
+const validTabs = ['Video', 'Blog', 'FAQs'] as const;
 
 const Dashboard = () => {
   const router = useRouter();
@@ -75,6 +77,28 @@ const Dashboard = () => {
       notifyFailedVideos(notification, purgedVideos);
     }
   }, [purgedVideos, notification]);
+
+  const sectionScrolledRef = React.useRef(false);
+
+  useEffect(() => {
+    if (sectionScrolledRef.current) return;
+    const section = router.query.section as string | undefined;
+    if (section && router.isReady) {
+      sectionScrolledRef.current = true;
+      requestAnimationFrame(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [router.query.section, router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query.tab;
+    if (typeof q === 'string') {
+      const match = validTabs.find(t => t.toLowerCase() === q.toLowerCase());
+      if (match) setActiveTab(match);
+    }
+  }, [router.query.tab, router.isReady]);
 
   useEffect(() => {
     if (activeTab === 'Video') {
@@ -201,9 +225,9 @@ const Dashboard = () => {
                     src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
                   })
                 );
-                router.push(ROUTE_PATHS.videoPreview);
+                router.push(`${ROUTE_PATHS.videoPreview}?from=dashboard&section=recently-uploaded&tab=video`);
               } else {
-                router.push(`${ROUTE_PATHS.blogPreview}?id=${record.key}`);
+                router.push(`${ROUTE_PATHS.blogPreview}?id=${record.key}&from=dashboard&section=recently-uploaded&tab=blog`);
               }
             }}
           />
@@ -286,7 +310,7 @@ const Dashboard = () => {
       </div>
 
       {/* RECENTLY UPLOADED CONTENT */}
-      <div className="dash-section-title">Recently uploaded content</div>
+      <div id="recently-uploaded" className="dash-section-title">Recently uploaded content</div>
       <div className="dash-recent-box">
 
         <div className="dash-tabs">

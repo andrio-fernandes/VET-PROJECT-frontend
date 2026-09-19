@@ -7,19 +7,19 @@ import {
   DeleteOutlined,
   QuestionCircleOutlined
 } from '@ant-design/icons';
-import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminLayout } from '@/layouts/admin-layout';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { PAGE_SIZE, ROUTE_PATHS } from '@/constants';
-import { useCanManage } from '@/hooks/useCanManage';
-import { useContentFilters } from '@/hooks/useContentFilters';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
-import { useClampedRows } from '@/hooks/useClampedRows';
-import { deleteFaq, getMyFaqs } from '@/services/faqService';
+import { useCanManage } from '@/hooks/use-can-manage';
+import { useContentFilters } from '@/hooks/use-content-filters';
+import { useDeleteConfirm } from '@/hooks/use-delete-confirm';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
+import { deleteFaq, getMyFaqs } from '@/services/faq-service';
 import type { FaqRecord } from '@/types/faq';
-import { ViewAllTable } from '@/components/common/ViewAllTable';
-import { ViewFAQModal } from '@/components/common/ViewFAQModal';
-import { buildContentColumns } from '@/components/common/contentColumns';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import { ViewAllTable } from '@/components/common/view-all-table';
+import { ViewFAQModal } from '@/components/common/view-faq-modal';
+import { buildContentColumns } from '@/components/common/content-columns';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 

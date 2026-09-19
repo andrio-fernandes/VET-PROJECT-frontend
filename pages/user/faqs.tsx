@@ -4,21 +4,21 @@ import {
   EyeOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
-import { UserLayout } from '@/layouts/UserLayout';
+import { UserLayout } from '@/layouts/user-layout';
 import { withAuth } from '@/components/auth/with-auth';
 import { PAGE_SIZE, ROUTE_PATHS } from '@/constants';
-import { useContentFilters } from '@/hooks/useContentFilters';
-import { useClampedRows } from '@/hooks/useClampedRows';
-import { getLibraryFaqs, markViewed } from '@/services/libraryService';
+import { useContentFilters } from '@/hooks/use-content-filters';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
+import { getLibraryFaqs, markViewed } from '@/services/library-service';
 import type { FaqRecord } from '@/types/faq';
-import { ViewAllTable } from '@/components/common/ViewAllTable';
-import { ViewFAQModal } from '@/components/common/ViewFAQModal';
-import { buildContentColumns } from '@/components/common/contentColumns';
-import ViewedBadge from '@/components/common/ViewedBadge';
-import NewBadge from '@/components/common/NewBadge';
-import useViewedFlash from '@/hooks/useViewedFlash';
-import useNewBadge from '@/hooks/useNewBadge';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import { ViewAllTable } from '@/components/common/view-all-table';
+import { ViewFAQModal } from '@/components/common/view-faq-modal';
+import { buildContentColumns } from '@/components/common/content-columns';
+import ViewedBadge from '@/components/common/viewed-badge';
+import NewBadge from '@/components/common/new-badge';
+import useViewedFlash from '@/hooks/use-viewed-flash';
+import useNewBadge from '@/hooks/use-new-badge';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 

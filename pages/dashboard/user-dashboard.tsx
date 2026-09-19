@@ -19,25 +19,26 @@ import {
 import dayjs from 'dayjs';
 
 import videoThumbnail from '@/assets/default.svg';
-import { UserLayout } from '@/layouts/UserLayout';
+import { UserLayout } from '@/layouts/user-layout';
 import { withAuth } from '@/components/auth/with-auth';
-import PageLoading from '@/components/common/PageLoading';
-import { useCurrentUser } from '@/hooks/useAuth';
-import { useClampedRows } from '@/hooks/useClampedRows';
-import useNewBadge from '@/hooks/useNewBadge';
+import PageLoading from '@/components/common/page-loading';
+import { useCurrentUser } from '@/hooks/use-auth';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
+import useNewBadge from '@/hooks/use-new-badge';
 import { ROUTE_PATHS, VIDEO_PREVIEW_STORAGE_KEY } from '@/constants';
 import {
   getContinueLearning,
   getLibraryBlogs,
   getLibraryFaqs,
   getLibraryVideos,
+  markViewed,
   type ContinueLearningData,
-} from '@/services/libraryService';
-import { submitFeedback } from '@/services/feedbackService';
+} from '@/services/library-service';
+import { submitFeedback } from '@/services/feedback-service';
 import { mediaUrl, contentThumbnail } from '@/utils/media';
-import { ViewFAQModal } from '@/components/common/ViewFAQModal';
-import NewBadge from '@/components/common/NewBadge';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import { ViewFAQModal } from '@/components/common/view-faq-modal';
+import NewBadge from '@/components/common/new-badge';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -70,6 +71,18 @@ const UserDashboardPage = () => {
   const [feedbackSending, setFeedbackSending] = useState(false);
 
   const [activeTab, setActiveTab] = useState('Video');
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query.tab;
+    if (typeof q === 'string') {
+      const normalized = q.toLowerCase();
+      if (['video', 'blog', 'faqs'].includes(normalized)) {
+        const match = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+        setActiveTab(match === 'Faqs' ? 'FAQs' : match);
+      }
+    }
+  }, [router.query.tab, router.isReady]);
   const [loading, setLoading] = useState(true);
   const [dashboardSearch, setDashboardSearch] = useState('');
   const [recentVideos, setRecentVideos] = useState<LibraryTableItem[]>([]);
@@ -190,14 +203,16 @@ const UserDashboardPage = () => {
     }
   }, [message]);
 
-  // Load the continue-learning / recently-viewed payload once on mount.
-  useEffect(() => {
+  const fetchContinueData = useCallback(() => {
     getContinueLearning()
       .then((data) => setContinueData(data))
-      .catch(() => {
-        // Continue card falls back to the empty state; the library still works.
-      });
+      .catch(() => {});
   }, []);
+
+  // Load the continue-learning / recently-viewed payload once on mount.
+  useEffect(() => {
+    fetchContinueData();
+  }, [fetchContinueData]);
 
   // Scroll to a specific section when returning from a preview page.
   useEffect(() => {
@@ -318,6 +333,7 @@ const UserDashboardPage = () => {
               onClick={() => {
                 if (activeTab === 'FAQs') {
                   setViewingFaq(record);
+                  markViewed('faq', record.key).then(() => fetchContinueData()).catch(() => {});
                 } else if (activeTab === 'Video') {
                   sessionStorage.setItem(
                     VIDEO_PREVIEW_STORAGE_KEY,
@@ -328,9 +344,10 @@ const UserDashboardPage = () => {
                       src: record.videoUrl ? mediaUrl(record.videoUrl) : '',
                     })
                   );
-                  router.push(`${ROUTE_PATHS.userVideoPreview}?from=dashboard&section=latest-content`);
+                  markViewed('video', record.key).then(() => fetchContinueData()).catch(() => {});
+                  router.push(`${ROUTE_PATHS.userVideoPreview}?from=dashboard&section=latest-content&tab=video`);
                 } else {
-                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.key}&from=dashboard&section=latest-content`);
+                  router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.key}&from=dashboard&section=latest-content&tab=blog`);
                 }
               }}
             />
@@ -451,7 +468,7 @@ const UserDashboardPage = () => {
                           dataIndex: 'type',
                           key: 'type',
                           width: '15%',
-                          render: (text: string) => <Text>{text === 'faq' ? 'FAQ' : 'Blog'}</Text>,
+                          render: (text: string) => <Text>{text === 'faq' ? 'FAQ' : text === 'video' ? 'Video' : 'Blog'}</Text>,
                         },
                         {
                           title: 'Viewed',
@@ -479,6 +496,16 @@ const UserDashboardPage = () => {
                                     question: record.title,
                                     answer: record.text,
                                   });
+                                } else if (record.type === 'video') {
+                                  sessionStorage.setItem(
+                                    VIDEO_PREVIEW_STORAGE_KEY,
+                                    JSON.stringify({
+                                      id: record.contentId,
+                                      title: record.title,
+                                      description: record.text || '',
+                                    })
+                                  );
+                                  router.push(`${ROUTE_PATHS.userVideoPreview}?from=dashboard&section=recently-viewed`);
                                 } else {
                                   router.push(`${ROUTE_PATHS.userBlogPreview}?id=${record.contentId}&from=dashboard&section=recently-viewed`);
                                 }

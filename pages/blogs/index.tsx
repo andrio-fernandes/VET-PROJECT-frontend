@@ -4,25 +4,25 @@ import { App as AntApp, Button, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { ViewAllTable } from '@/components/common/ViewAllTable';
-import { buildContentColumns } from '@/components/common/contentColumns';
+import { AdminLayout } from '@/layouts/admin-layout';
+import { ViewAllTable } from '@/components/common/view-all-table';
+import { buildContentColumns } from '@/components/common/content-columns';
 
 import {
   ROUTE_PATHS,
   PAGE_SIZE,
 } from '@/constants';
 import { contentThumbnail } from '@/utils/media';
-import { useCanManage } from '@/hooks/useCanManage';
-import { useContentFilters } from '@/hooks/useContentFilters';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
-import { useClampedRows } from '@/hooks/useClampedRows';
-import { deleteBlog } from '@/services/blogService';
-import { fetchBlogsPage } from '@/redux/blog/blogSlice';
+import { useCanManage } from '@/hooks/use-can-manage';
+import { useContentFilters } from '@/hooks/use-content-filters';
+import { useDeleteConfirm } from '@/hooks/use-delete-confirm';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
+import { deleteBlog } from '@/services/blog-service';
+import { fetchBlogsPage } from '@/redux/blog/blog-slice';
 import { selectBlogError, selectBlogLoading, selectBlogsForPage, selectBlogsTotal } from '@/redux/blog/selectors';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import type { BlogListItem } from '@/types/blog';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 

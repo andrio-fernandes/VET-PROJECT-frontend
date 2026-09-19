@@ -17,11 +17,11 @@ import {
 } from "antd";
 
 import { withAuth } from "@/components/auth/with-auth";
-import { AdminLayout } from "@/layouts/AdminLayout";
-import { UserLayout } from "@/layouts/UserLayout";
-import { useCurrentUser, updateStoredUser } from "@/hooks/useAuth";
-import { updateProfileAvatar, deleteProfileAvatar } from "@/services/authService";
-import ThumbnailCropModal from "@/components/common/ThumbnailCropModal";
+import { AdminLayout } from "@/layouts/admin-layout";
+import { UserLayout } from "@/layouts/user-layout";
+import { useCurrentUser, updateStoredUser } from "@/hooks/use-auth";
+import { updateProfileAvatar, deleteProfileAvatar } from "@/services/auth-service";
+import ThumbnailCropModal from "@/components/common/thumbnail-crop-modal";
 
 const { Title, Text } = Typography;
 
@@ -195,6 +195,7 @@ const ProfilePage = () => {
           <ThumbnailCropModal
             open={cropOpen}
             imageSrc={pendingCropSrc}
+            title="Crop Image"
             onCancel={handleCropCancel}
             onConfirm={handleCropConfirm}
           />

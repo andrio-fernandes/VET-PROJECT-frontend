@@ -188,7 +188,7 @@ a {
 
 .register-submit-button {
   background: linear-gradient(to right, #e8f8e0, #b8e8a0);
-  color: #237a07;
+  color: #1a5c04;
   border-radius: 20px;
   height: 42px;
   font-weight: bold;
@@ -202,14 +202,14 @@ a {
 
 .register-login-row {
   text-align: center;
-  color: #555;
+  color: #262626;
   margin-top: 10px;
   font-size: 14px;
 }
 
 .register-login-link {
-  color: #54b226;
-  font-weight: bold;
+  color: #389e0d;
+  font-weight: 700;
   text-decoration: underline;
 }
 

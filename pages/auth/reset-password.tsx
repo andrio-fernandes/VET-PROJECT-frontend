@@ -2,14 +2,14 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Form, Input, Typography, App as AntApp } from "antd";
 import { useRouter } from "next/router";
 
-import { resetPassword } from "@/services/authService";
+import { resetPassword } from "@/services/auth-service";
 import { passwordRules } from "@/utils/validation";
-import { clearSession } from "@/hooks/useAuth";
+import { clearSession } from "@/hooks/use-auth";
 import { ROUTE_PATHS, STORAGE_KEYS, PASSWORD_VALIDATOR_RULES } from "@/constants";
-import { clearResetFlow } from "@/utils/resetFlow";
+import { clearResetFlow } from "@/utils/reset-flow";
 import PasswordStrength from "@/components/password-strength";
-import AuthCard from "@/components/AuthCard";
-import PageLoading from "@/components/common/PageLoading";
+import AuthCard from "@/components/auth-card";
+import PageLoading from "@/components/common/page-loading";
 import { preventSpaces, preventPaste, emptySubscribe } from "@/utils/input";
 import type { ResetPasswordFormValues } from "@/types/auth";
 

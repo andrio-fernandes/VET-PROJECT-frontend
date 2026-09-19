@@ -4,20 +4,20 @@ import { App as AntApp, Button, Typography } from 'antd';
 import { EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 
 import { withAuth } from '@/components/auth/with-auth';
-import { UserLayout } from '@/layouts/UserLayout';
-import { ViewAllTable } from '@/components/common/ViewAllTable';
-import { buildContentColumns } from '@/components/common/contentColumns';
+import { UserLayout } from '@/layouts/user-layout';
+import { ViewAllTable } from '@/components/common/view-all-table';
+import { buildContentColumns } from '@/components/common/content-columns';
 import { ROUTE_PATHS, PAGE_SIZE, VIEWED_FLASH_STORAGE_KEY } from '@/constants';
-import { useContentFilters } from '@/hooks/useContentFilters';
-import { useClampedRows } from '@/hooks/useClampedRows';
-import { getLibraryBlogs } from '@/services/libraryService';
+import { useContentFilters } from '@/hooks/use-content-filters';
+import { useClampedRows } from '@/hooks/use-clamped-rows';
+import { getLibraryBlogs } from '@/services/library-service';
 import type { BlogListItem } from '@/types/blog';
 import { contentThumbnail } from '@/utils/media';
-import ViewedBadge from '@/components/common/ViewedBadge';
-import NewBadge from '@/components/common/NewBadge';
-import useViewedFlash from '@/hooks/useViewedFlash';
-import useNewBadge from '@/hooks/useNewBadge';
-import ClampedCellText from '@/components/common/ClampedCellText';
+import ViewedBadge from '@/components/common/viewed-badge';
+import NewBadge from '@/components/common/new-badge';
+import useViewedFlash from '@/hooks/use-viewed-flash';
+import useNewBadge from '@/hooks/use-new-badge';
+import ClampedCellText from '@/components/common/clamped-cell-text';
 
 const { Text } = Typography;
 
